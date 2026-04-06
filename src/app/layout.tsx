@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PocketProvider } from "@/components/pocket-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-[#05060a] text-white">{children}</body>
+      <body className="min-h-full bg-[#05060a] text-white">
+        <PocketProvider>{children}</PocketProvider>
+      </body>
     </html>
   );
 }

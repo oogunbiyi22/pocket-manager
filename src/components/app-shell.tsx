@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
-import { getPocketSystemSnapshot, projects } from "@/lib/backstage-data";
+import { getActiveRoomSummary, getPocketSystemSnapshot } from "@/lib/backstage-data";
+import { usePocket } from "@/components/pocket-provider";
 
 const navItems = [
   { href: "/dashboard", label: "Today" },
   { href: "/mobile", label: "Mobile" },
   { href: "/projects", label: "Projects" },
+  { href: "/capture", label: "Capture" },
+  { href: "/vault", label: "Vault" },
   { href: "/manager", label: "Manager" },
   { href: "/settings", label: "Settings" },
 ];
@@ -23,8 +26,11 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const systemSnapshot = getPocketSystemSnapshot();
+  const { projects } = usePocket();
+  const systemSnapshot = getPocketSystemSnapshot(projects);
   const activeProject = projects[0];
+  const activeRoom = getActiveRoomSummary(activeProject);
+  const activeNav = navItems.find((item) => isNavActive(pathname, item.href))?.label ?? "Pocket";
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -37,10 +43,10 @@ export function AppShell({
 
           <div className="mt-5 grid grid-cols-2 gap-3 lg:hidden">
             <Link
-              href="/mobile"
+              href="/capture"
               className="rounded-2xl border border-emerald-300/20 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100 transition hover:border-emerald-300/30"
             >
-              Mobile
+              Capture
             </Link>
             <Link
               href="/projects"
@@ -84,26 +90,43 @@ export function AppShell({
 
           <header className="mb-8 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
+              <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">{activeNav}</div>
               {eyebrow ? (
                 <div className="text-xs uppercase tracking-[0.35em] text-emerald-300/80">{eyebrow}</div>
               ) : null}
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{title}</h1>
             </div>
             <div className="flex flex-wrap gap-3 text-sm">
-            <Link
-              href="/mobile"
-              className="rounded-full bg-white px-5 py-3 font-medium text-black transition hover:bg-emerald-200"
-            >
-              Open mobile
-            </Link>
-            <Link
-              href="/projects"
+              <Link
+                href="/capture"
+                className="rounded-full bg-white px-5 py-3 font-medium text-black transition hover:bg-emerald-200"
+              >
+                Open capture
+              </Link>
+              <Link
+                href="/projects"
                 className="rounded-full border border-white/15 px-5 py-3 text-white/80 transition hover:border-white/30 hover:text-white"
               >
                 View projects
               </Link>
             </div>
           </header>
+
+          <div className="mb-4 rounded-3xl border border-emerald-300/15 bg-emerald-300/6 px-5 py-4 text-sm text-white/75">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">Active room summary</div>
+                <div className="mt-2 text-white">
+                  {activeRoom.name} · {activeRoom.state} · {activeRoom.readiness}% ready
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-white/55">
+                <span className="rounded-full border border-white/10 px-2.5 py-1">{activeRoom.pressure}</span>
+                <span className="rounded-full border border-white/10 px-2.5 py-1">{activeRoom.blocked} blocked</span>
+              </div>
+            </div>
+            <div className="mt-3 leading-6 text-white/65">{activeRoom.nextMove}</div>
+          </div>
 
           <div className="mb-8 flex flex-wrap gap-3 text-sm">
             <Link
@@ -125,10 +148,10 @@ export function AppShell({
               Create new room
             </Link>
             <Link
-              href="/mobile"
+              href="/capture"
               className="rounded-full border border-white/10 px-4 py-2.5 text-white/75 transition hover:border-white/20 hover:text-white"
             >
-              Jump to mobile flow
+              Jump to capture
             </Link>
           </div>
           {children}
@@ -136,7 +159,7 @@ export function AppShell({
       </div>
 
       <div className="fixed inset-x-4 bottom-4 z-40 lg:hidden">
-        <nav className="grid grid-cols-5 rounded-[1.75rem] border border-white/10 bg-[#0b0d13]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur">
+        <nav className="grid grid-cols-7 rounded-[1.75rem] border border-white/10 bg-[#0b0d13]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur">
           {navItems.map((item) => (
             <Link
               key={item.href}

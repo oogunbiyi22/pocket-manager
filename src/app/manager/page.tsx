@@ -1,5 +1,8 @@
+"use client";
+
 import { AgentChatPanel } from "@/components/agent-chat-panel";
 import { AppShell, Panel } from "@/components/app-shell";
+import { usePocket } from "@/components/pocket-provider";
 import { AIVoiceInputDemo } from "@/components/ui/ai-voice-input-demo";
 import {
   getAudienceOwnershipLayer,
@@ -9,36 +12,37 @@ import {
   getEmergencyMode,
   getManagerBrief,
   getManagerMemory,
+  getManagerOutputConversions,
   getProjectSprint,
   getRevenueBrain,
   getSongWorld,
   getStudioPipeline,
   getTasteBoard,
   getWhatAmIMissing,
-  projects,
 } from "@/lib/backstage-data";
 
-const activeProject = projects[0];
-const managerBrief = getManagerBrief(activeProject);
-const managerMoves = getProjectSprint(activeProject);
-const managerMemory = getManagerMemory();
-const missing = getWhatAmIMissing(activeProject);
-const companion = getCompanionProfile(activeProject);
-const companionActions = getCompanionActions(activeProject);
-const tasteBoard = getTasteBoard(activeProject);
-const decisionEngine = getDecisionEngine(activeProject);
-const revenueBrain = getRevenueBrain(activeProject);
-const songWorld = getSongWorld(activeProject);
-const studioPipeline = getStudioPipeline(activeProject);
-const audienceLayer = getAudienceOwnershipLayer(activeProject);
-const emergencyMode = getEmergencyMode(activeProject);
-const managerOutputs = [
-  { title: "Next move", detail: managerBrief.bestMove },
-  { title: "Main risk", detail: managerBrief.mainRisk },
-  { title: "Best prompt", detail: managerBrief.supportPrompt },
-];
-
 export default function ManagerPage() {
+  const { activeProject, convertManagerAction, runManagerComposer } = usePocket();
+  const managerBrief = getManagerBrief(activeProject);
+  const managerMoves = getProjectSprint(activeProject);
+  const managerMemory = getManagerMemory();
+  const missing = getWhatAmIMissing(activeProject);
+  const companion = getCompanionProfile(activeProject);
+  const companionActions = getCompanionActions(activeProject);
+  const tasteBoard = getTasteBoard(activeProject);
+  const decisionEngine = getDecisionEngine(activeProject);
+  const revenueBrain = getRevenueBrain(activeProject);
+  const songWorld = getSongWorld(activeProject);
+  const studioPipeline = getStudioPipeline(activeProject);
+  const audienceLayer = getAudienceOwnershipLayer(activeProject);
+  const emergencyMode = getEmergencyMode(activeProject);
+  const outputConversions = getManagerOutputConversions(activeProject);
+  const managerOutputs = [
+    { title: "Next move", detail: managerBrief.bestMove },
+    { title: "Main risk", detail: managerBrief.mainRisk },
+    { title: "Best prompt", detail: managerBrief.supportPrompt },
+  ];
+
   return (
     <AppShell title="Pocket Manager" eyebrow="Career guidance engine">
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
@@ -103,6 +107,8 @@ export default function ManagerPage() {
             subtitle="A focused manager workspace for planning, rollout thinking, and next moves."
             companion={companion}
             actions={companionActions}
+            onAction={(actionType) => convertManagerAction(activeProject.id, actionType)}
+            onCompose={(input) => runManagerComposer(activeProject.id, input)}
           />
 
           <Panel title="Manager move-set" description="How this surface should convert pressure into action.">
@@ -181,6 +187,27 @@ export default function ManagerPage() {
                     {action.payload}
                   </div>
                 </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Output conversions" description="The manager should show exactly how advice becomes room objects.">
+            <div className="space-y-3 text-sm text-white/70">
+              {outputConversions.map((item) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => convertManagerAction(activeProject.id, item.type)}
+                  className="block w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-4 text-left transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="font-medium text-white">{item.title}</div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.type}
+                    </div>
+                  </div>
+                  <div className="mt-2 leading-6 text-white/70">{item.detail}</div>
+                </button>
               ))}
             </div>
           </Panel>

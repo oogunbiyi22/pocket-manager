@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
+import { ChangeEvent, useState } from "react";
 import { AppShell, Panel } from "@/components/app-shell";
+import { usePocket } from "@/components/pocket-provider";
 import {
   getAssetActionLinks,
   getAudienceOwnershipLayer,
@@ -23,20 +27,25 @@ import {
   getSongWorld,
   getStudioPipeline,
   getTasteBoard,
-  projects,
 } from "@/lib/backstage-data";
 
-export function generateStaticParams() {
-  return projects.map((project) => ({ projectId: project.id }));
-}
-
-export default async function ProjectDetailPage({
-  params,
-}: {
-  params: Promise<{ projectId: string }>;
-}) {
-  const { projectId } = await params;
-  const project = getProjectById(projectId);
+export default function ProjectDetailPage() {
+  const params = useParams<{ projectId: string }>();
+  const {
+    addAsset,
+    addOutreachContact,
+    addQuickAsset,
+    addQuickContentIdea,
+    addTask,
+    projects,
+    resolveMissingAsset,
+    setActiveProject,
+    uploadAssets,
+    updateOutreachStatus,
+    updateTaskStatus,
+  } = usePocket();
+  const projectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
+  const project = getProjectById(projectId, projects);
 
   if (!project) {
     notFound();
@@ -62,10 +71,34 @@ export default async function ProjectDetailPage({
   const opportunityFeed = getOpportunityFeed(project);
   const assetLinks = getAssetActionLinks(project);
   const collaborationPockets = getCollaborationPockets(project);
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    lane: "Create" as const,
+    dueLabel: "Today",
+    energy: "Light" as const,
+  });
+  const [assetForm, setAssetForm] = useState({
+    name: "",
+    type: "Artwork",
+    status: "Draft",
+  });
+  const [outreachForm, setOutreachForm] = useState({
+    name: "",
+    type: "Playlist",
+    status: "Draft",
+  });
+  const [vaultStatus, setVaultStatus] = useState("Uploaded");
 
   return (
     <AppShell title={project.name} eyebrow={`${project.type} · ${project.stage}`}>
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-sm">
+        <button
+          type="button"
+          onClick={() => setActiveProject(project.id)}
+          className="rounded-2xl border border-emerald-300/20 bg-emerald-300/8 px-4 py-4 text-left text-emerald-100 transition hover:border-emerald-300/35"
+        >
+          Make active room
+        </button>
         <Link
           href="/dashboard"
           className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 text-white/75 transition hover:border-emerald-300/20 hover:bg-white/[0.04] hover:text-white"
@@ -164,6 +197,50 @@ export default async function ProjectDetailPage({
 
         <Panel title="Files and assets" description="What exists and what still needs attention.">
           <div className="space-y-3 text-sm text-white/70">
+            <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="font-medium text-white">Vault drop</div>
+                  <div className="mt-2 leading-6 text-white/65">
+                    Add local files into this room now. They persist as uploaded asset records on this device.
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={vaultStatus}
+                    onChange={(event) => setVaultStatus(event.target.value)}
+                    className="rounded-full border border-white/10 bg-[#0a0a0f] px-4 py-2 text-sm text-white outline-none"
+                  />
+                  <label className="cursor-pointer rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200">
+                    Add files
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                        const files = Array.from(event.target.files ?? []);
+
+                        if (!files.length) {
+                          return;
+                        }
+
+                        uploadAssets(
+                          project.id,
+                          files.map((file) => ({
+                            name: file.name,
+                            sizeLabel: formatFileSize(file.size),
+                            type: inferUploadType(file.type, file.name),
+                            status: vaultStatus,
+                          })),
+                        );
+
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
             {project.assets.map((asset) => (
               <div key={asset.name} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
                 <div className="font-medium text-white">{asset.name}</div>
@@ -174,7 +251,14 @@ export default async function ProjectDetailPage({
             ))}
             {project.missingAssets.map((asset) => (
               <div key={asset} className="rounded-2xl border border-amber-300/15 bg-amber-200/5 px-4 py-3 text-amber-100/80">
-                Missing: {asset}
+                <div>Missing: {asset}</div>
+                <button
+                  type="button"
+                  onClick={() => resolveMissingAsset(project.id, asset)}
+                  className="mt-3 rounded-full border border-amber-100/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-amber-50 transition hover:border-amber-100/35"
+                >
+                  Mark resolved
+                </button>
               </div>
             ))}
           </div>
@@ -199,6 +283,22 @@ export default async function ProjectDetailPage({
                       Unblock: {task.unblock}
                     </div>
                   ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(["To do", "In progress", "Done"] as const).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => updateTaskStatus(project.id, task.title, status)}
+                        className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] transition ${
+                          task.status === status
+                            ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+                            : "border-white/10 text-white/55 hover:border-white/20 hover:text-white"
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -208,8 +308,26 @@ export default async function ProjectDetailPage({
               </div>
               <ul className="mt-3 space-y-2">
                 {project.outreach.map((contact) => (
-                  <li key={contact.name}>
-                    {contact.name} · {contact.type} · {contact.status}
+                  <li key={contact.name} className="rounded-2xl border border-white/10 px-3 py-3">
+                    <div className="text-white">
+                      {contact.name} · {contact.type} · {contact.status}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(["Draft", "Sent", "Follow-up due", "Replied"] as const).map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => updateOutreachStatus(project.id, contact.name, status)}
+                          className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.16em] transition ${
+                            contact.status === status
+                              ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+                              : "border-white/10 text-white/55 hover:border-white/20 hover:text-white"
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -248,6 +366,149 @@ export default async function ProjectDetailPage({
             <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
               <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">Blocked count</div>
               <div className="mt-2 text-white">{blockedTasks}</div>
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      <div className="mt-6">
+        <Panel title="Quick room controls" description="The room should let the artist create momentum fast, not only inspect the situation.">
+          <div className="grid gap-4 xl:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-white/75">
+              <div className="font-medium text-white">Add task</div>
+              <div className="mt-2 leading-6 text-white/60">Push a real next move into the room.</div>
+              <input
+                value={taskForm.title}
+                onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Approve cover alt"
+                className="mt-4 w-full rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/25"
+              />
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <select
+                  value={taskForm.lane}
+                  onChange={(event) => setTaskForm((current) => ({ ...current, lane: event.target.value as typeof current.lane }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                >
+                  {["Create", "Admin", "Promo", "Personal"].map((item) => (
+                    <option key={item} value={item} className="bg-[#0a0a0f]">
+                      {item}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={taskForm.dueLabel}
+                  onChange={(event) => setTaskForm((current) => ({ ...current, dueLabel: event.target.value }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                />
+                <select
+                  value={taskForm.energy}
+                  onChange={(event) => setTaskForm((current) => ({ ...current, energy: event.target.value as typeof current.energy }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                >
+                  {["Light", "Medium", "Heavy"].map((item) => (
+                    <option key={item} value={item} className="bg-[#0a0a0f]">
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!taskForm.title.trim()) return;
+                  addTask(project.id, taskForm);
+                  setTaskForm({ title: "", lane: "Create", dueLabel: "Today", energy: "Light" });
+                }}
+                className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200"
+              >
+                Save task
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-white/75">
+              <div className="font-medium text-white">Add asset</div>
+              <div className="mt-2 leading-6 text-white/60">Log a real file or package state into the room.</div>
+              <input
+                value={assetForm.name}
+                onChange={(event) => setAssetForm((current) => ({ ...current, name: event.target.value }))}
+                placeholder="late-nights-cover-final.png"
+                className="mt-4 w-full rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/25"
+              />
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <input
+                  value={assetForm.type}
+                  onChange={(event) => setAssetForm((current) => ({ ...current, type: event.target.value }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                />
+                <input
+                  value={assetForm.status}
+                  onChange={(event) => setAssetForm((current) => ({ ...current, status: event.target.value }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => addQuickAsset(project.id, "Fresh teaser clip")}
+                  className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/60 transition hover:border-white/20 hover:text-white"
+                >
+                  Quick teaser
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!assetForm.name.trim()) return;
+                    addAsset(project.id, assetForm);
+                    setAssetForm({ name: "", type: "Artwork", status: "Draft" });
+                  }}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200"
+                >
+                  Save asset
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-white/75">
+              <div className="font-medium text-white">Add outreach lead</div>
+              <div className="mt-2 leading-6 text-white/60">Keep contact motion inside the room.</div>
+              <input
+                value={outreachForm.name}
+                onChange={(event) => setOutreachForm((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Night Shift Playlist"
+                className="mt-4 w-full rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/25"
+              />
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <input
+                  value={outreachForm.type}
+                  onChange={(event) => setOutreachForm((current) => ({ ...current, type: event.target.value }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                />
+                <input
+                  value={outreachForm.status}
+                  onChange={(event) => setOutreachForm((current) => ({ ...current, status: event.target.value }))}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-3 py-3 text-white outline-none"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => addQuickContentIdea(project.id, "Quick post-release reaction prompt")}
+                  className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/60 transition hover:border-white/20 hover:text-white"
+                >
+                  Queue content angle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!outreachForm.name.trim()) return;
+                    addOutreachContact(project.id, outreachForm);
+                    setOutreachForm({ name: "", type: "Playlist", status: "Draft" });
+                  }}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200"
+                >
+                  Save lead
+                </button>
+              </div>
             </div>
           </div>
         </Panel>
@@ -483,6 +744,34 @@ export default async function ProjectDetailPage({
       </div>
     </AppShell>
   );
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function inferUploadType(mimeType: string, fileName: string) {
+  if (mimeType.startsWith("image/")) {
+    return "Artwork";
+  }
+
+  if (mimeType.startsWith("video/")) {
+    return "Video";
+  }
+
+  if (mimeType.startsWith("audio/")) {
+    return "Audio";
+  }
+
+  if (/cover|art|photo|visual/i.test(fileName)) {
+    return "Artwork";
+  }
+
+  return "Document";
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

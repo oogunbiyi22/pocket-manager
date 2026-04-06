@@ -173,6 +173,8 @@ export const projects: Project[] = [
   },
 ];
 
+export const seedProjects = projects;
+
 export const onboardingSteps = [
   "Who are you? artist / producer / engineer / DJ / songwriter",
   "What are you releasing or building right now?",
@@ -237,6 +239,21 @@ export const starterWorkspaceOutputs = [
   "Project room with tasks, assets, and outreach stack ready to fill",
 ] as const;
 
+export const roomTemplatePreviews = [
+  {
+    title: "Release readiness",
+    detail: "Creation should immediately score the room and show what is weak, missing, and safe to move.",
+  },
+  {
+    title: "Content flow",
+    detail: "The room should open with ideas, asset dependencies, and the first scheduling beats already framed.",
+  },
+  {
+    title: "Pitch lane",
+    detail: "Playlist and outreach motion should appear as a structured lane, not something the user has to invent from scratch.",
+  },
+] as const;
+
 export const quickActions = [
   ["/projects/new", "Create release workspace"],
   ["/manager", "Ask AI manager"],
@@ -293,6 +310,7 @@ export const pocketSystemRules = [
   "Pocket Manager should feel like a fast operator tool, not a bloated dashboard.",
   "The app should surface the top priorities before anything else.",
   "Capture, tasks, assets, and manager guidance should stay within one mobile flow.",
+  "The system should preserve continuity after release day instead of going quiet too early.",
 ] as const;
 
 export const pocketMoatLayers = [
@@ -327,8 +345,8 @@ export const personalCompanionProfiles = [
   },
 ] as const;
 
-export function getProjectById(projectId: string) {
-  return projects.find((project) => project.id === projectId);
+export function getProjectById(projectId: string, sourceProjects: Project[] = projects) {
+  return sourceProjects.find((project) => project.id === projectId);
 }
 
 export function getOpenTaskCount(project: Project) {
@@ -339,24 +357,24 @@ export function getBlockedTaskCount(project: Project) {
   return project.tasks.filter((task) => task.blocked).length;
 }
 
-export function getManagerSnapshot() {
-  const openTasks = projects.reduce((total, project) => total + getOpenTaskCount(project), 0);
-  const blockedTasks = projects.reduce((total, project) => total + getBlockedTaskCount(project), 0);
-  const dueToday = projects.reduce(
+export function getManagerSnapshot(sourceProjects: Project[] = projects) {
+  const openTasks = sourceProjects.reduce((total, project) => total + getOpenTaskCount(project), 0);
+  const blockedTasks = sourceProjects.reduce((total, project) => total + getBlockedTaskCount(project), 0);
+  const dueToday = sourceProjects.reduce(
     (total, project) => total + project.tasks.filter((task) => task.dueLabel === "Today").length,
     0,
   );
 
   return {
-    activeProjects: projects.length,
+    activeProjects: sourceProjects.length,
     openTasks,
     blockedTasks,
     dueToday,
   };
 }
 
-export function getTodayQueue() {
-  return projects
+export function getTodayQueue(sourceProjects: Project[] = projects) {
+  return sourceProjects
     .flatMap((project) =>
       project.tasks
         .filter((task) => task.status !== "Done")
@@ -393,7 +411,7 @@ function getTaskPriorityScore(
   return (dueScoreMap[dueLabel] ?? 0) + (blocked ? 2 : 0) + (status === "In progress" ? 2 : 0) + (14 - Math.min(daysLeft, 14));
 }
 
-export function getTaskLaneSummary() {
+export function getTaskLaneSummary(sourceProjects: Project[] = projects) {
   const summary: Record<TaskLane, number> = {
     Create: 0,
     Admin: 0,
@@ -401,15 +419,15 @@ export function getTaskLaneSummary() {
     Personal: 0,
   };
 
-  for (const task of getTodayQueue()) {
+  for (const task of getTodayQueue(sourceProjects)) {
     summary[task.lane] += 1;
   }
 
   return summary;
 }
 
-export function getDailyFocusCards() {
-  return projects.map((project) => ({
+export function getDailyFocusCards(sourceProjects: Project[] = projects) {
+  return sourceProjects.map((project) => ({
     id: project.id,
     name: project.name,
     nextStep: project.nextStep,
@@ -461,24 +479,72 @@ export function getMomentumScore(project: Project) {
   return Math.min(100, inProgress * 20 + readyAssets * 15 + activeOutreach * 12 + Math.max(0, 25 - project.daysLeft));
 }
 
-export function getCaptureInboxPreview() {
+export function getCaptureInboxPreview(sourceProjects: Project[] = projects) {
   return [
     {
       title: "Quick task",
-      project: projects[0]?.name ?? "Active project",
-      copy: `Lock "${projects[0]?.missingAssets[0] ?? "the next blocker"}" before the rollout slows down.`,
+      project: sourceProjects[0]?.name ?? "Active project",
+      copy: `Lock "${sourceProjects[0]?.missingAssets[0] ?? "the next blocker"}" before the rollout slows down.`,
     },
     {
       title: "Voice note",
-      project: projects[1]?.name ?? "Second project",
-      copy: `Capture a short content angle for ${projects[1]?.name ?? "the next release"} while it is still fresh.`,
+      project: sourceProjects[1]?.name ?? "Second project",
+      copy: `Capture a short content angle for ${sourceProjects[1]?.name ?? "the next release"} while it is still fresh.`,
     },
     {
       title: "Asset drop",
-      project: projects[0]?.name ?? "Active project",
+      project: sourceProjects[0]?.name ?? "Active project",
       copy: "Throw cover drafts, teaser clips, and notes into the room before they vanish into messages.",
     },
   ] as const;
+}
+
+export function getRecentActivity(sourceProjects: Project[] = projects) {
+  return sourceProjects
+    .flatMap((project) => {
+      const recentAssets = project.assets.slice(0, 2).map((asset, index) => ({
+        id: `${project.id}-asset-${index}-${asset.name}`,
+        projectId: project.id,
+        projectName: project.name,
+        title: asset.name,
+        kind: "Vault",
+        detail: `${asset.type} saved with ${asset.status.toLowerCase()} status.`,
+        emphasis: asset.status === "Uploaded" || asset.status === "Captured" ? "New file" : "Asset state",
+      }));
+
+      const recentTasks = project.tasks.slice(0, 2).map((task, index) => ({
+        id: `${project.id}-task-${index}-${task.title}`,
+        projectId: project.id,
+        projectName: project.name,
+        title: task.title,
+        kind: "Task",
+        detail: `${task.lane} lane · ${task.status} · ${task.dueLabel}.`,
+        emphasis: task.status === "In progress" ? "Moving" : task.status,
+      }));
+
+      const recentOutreach = project.outreach.slice(0, 1).map((item, index) => ({
+        id: `${project.id}-outreach-${index}-${item.name}`,
+        projectId: project.id,
+        projectName: project.name,
+        title: item.name,
+        kind: "Outreach",
+        detail: `${item.type} contact is ${item.status.toLowerCase()}.`,
+        emphasis: item.status,
+      }));
+
+      return [...recentAssets, ...recentTasks, ...recentOutreach];
+    })
+    .sort((left, right) => {
+      const score = (item: { kind: string; emphasis: string }) => {
+        if (item.kind === "Vault" && item.emphasis === "New file") return 5;
+        if (item.kind === "Task" && item.emphasis === "Moving") return 4;
+        if (item.kind === "Outreach" && item.emphasis === "Sent") return 3;
+        return 2;
+      };
+
+      return score(right) - score(left);
+    })
+    .slice(0, 8);
 }
 
 export function getProjectTimeline(project: Project) {
@@ -605,8 +671,8 @@ export function getManagerBrief(project: Project) {
   };
 }
 
-export function getPocketSystemSnapshot() {
-  const readinessScores = projects.map((project) => getReleaseReadiness(project).score);
+export function getPocketSystemSnapshot(sourceProjects: Project[] = projects) {
+  const readinessScores = sourceProjects.map((project) => getReleaseReadiness(project).score);
   const averageReadiness =
     readinessScores.length > 0
       ? Math.round(readinessScores.reduce((total, score) => total + score, 0) / readinessScores.length)
@@ -614,14 +680,14 @@ export function getPocketSystemSnapshot() {
 
   return {
     averageReadiness,
-    activeProjects: projects.length,
-    blockedProjects: projects.filter((project) => getBlockedTaskCount(project) > 0).length,
-    urgentProjects: projects.filter((project) => project.daysLeft <= 14).length,
+    activeProjects: sourceProjects.length,
+    blockedProjects: sourceProjects.filter((project) => getBlockedTaskCount(project) > 0).length,
+    urgentProjects: sourceProjects.filter((project) => project.daysLeft <= 14).length,
   };
 }
 
-export function getCrossSurfaceSignals() {
-  return projects.map((project) => {
+export function getCrossSurfaceSignals(sourceProjects: Project[] = projects) {
+  return sourceProjects.map((project) => {
     const readiness = getReleaseReadiness(project);
     const inProgress = project.tasks.filter((task) => task.status === "In progress").length;
 
@@ -636,6 +702,60 @@ export function getCrossSurfaceSignals() {
           : "Mission Control should track this room as a steady build lane.",
     };
   });
+}
+
+export function getRoomStateBoard(sourceProjects: Project[] = projects) {
+  return sourceProjects.map((project) => {
+    const readiness = getReleaseReadiness(project);
+    const pressure = getPressureMeter(project);
+    const blocked = getBlockedTaskCount(project);
+
+    return {
+      id: project.id,
+      name: project.name,
+      state: readiness.state,
+      readiness: readiness.score,
+      pressure,
+      continuity:
+        project.daysLeft <= 7
+          ? "Prepare post-release follow-up before the launch window passes."
+          : "Build the room so follow-through is easy later, not only launch-day loud.",
+      nextMove: project.nextStep,
+      blocked,
+    };
+  });
+}
+
+export function getPostReleaseMode(project: Project) {
+  return [
+    {
+      title: "Follow-up content",
+      detail: `Keep ${project.name} alive with reaction posts, late-angle clips, and softer second-wave moments.`,
+    },
+    {
+      title: "Outreach follow-through",
+      detail: "Use the release window to send follow-ups, update contacts, and catch late interest while the record is still warm.",
+    },
+    {
+      title: "Archive continuity",
+      detail: "Save what was used, what landed, and what should carry into the next release instead of losing the memory.",
+    },
+  ] as const;
+}
+
+export function getActiveRoomSummary(project: Project) {
+  const readiness = getReleaseReadiness(project);
+  const pressure = getPressureMeter(project);
+  const blocked = getBlockedTaskCount(project);
+
+  return {
+    name: project.name,
+    state: readiness.state,
+    readiness: readiness.score,
+    pressure,
+    blocked,
+    nextMove: project.nextStep,
+  };
 }
 
 export function getProjectCreationBlueprint() {
@@ -707,8 +827,8 @@ export function getProjectDecisionBoard(project: Project) {
   ] as const;
 }
 
-export function getProjectTriageBoard() {
-  return projects.map((project) => {
+export function getProjectTriageBoard(sourceProjects: Project[] = projects) {
+  return sourceProjects.map((project) => {
     const readiness = getReleaseReadiness(project);
     const blockedTasks = getBlockedTaskCount(project);
     const nextDueTask = project.tasks.find((task) => task.status !== "Done");
@@ -726,17 +846,17 @@ export function getProjectTriageBoard() {
   });
 }
 
-export function getPocketExecutionLanes() {
+export function getPocketExecutionLanes(sourceProjects: Project[] = projects) {
   return [
     {
       title: "Move now",
       detail: "Top-priority actions that should be handled from the phone in the next few minutes.",
-      items: getTodayQueue().slice(0, 3).map((task) => `${task.projectName}: ${task.title}`),
+      items: getTodayQueue(sourceProjects).slice(0, 3).map((task) => `${task.projectName}: ${task.title}`),
     },
     {
       title: "Clear drag",
       detail: "Blockers and missing assets that are slowing the rooms down.",
-      items: projects
+      items: sourceProjects
         .flatMap((project) =>
           project.missingAssets.slice(0, 1).map((asset) => `${project.name}: ${asset}`),
         )
@@ -745,13 +865,13 @@ export function getPocketExecutionLanes() {
     {
       title: "Create output",
       detail: "Content, outreach, or asset moves that turn planning into visible progress.",
-      items: projects.map((project) => `${project.name}: ${project.contentIdeas[0]}`).slice(0, 3),
+      items: sourceProjects.map((project) => `${project.name}: ${project.contentIdeas[0]}`).slice(0, 3),
     },
   ] as const;
 }
 
-export function getTopThreePriorities() {
-  return getTodayQueue().slice(0, 3).map((task, index) => ({
+export function getTopThreePriorities(sourceProjects: Project[] = projects) {
+  return getTodayQueue(sourceProjects).slice(0, 3).map((task, index) => ({
     rank: index + 1,
     title: task.title,
     projectName: task.projectName,
@@ -1178,4 +1298,46 @@ export function getCompanionActions(project: Project) {
       payload: "Plan output · tasks + assets + outreach + budget moves",
     },
   ] as const;
+}
+
+export function getManagerOutputConversions(project: Project) {
+  return [
+    {
+      type: "Task",
+      title: `Convert "${project.nextStep}" into a must-do task`,
+      detail: "Pocket should turn strategy into a dated task with urgency and owner context.",
+    },
+    {
+      type: "Pitch draft",
+      title: `Create first-pass outreach for ${project.outreach[0]?.name ?? "the lead target"}`,
+      detail: "Manager output should become a usable draft, not just advice about drafting.",
+    },
+    {
+      type: "Content item",
+      title: `Queue ${project.contentIdeas[0]?.toLowerCase() ?? "the lead content angle"} as a real rollout move`,
+      detail: "Good content guidance should drop into the room as an actual content object.",
+    },
+    {
+      type: "Reminder",
+      title: "Set the next follow-up and unblock reminder",
+      detail: "The manager should preserve timing so momentum does not vanish between sessions.",
+    },
+  ] as const;
+}
+
+export function getNewRoomPreview(sourceProjects: Project[] = projects) {
+  const project = sourceProjects[0];
+  const readiness = getReleaseReadiness(project);
+  const risk = getReleaseRiskReport(project);
+
+  return {
+    roomName: `${projectTemplates[0]?.title ?? "Release room"} preview`,
+    readiness: readiness.score,
+    risk: risk.headline,
+    firstMoves: [
+      project.priorities[0] ?? project.nextStep,
+      project.missingAssets[0] ? `Clear ${project.missingAssets[0].toLowerCase()}` : "Clear the main blocker",
+      project.contentIdeas[0] ?? "Turn one idea into a real rollout move",
+    ],
+  };
 }

@@ -1,8 +1,14 @@
+"use client";
+
+import { useState } from "react";
+
 export function AgentChatPanel({
   title,
   subtitle,
   companion,
   actions,
+  onAction,
+  onCompose,
 }: {
   title: string;
   subtitle?: string;
@@ -20,7 +26,15 @@ export function AgentChatPanel({
     detail: string;
     payload: string;
   }>;
+  onAction?: (actionType: string) => void;
+  onCompose?: (input: {
+    intent: "Task" | "Pitch draft" | "Content item" | "Reminder" | "Asset";
+    brief: string;
+  }) => void;
 }) {
+  const [intent, setIntent] = useState<"Task" | "Pitch draft" | "Content item" | "Reminder" | "Asset">("Task");
+  const [brief, setBrief] = useState("");
+
   return (
     <div className="rounded-3xl border border-white/10 bg-[#0a0b10] p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
       <div className="mb-4">
@@ -64,7 +78,12 @@ export function AgentChatPanel({
             <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">Action conversion layer</div>
             <div className="mt-3 space-y-3">
               {actions.map((action) => (
-                <div key={action.title} className="rounded-2xl border border-white/10 px-4 py-4">
+                <button
+                  key={action.title}
+                  type="button"
+                  onClick={() => onAction?.(action.type)}
+                  className="block w-full rounded-2xl border border-white/10 px-4 py-4 text-left transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="font-medium text-white">{action.title}</div>
                     <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
@@ -75,13 +94,46 @@ export function AgentChatPanel({
                   <div className="mt-3 rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-3 py-2 text-[12px] text-white/75">
                     {action.payload}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         ) : null}
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 p-4">
+          <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">Manager composer</div>
+          <div className="mt-3 grid gap-3">
+            <select
+              value={intent}
+              onChange={(event) => setIntent(event.target.value as typeof intent)}
+              className="rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none"
+            >
+              {["Task", "Pitch draft", "Content item", "Reminder", "Asset"].map((item) => (
+                <option key={item} value={item} className="bg-[#0a0a0f]">
+                  {item}
+                </option>
+              ))}
+            </select>
+            <textarea
+              value={brief}
+              onChange={(event) => setBrief(event.target.value)}
+              placeholder="approve the strongest cover option and send one playlist pitch tonight"
+              className="min-h-28 rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/25"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (!brief.trim()) return;
+                onCompose?.({ intent, brief });
+                setBrief("");
+              }}
+              className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200"
+            >
+              Generate room output
+            </button>
+          </div>
+        </div>
         <div className="rounded-2xl border border-white/10 px-4 py-4 text-white/55">
-          Next implementation target: replace this planning shell with a stable project-context action composer.
+          Composer outputs land directly in the room state so the manager surface now changes the project instead of only describing it.
         </div>
       </div>
     </div>

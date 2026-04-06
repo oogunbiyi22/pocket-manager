@@ -1,17 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import { AppShell, Panel } from "@/components/app-shell";
+import { usePocket } from "@/components/pocket-provider";
 import {
   getDecisionEngine,
   getBlockedTaskCount,
   getOpenTaskCount,
+  getPostReleaseMode,
   getProjectTriageBoard,
   getRevenueBrain,
   getReleaseReadiness,
-  projects,
+  getRoomStateBoard,
 } from "@/lib/backstage-data";
 
 export default function ProjectsPage() {
-  const triageBoard = getProjectTriageBoard();
+  const { projects } = usePocket();
+  const triageBoard = getProjectTriageBoard(projects);
+  const roomStates = getRoomStateBoard(projects);
 
   return (
     <AppShell title="Projects" eyebrow="Release workspaces">
@@ -56,6 +62,8 @@ export default function ProjectsPage() {
               const readiness = getReleaseReadiness(project);
               const decision = getDecisionEngine(project)[0];
               const revenue = getRevenueBrain(project)[0];
+              const roomState = roomStates.find((item) => item.id === project.id);
+              const followThrough = getPostReleaseMode(project)[0];
 
               return (
                 <Link
@@ -66,7 +74,10 @@ export default function ProjectsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-lg font-medium text-white">{project.name}</div>
-                      <div className="mt-2 text-sm text-white/55">{project.stage}</div>
+                      <div className="mt-2 text-sm text-white/55">
+                        {project.stage}
+                        {roomState ? ` · ${roomState.state}` : ""}
+                      </div>
                     </div>
                     <div className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/55">
                       {project.daysLeft}d
@@ -82,10 +93,16 @@ export default function ProjectsPage() {
                   <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-white/65">
                     <span className="text-white">Money:</span> {revenue.detail}
                   </div>
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-white/65">
+                    <span className="text-white">Follow-through:</span> {followThrough.detail}
+                  </div>
                   <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-white/55">
                     <span className="rounded-full border border-white/10 px-2.5 py-1">{openTasks} open tasks</span>
                     <span className="rounded-full border border-white/10 px-2.5 py-1">{blockedTasks} blocked</span>
                     <span className="rounded-full border border-white/10 px-2.5 py-1">{readiness.score}% ready</span>
+                    {roomState ? (
+                      <span className="rounded-full border border-white/10 px-2.5 py-1">{roomState.pressure}</span>
+                    ) : null}
                   </div>
                 </Link>
               );

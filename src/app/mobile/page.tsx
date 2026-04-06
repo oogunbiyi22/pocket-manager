@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { AppShell, Panel } from "@/components/app-shell";
+import { usePocket } from "@/components/pocket-provider";
 import {
   getCaptureInboxPreview,
   getCrossSurfaceSignals,
@@ -9,7 +12,6 @@ import {
   getProjectSprint,
   getReleaseReadiness,
   getTasteBoard,
-  projects,
 } from "@/lib/backstage-data";
 import {
   mobileMoments,
@@ -18,17 +20,18 @@ import {
   quickCaptureActions,
 } from "@/lib/pocket-mobile-data";
 
-const activeProject = projects[0];
-const readiness = getReleaseReadiness(activeProject);
-const sprint = getProjectSprint(activeProject);
-const managerBrief = getManagerBrief(activeProject);
-const captureInbox = getCaptureInboxPreview();
-const crossSurfaceSignals = getCrossSurfaceSignals();
-const executionLanes = getPocketExecutionLanes();
-const emergencyMode = getEmergencyMode(activeProject);
-const tasteBoard = getTasteBoard(activeProject);
-
 export default function MobilePage() {
+  const { projects } = usePocket();
+  const activeProject = projects[0];
+  const readiness = getReleaseReadiness(activeProject);
+  const sprint = getProjectSprint(activeProject);
+  const managerBrief = getManagerBrief(activeProject);
+  const captureInbox = getCaptureInboxPreview(projects);
+  const crossSurfaceSignals = getCrossSurfaceSignals(projects);
+  const executionLanes = getPocketExecutionLanes(projects);
+  const emergencyMode = getEmergencyMode(activeProject);
+  const tasteBoard = getTasteBoard(activeProject);
+
   return (
     <AppShell title="Pocket Mobile" eyebrow="Phone-first operator flow">
       <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
@@ -182,8 +185,8 @@ export default function MobilePage() {
             {[
               ["/dashboard", "Today brief"],
               [`/projects/${activeProject.id}`, "Active room"],
-              ["/manager", "Manager"],
-              ["/settings", "Settings"],
+              ["/capture", "Capture"],
+              ["/vault", "Vault"],
             ].map(([href, label]) => (
               <Link
                 key={href}

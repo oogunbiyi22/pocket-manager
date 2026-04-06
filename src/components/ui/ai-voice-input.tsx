@@ -11,6 +11,10 @@ interface AIVoiceInputProps {
   demoMode?: boolean;
   demoInterval?: number;
   className?: string;
+  label?: string;
+  idleHint?: string;
+  listeningHint?: string;
+  disabled?: boolean;
 }
 
 export function AIVoiceInput({
@@ -20,6 +24,10 @@ export function AIVoiceInput({
   demoMode = false,
   demoInterval = 3000,
   className,
+  label = "Voice input",
+  idleHint = "Tap to start recording",
+  listeningHint = "Listening… tap again to stop",
+  disabled = false,
 }: AIVoiceInputProps) {
   const [submitted, setSubmitted] = useState(false);
   const [time, setTime] = useState(0);
@@ -84,19 +92,23 @@ export function AIVoiceInput({
   };
 
   const handleClick = () => {
+    if (disabled) return;
+
     if (isDemo) {
       setIsDemo(false);
       stopRecording();
+      return;
+    }
+
+    if (submitted) {
+      stopRecording();
     } else {
-      if (submitted) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
+      startRecording();
     }
   };
 
   const startRecording = () => {
+    if (disabled) return;
     setSubmitted(true);
   };
 
@@ -111,11 +123,15 @@ export function AIVoiceInput({
       <div className="relative mx-auto flex w-full max-w-xl flex-col items-center gap-2">
         <button
           className={cn(
-            "group flex h-16 w-16 items-center justify-center rounded-xl transition-colors",
+            "group flex h-16 w-16 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50",
             submitted ? "bg-none" : "bg-none hover:bg-black/10 dark:hover:bg-white/10",
+            disabled && "cursor-not-allowed opacity-50",
           )}
           type="button"
           onClick={handleClick}
+          aria-pressed={submitted}
+          aria-label={submitted ? `Stop ${label.toLowerCase()}` : `Start ${label.toLowerCase()}`}
+          disabled={disabled}
         >
           {submitted ? (
             <div
@@ -127,11 +143,14 @@ export function AIVoiceInput({
           )}
         </button>
 
+        <span className="text-xs uppercase tracking-[0.22em] text-black/45 dark:text-white/45">{label}</span>
+
         <span
           className={cn(
             "font-mono text-sm transition-opacity duration-300",
             submitted ? "text-black/70 dark:text-white/70" : "text-black/30 dark:text-white/30",
           )}
+          aria-live="polite"
         >
           {formatTime(time)}
         </span>
@@ -156,8 +175,8 @@ export function AIVoiceInput({
           ))}
         </div>
 
-        <p className="h-4 text-xs text-black/70 dark:text-white/70">
-          {submitted ? "Listening..." : "Click to speak"}
+        <p className="min-h-4 text-center text-xs text-black/70 dark:text-white/70" aria-live="polite">
+          {disabled ? "Voice input unavailable" : submitted ? listeningHint : idleHint}
         </p>
       </div>
     </div>

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { AppShell, Panel } from "@/components/app-shell";
+import { usePocket } from "@/components/pocket-provider";
 import {
   getDecisionEngine,
   getEmergencyMode,
@@ -11,40 +14,45 @@ import {
   getManagerMemory,
   getOpportunityFeed,
   getPocketSystemSnapshot,
+  getPostReleaseMode,
   getProjectMemory,
+  getRecentActivity,
   getRevenueBrain,
+  getRoomStateBoard,
   getTopThreePriorities,
   getTodayQueue,
   personalSystem,
-  projects,
 } from "@/lib/backstage-data";
 import { pocketMissionBridge } from "@/lib/pocket-mission-data";
 import { mobileMoments, mobileTabs, quickCaptureActions } from "@/lib/pocket-mobile-data";
 
-const activeProject = projects[0];
-const snapshot = getManagerSnapshot();
-const todayQueue = getTodayQueue();
-const blockers = todayQueue.filter((task) => task.blocked);
-const focusCards = getDailyFocusCards();
-const captureInbox = getCaptureInboxPreview();
-const systemSnapshot = getPocketSystemSnapshot();
-const crossSurfaceSignals = getCrossSurfaceSignals();
-const topThree = getTopThreePriorities();
-const managerMemory = getManagerMemory();
-const companion = getCompanionProfile(activeProject);
-const decisionEngine = getDecisionEngine(activeProject);
-const revenueBrain = getRevenueBrain(activeProject);
-const emergencyMode = getEmergencyMode(activeProject);
-const projectMemory = getProjectMemory(activeProject);
-const opportunityFeed = getOpportunityFeed(activeProject);
-
-const topStats = [
-  { label: "Mode", value: companion.mode.replace(" mode", "") },
-  { label: "Today", value: snapshot.dueToday.toString() },
-  { label: "Ready", value: `${systemSnapshot.averageReadiness}%` },
-];
-
 export default function DashboardPage() {
+  const { projects } = usePocket();
+  const activeProject = projects[0];
+  const snapshot = getManagerSnapshot(projects);
+  const todayQueue = getTodayQueue(projects);
+  const blockers = todayQueue.filter((task) => task.blocked);
+  const focusCards = getDailyFocusCards(projects);
+  const captureInbox = getCaptureInboxPreview(projects);
+  const systemSnapshot = getPocketSystemSnapshot(projects);
+  const crossSurfaceSignals = getCrossSurfaceSignals(projects);
+  const topThree = getTopThreePriorities(projects);
+  const managerMemory = getManagerMemory();
+  const companion = getCompanionProfile(activeProject);
+  const decisionEngine = getDecisionEngine(activeProject);
+  const revenueBrain = getRevenueBrain(activeProject);
+  const emergencyMode = getEmergencyMode(activeProject);
+  const projectMemory = getProjectMemory(activeProject);
+  const opportunityFeed = getOpportunityFeed(activeProject);
+  const recentActivity = getRecentActivity(projects);
+  const roomStateBoard = getRoomStateBoard(projects);
+  const postReleaseMode = getPostReleaseMode(activeProject);
+  const topStats = [
+    { label: "Mode", value: companion.mode.replace(" mode", "") },
+    { label: "Today", value: snapshot.dueToday.toString() },
+    { label: "Ready", value: `${systemSnapshot.averageReadiness}%` },
+  ];
+
   return (
     <AppShell title="Today" eyebrow="Pocket Manager">
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -85,6 +93,31 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-6">
+          <Panel title="Recent movement" description="The app should immediately show what changed across rooms.">
+            <div className="space-y-3 text-sm text-white/75">
+              {recentActivity.slice(0, 4).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/projects/${item.projectId}`}
+                  className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-white">{item.title}</div>
+                      <div className="mt-2 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
+                        {item.projectName} · {item.kind}
+                      </div>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.emphasis}
+                    </div>
+                  </div>
+                  <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Quick help" description="The fast ways Pocket Manager should help you breathe easier.">
             <div className="space-y-3 text-sm text-white/75">
               {personalSystem.checkIn.map((item) => (
@@ -228,6 +261,34 @@ export default function DashboardPage() {
               ))}
             </div>
           </Panel>
+
+          <Panel title="Room state board" description="The system should show how every room is really doing, not just that it exists.">
+            <div className="grid gap-3 md:grid-cols-2">
+              {roomStateBoard.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/projects/${item.id}`}
+                  className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-white">{item.name}</div>
+                      <div className="mt-2 text-xs uppercase tracking-[0.2em] text-emerald-200/65">{item.state}</div>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.readiness}%
+                    </div>
+                  </div>
+                  <div className="mt-3 text-white/65">{item.nextMove}</div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.16em] text-white/45">
+                    <span>{item.pressure}</span>
+                    <span>{item.blocked} blocked</span>
+                  </div>
+                  <div className="mt-3 leading-6 text-white/55">{item.continuity}</div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
         </div>
 
         <div className="space-y-6">
@@ -287,6 +348,17 @@ export default function DashboardPage() {
               {projectMemory.map((item) => (
                 <div key={item} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
                   {item}
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Post-release mode" description="Pocket should stay useful after launch day instead of only building up to it.">
+            <div className="space-y-3 text-sm text-white/75">
+              {postReleaseMode.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
+                  <div className="font-medium text-white">{item.title}</div>
+                  <div className="mt-2 leading-6 text-white/65">{item.detail}</div>
                 </div>
               ))}
             </div>

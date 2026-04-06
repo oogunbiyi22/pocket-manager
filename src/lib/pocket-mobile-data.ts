@@ -2,8 +2,8 @@ export const mobileTabs = [
   { label: "Today", href: "/dashboard" },
   { label: "Mobile", href: "/mobile" },
   { label: "Projects", href: "/projects" },
-  { label: "Capture", href: "/manager" },
-  { label: "Vault", href: "/projects" },
+  { label: "Capture", href: "/capture" },
+  { label: "Vault", href: "/vault" },
   { label: "Settings", href: "/settings" },
 ] as const;
 

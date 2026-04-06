@@ -1,15 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePocket } from "@/components/pocket-provider";
 import {
   getOpportunityFeed,
   getPocketSystemSnapshot,
   getProjectMemory,
-  projects,
 } from "@/lib/backstage-data";
-
-const snapshot = getPocketSystemSnapshot();
-const activeProject = projects[0];
-const opportunities = getOpportunityFeed(activeProject);
-const projectMemory = getProjectMemory(activeProject);
 
 const desktopActions = [
   {
@@ -39,6 +36,11 @@ const productTruths = [
 ];
 
 export default function Home() {
+  const { projects, activeProject } = usePocket();
+  const snapshot = getPocketSystemSnapshot(projects);
+  const opportunities = getOpportunityFeed(activeProject);
+  const projectMemory = getProjectMemory(activeProject);
+
   return (
     <div className="min-h-screen bg-transparent text-white">
       <main className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8 sm:px-8 lg:px-10">
