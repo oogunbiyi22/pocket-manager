@@ -4,13 +4,13 @@ import Link from "next/link";
 import { AppShell, Panel } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
+  getAutopilotRecommendations,
   getCaptureInboxPreview,
   getCrossSurfaceSignals,
   getEmergencyMode,
   getManagerBrief,
   getPocketExecutionLanes,
   getProjectSprint,
-  getRecentActivity,
   getReleaseReadiness,
   getTasteBoard,
 } from "@/lib/backstage-data";
@@ -22,8 +22,9 @@ import {
 } from "@/lib/pocket-mobile-data";
 
 export default function MobilePage() {
-  const { projects } = usePocket();
+  const { events, projects } = usePocket();
   const activeProject = projects[0];
+  const autopilot = getAutopilotRecommendations(activeProject);
   const readiness = getReleaseReadiness(activeProject);
   const sprint = getProjectSprint(activeProject);
   const managerBrief = getManagerBrief(activeProject);
@@ -31,7 +32,15 @@ export default function MobilePage() {
   const crossSurfaceSignals = getCrossSurfaceSignals(projects);
   const executionLanes = getPocketExecutionLanes(projects);
   const emergencyMode = getEmergencyMode(activeProject);
-  const recentActivity = getRecentActivity(projects);
+  const recentActivity = events.slice(0, 6).map((event) => ({
+    id: event.id,
+    projectId: event.projectId,
+    projectName: projects.find((project) => project.id === event.projectId)?.name ?? "Room",
+    title: event.title,
+    kind: event.kind,
+    detail: event.detail,
+    emphasis: event.emphasis,
+  }));
   const tasteBoard = getTasteBoard(activeProject);
 
   return (
@@ -108,6 +117,29 @@ export default function MobilePage() {
             </div>
           </Panel>
 
+          <Panel title="Thumb-first triage" description="The phone should tell you the next short chain of moves without opening the full room.">
+            <div className="space-y-3 text-sm text-white/70">
+              {autopilot.map((item, index) => (
+                <Link
+                  key={item.title}
+                  href={`/projects/${activeProject.id}`}
+                  className="block rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-4 transition hover:border-emerald-300/25 hover:bg-emerald-300/10"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-emerald-200/70">Step {index + 1}</div>
+                      <div className="mt-2 font-medium text-white">{item.title}</div>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.tone}
+                    </div>
+                  </div>
+                  <div className="mt-3 leading-6 text-white/65">{item.reason}</div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Operating modes" description="How the same app should shift based on where you are.">
             <div className="grid gap-3 md:grid-cols-3">
               {mobileOperatingModes.map((mode) => (
@@ -172,26 +204,32 @@ export default function MobilePage() {
 
         <Panel title="Recent movement" description="The phone should show what changed without making you hunt for it.">
           <div className="space-y-3 text-sm text-white/70">
-            {recentActivity.slice(0, 4).map((item) => (
-              <Link
-                key={item.id}
-                href={`/projects/${item.projectId}`}
-                className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium text-white">{item.title}</div>
-                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
-                      {item.projectName} · {item.kind}
+            {recentActivity.length ? (
+              recentActivity.slice(0, 4).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/projects/${item.projectId}`}
+                  className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-white">{item.title}</div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
+                        {item.projectName} · {item.kind}
+                      </div>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.emphasis}
                     </div>
                   </div>
-                  <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
-                    {item.emphasis}
-                  </div>
-                </div>
-                <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
-              </Link>
-            ))}
+                  <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
+                </Link>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-white/45">
+                No recent room movement yet.
+              </div>
+            )}
           </div>
         </Panel>
       </div>

@@ -7,6 +7,7 @@ export function AgentChatPanel({
   subtitle,
   companion,
   actions,
+  promptIdeas,
   onAction,
   onCompose,
 }: {
@@ -25,6 +26,11 @@ export function AgentChatPanel({
     title: string;
     detail: string;
     payload: string;
+  }>;
+  promptIdeas?: ReadonlyArray<{
+    label: string;
+    brief: string;
+    intent: "Task" | "Pitch draft" | "Content item" | "Reminder" | "Asset";
   }>;
   onAction?: (actionType: string) => void;
   onCompose?: (input: {
@@ -119,6 +125,23 @@ export function AgentChatPanel({
               placeholder="approve the strongest cover option and send one playlist pitch tonight"
               className="min-h-28 rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/25"
             />
+            {promptIdeas?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {promptIdeas.map((idea) => (
+                  <button
+                    key={idea.label}
+                    type="button"
+                    onClick={() => {
+                      setIntent(idea.intent);
+                      setBrief(idea.brief);
+                    }}
+                    className="rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.14em] text-white/60 transition hover:border-emerald-300/20 hover:text-white"
+                  >
+                    {idea.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => {

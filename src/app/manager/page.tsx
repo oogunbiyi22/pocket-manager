@@ -76,6 +76,28 @@ export default function ManagerPage() {
       brief: activeProject.missingAssets[0] ?? "Final rollout asset",
     },
   ];
+  const promptIdeas = [
+    {
+      label: "Clear blocker",
+      intent: "Task" as const,
+      brief: `Clear ${activeProject.missingAssets[0] ?? activeProject.nextStep} and update the room so the release package stops dragging.`,
+    },
+    {
+      label: "Send pitch",
+      intent: "Pitch draft" as const,
+      brief: `Draft a short outreach message for ${activeProject.outreach[0]?.name ?? "the lead contact"} using the strongest angle for ${activeProject.name}.`,
+    },
+    {
+      label: "Queue content",
+      intent: "Content item" as const,
+      brief: `Turn ${activeProject.contentIdeas[0] ?? "the lead room idea"} into a concrete post with a caption and rollout use.`,
+    },
+    {
+      label: "Request asset",
+      intent: "Asset" as const,
+      brief: activeProject.missingAssets[0] ?? "Final visual package",
+    },
+  ];
 
   return (
     <AppShell title="Pocket Manager" eyebrow="Career guidance engine">
@@ -141,6 +163,7 @@ export default function ManagerPage() {
             subtitle="A focused manager workspace for planning, rollout thinking, and next moves."
             companion={companion}
             actions={companionActions}
+            promptIdeas={promptIdeas}
             onAction={(actionType) => convertManagerAction(activeProject.id, actionType)}
             onCompose={(input) => runManagerComposer(activeProject.id, input)}
           />
