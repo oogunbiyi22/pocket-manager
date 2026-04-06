@@ -15,7 +15,6 @@ import {
   getManagerMemory,
   getManagerOutputConversions,
   getProjectSprint,
-  getRecentActivity,
   getRevenueBrain,
   getSongWorld,
   getStudioPipeline,
@@ -24,7 +23,7 @@ import {
 } from "@/lib/backstage-data";
 
 export default function ManagerPage() {
-  const { activeProject, convertManagerAction, projects, runManagerComposer } = usePocket();
+  const { activeProject, convertManagerAction, events, projects, runManagerComposer } = usePocket();
   const managerBrief = getManagerBrief(activeProject);
   const managerMoves = getProjectSprint(activeProject);
   const managerMemory = getManagerMemory();
@@ -40,7 +39,16 @@ export default function ManagerPage() {
   const audienceLayer = getAudienceOwnershipLayer(activeProject);
   const emergencyMode = getEmergencyMode(activeProject);
   const outputConversions = getManagerOutputConversions(activeProject);
-  const recentActivity = getRecentActivity(projects);
+  const recentActivity = events.length
+    ? events.slice(0, 5).map((event) => ({
+        id: event.id,
+        projectName: projects.find((project) => project.id === event.projectId)?.name ?? "Room",
+        title: event.title,
+        kind: event.kind,
+        detail: event.detail,
+        emphasis: event.emphasis,
+      }))
+    : [];
   const managerOutputs = [
     { title: "Next move", detail: managerBrief.bestMove },
     { title: "Main risk", detail: managerBrief.mainRisk },

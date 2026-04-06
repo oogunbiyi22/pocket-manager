@@ -24,7 +24,6 @@ import {
   getProjectById,
   getProjectSprint,
   getProjectTimeline,
-  getRecentActivity,
   getReleaseReadiness,
   getSongWorld,
   getStudioPipeline,
@@ -39,6 +38,7 @@ export default function ProjectDetailPage() {
     addQuickAsset,
     addQuickContentIdea,
     addTask,
+    events,
     projects,
     resolveMissingAsset,
     setActiveProject,
@@ -74,7 +74,7 @@ export default function ProjectDetailPage() {
   const opportunityFeed = getOpportunityFeed(project);
   const assetLinks = getAssetActionLinks(project);
   const collaborationPockets = getCollaborationPockets(project);
-  const roomActivity = getRecentActivity([project]);
+  const roomActivity = events.filter((item) => item.projectId === project.id).slice(0, 6);
   const [taskForm, setTaskForm] = useState({
     title: "",
     lane: "Create" as const,

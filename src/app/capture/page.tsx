@@ -5,13 +5,13 @@ import { ChangeEvent, useState } from "react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { AIVoiceInput } from "@/components/ui/ai-voice-input";
-import { getCaptureInboxPreview, getManagerBrief, getRecentActivity } from "@/lib/backstage-data";
+import { getCaptureInboxPreview, getManagerBrief } from "@/lib/backstage-data";
 
 export default function CapturePage() {
-  const { activeProject, addQuickContentIdea, addQuickAsset, addTask, projects, uploadAssets } = usePocket();
+  const { activeProject, addQuickContentIdea, addQuickAsset, addTask, events, uploadAssets } = usePocket();
   const managerBrief = getManagerBrief(activeProject);
   const captureInbox = getCaptureInboxPreview([activeProject]);
-  const recentActivity = getRecentActivity(projects).filter((item) => item.projectId === activeProject.id);
+  const recentActivity = events.filter((item) => item.projectId === activeProject.id).slice(0, 4);
   const [quickTask, setQuickTask] = useState("");
   const [voiceNotes, setVoiceNotes] = useState<Array<{ duration: number; createdAt: string }>>([]);
   const [captureStatus, setCaptureStatus] = useState("Captured");
@@ -179,7 +179,7 @@ export default function CapturePage() {
           <Panel title="Active room movement" description="Capture should confirm what just landed in the room.">
             <div className="space-y-3 text-sm text-white/70">
               {recentActivity.length ? (
-                recentActivity.slice(0, 4).map((item) => (
+                recentActivity.map((item) => (
                   <Link
                     key={item.id}
                     href={`/projects/${item.projectId}`}

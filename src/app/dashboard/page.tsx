@@ -17,7 +17,6 @@ import {
   getPocketSystemSnapshot,
   getPostReleaseMode,
   getProjectMemory,
-  getRecentActivity,
   getRevenueBrain,
   getRoomStateBoard,
   getTopThreePriorities,
@@ -28,7 +27,7 @@ import { pocketMissionBridge } from "@/lib/pocket-mission-data";
 import { mobileMoments, mobileTabs, quickCaptureActions } from "@/lib/pocket-mobile-data";
 
 export default function DashboardPage() {
-  const { projects } = usePocket();
+  const { events, projects } = usePocket();
   const activeProject = projects[0];
   const snapshot = getManagerSnapshot(projects);
   const todayQueue = getTodayQueue(projects);
@@ -46,7 +45,17 @@ export default function DashboardPage() {
   const emergencyMode = getEmergencyMode(activeProject);
   const projectMemory = getProjectMemory(activeProject);
   const opportunityFeed = getOpportunityFeed(activeProject);
-  const recentActivity = getRecentActivity(projects);
+  const recentActivity = events.length
+    ? events.slice(0, 6).map((event) => ({
+        id: event.id,
+        projectId: event.projectId,
+        projectName: projects.find((project) => project.id === event.projectId)?.name ?? "Room",
+        title: event.title,
+        kind: event.kind,
+        detail: event.detail,
+        emphasis: event.emphasis,
+      }))
+    : [];
   const roomStateBoard = getRoomStateBoard(projects);
   const postReleaseMode = getPostReleaseMode(activeProject);
   const topStats = [
@@ -123,26 +132,32 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <Panel title="Recent movement" description="The app should immediately show what changed across rooms.">
             <div className="space-y-3 text-sm text-white/75">
-              {recentActivity.slice(0, 4).map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/projects/${item.projectId}`}
-                  className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-white">{item.title}</div>
-                      <div className="mt-2 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
-                        {item.projectName} · {item.kind}
+              {recentActivity.length ? (
+                recentActivity.slice(0, 4).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/projects/${item.projectId}`}
+                    className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-white">{item.title}</div>
+                        <div className="mt-2 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
+                          {item.projectName} · {item.kind}
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                        {item.emphasis}
                       </div>
                     </div>
-                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
-                      {item.emphasis}
-                    </div>
-                  </div>
-                  <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
-                </Link>
-              ))}
+                    <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-white/45">
+                  No room movement yet.
+                </div>
+              )}
             </div>
           </Panel>
 

@@ -14,6 +14,7 @@ import { TaskStatus } from "@/lib/backstage-data";
 const PROJECTS_STORAGE_KEY = "pocket-manager-projects";
 const PROFILE_STORAGE_KEY = "pocket-manager-profile";
 const SESSION_STORAGE_KEY = "pocket-manager-session";
+const EVENTS_STORAGE_KEY = "pocket-manager-events";
 
 type CreateProjectInput = {
   name: string;
@@ -69,11 +70,22 @@ type PocketProfile = ProfileInput & {
   onboarded: boolean;
 };
 
+export type PocketEvent = {
+  id: string;
+  projectId: string;
+  title: string;
+  detail: string;
+  kind: "Task" | "Vault" | "Outreach" | "Manager" | "Capture" | "Room";
+  emphasis: string;
+  createdAt: string;
+};
+
 type PocketContextValue = {
   projects: Project[];
   activeProject: Project;
   profile: PocketProfile;
   signedIn: boolean;
+  events: PocketEvent[];
   createProject: (input: CreateProjectInput) => void;
   convertManagerAction: (projectId: string, actionType: string) => void;
   updateTaskStatus: (projectId: string, taskTitle: string, status: TaskStatus) => void;
@@ -140,6 +152,25 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
     return window.localStorage.getItem(SESSION_STORAGE_KEY) === "signed-in";
   });
+  const [events, setEvents] = useState<PocketEvent[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const raw = window.localStorage.getItem(EVENTS_STORAGE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as PocketEvent[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      window.localStorage.removeItem(EVENTS_STORAGE_KEY);
+      return [];
+    }
+  });
 
   useEffect(() => {
     window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
@@ -153,16 +184,39 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(SESSION_STORAGE_KEY, signedIn ? "signed-in" : "signed-out");
   }, [signedIn]);
 
+  useEffect(() => {
+    window.localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+  }, [events]);
+
   const value = useMemo<PocketContextValue>(() => {
     const activeProject = projects[0] ?? seedProjects[0];
+    const pushEvent = (event: Omit<PocketEvent, "id" | "createdAt">) => {
+      setEvents((current) => [
+        {
+          ...event,
+          id: `${event.projectId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+        },
+        ...current,
+      ].slice(0, 120));
+    };
 
     return {
       projects,
       activeProject,
       profile,
       signedIn,
+      events,
       createProject(input) {
         const projectId = slugify(input.name);
+
+        pushEvent({
+          projectId,
+          title: `Created room: ${input.name}`,
+          detail: `${input.stage} ${input.type.toLowerCase()} room opened with ${input.targetDate.toLowerCase()} as the target window.`,
+          kind: "Room",
+          emphasis: "New room",
+        });
 
         setProjects((current) => [
           {
@@ -216,6 +270,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         }));
       },
       convertManagerAction(projectId, actionType) {
+        pushEvent({
+          projectId,
+          title: `Manager converted action: ${actionType}`,
+          detail: "Pocket turned manager output into a saved room object.",
+          kind: "Manager",
+          emphasis: actionType,
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -280,6 +341,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       addTask(projectId, input) {
+        pushEvent({
+          projectId,
+          title: input.title,
+          detail: `${input.lane} lane task added for ${input.dueLabel}.`,
+          kind: "Task",
+          emphasis: "Added",
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -306,6 +374,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       addAsset(projectId, input) {
+        pushEvent({
+          projectId,
+          title: input.name,
+          detail: `${input.type} asset saved with ${input.status.toLowerCase()} status.`,
+          kind: "Vault",
+          emphasis: "Saved",
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -330,6 +405,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       addOutreachContact(projectId, input) {
+        pushEvent({
+          projectId,
+          title: input.name,
+          detail: `${input.type} contact added with ${input.status.toLowerCase()} status.`,
+          kind: "Outreach",
+          emphasis: "Added",
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -346,6 +428,15 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       uploadAssets(projectId, uploads) {
+        uploads.forEach((upload, index) => {
+          pushEvent({
+            projectId,
+            title: upload.name,
+            detail: `${upload.type} uploaded to the vault with ${upload.status.toLowerCase()} status.`,
+            kind: "Vault",
+            emphasis: index === 0 ? "New file" : "Uploaded",
+          });
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId || uploads.length === 0) {
@@ -375,6 +466,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       updateTaskStatus(projectId, taskTitle, status) {
+        pushEvent({
+          projectId,
+          title: taskTitle,
+          detail: `Task status changed to ${status.toLowerCase()}.`,
+          kind: "Task",
+          emphasis: status,
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -406,6 +504,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       updateOutreachStatus(projectId, contactName, status) {
+        pushEvent({
+          projectId,
+          title: contactName,
+          detail: `Outreach status changed to ${status.toLowerCase()}.`,
+          kind: "Outreach",
+          emphasis: status,
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -431,6 +536,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       addQuickAsset(projectId, assetLabel) {
+        pushEvent({
+          projectId,
+          title: assetLabel,
+          detail: "Quick capture created a fast vault placeholder.",
+          kind: "Capture",
+          emphasis: "Captured",
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -454,6 +566,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         );
       },
       addQuickContentIdea(projectId, idea) {
+        pushEvent({
+          projectId,
+          title: idea,
+          detail: "Quick capture saved a new content angle into the room.",
+          kind: "Capture",
+          emphasis: "Idea",
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -475,6 +594,14 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         if (!brief) {
           return;
         }
+
+        pushEvent({
+          projectId,
+          title: brief.charAt(0).toUpperCase() + brief.slice(1),
+          detail: `Manager composer created a ${input.intent.toLowerCase()} output.`,
+          kind: "Manager",
+          emphasis: input.intent,
+        });
 
         setProjects((current) =>
           current.map((project) => {
@@ -582,6 +709,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         }));
       },
       resolveMissingAsset(projectId, assetName) {
+        pushEvent({
+          projectId,
+          title: assetName,
+          detail: "Missing asset was resolved and moved into the room package.",
+          kind: "Vault",
+          emphasis: "Resolved",
+        });
         setProjects((current) =>
           current.map((project) => {
             if (project.id !== projectId) {
@@ -618,7 +752,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         });
       },
     };
-  }, [profile, projects, signedIn]);
+  }, [events, profile, projects, signedIn]);
 
   return <PocketContext.Provider value={value}>{children}</PocketContext.Provider>;
 }
