@@ -4,9 +4,17 @@ import { Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
+export type VoiceRecording = {
+  blob: Blob;
+  duration: number;
+  mimeType: string;
+  url: string;
+};
+
 interface AIVoiceInputProps {
   onStart?: () => void;
   onStop?: (duration: number) => void;
+  onRecordingComplete?: (recording: VoiceRecording) => void;
   visualizerBars?: number;
   demoMode?: boolean;
   demoInterval?: number;
@@ -20,6 +28,7 @@ interface AIVoiceInputProps {
 export function AIVoiceInput({
   onStart,
   onStop,
+  onRecordingComplete,
   visualizerBars = 48,
   demoMode = false,
   demoInterval = 3000,
@@ -32,7 +41,12 @@ export function AIVoiceInput({
   const [submitted, setSubmitted] = useState(false);
   const [time, setTime] = useState(0);
   const [isDemo, setIsDemo] = useState(demoMode);
+  const [error, setError] = useState<string | null>(null);
   const timeRef = useRef(0);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const stopPromiseRef = useRef<Promise<void> | null>(null);
   const [barHeights, setBarHeights] = useState<number[]>(() =>
     Array.from({ length: visualizerBars }, (_, index) => 28 + ((index * 17) % 68)),
   );
@@ -57,7 +71,7 @@ export function AIVoiceInput({
   useEffect(() => {
     if (!isDemo) return;
 
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     const runAnimation = () => {
       setSubmitted(true);
       timeoutId = setTimeout(() => {
@@ -85,6 +99,12 @@ export function AIVoiceInput({
     return () => clearInterval(intervalId);
   }, [submitted]);
 
+  useEffect(() => {
+    return () => {
+      cleanupStream();
+    };
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -96,26 +116,104 @@ export function AIVoiceInput({
 
     if (isDemo) {
       setIsDemo(false);
-      stopRecording();
+      void stopRecording();
       return;
     }
 
     if (submitted) {
-      stopRecording();
+      void stopRecording();
     } else {
-      startRecording();
+      void startRecording();
     }
   };
 
-  const startRecording = () => {
+  const startRecording = async () => {
     if (disabled) return;
+    setError(null);
+
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      setError("Voice input is only available in the browser.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setError("This browser does not support microphone recording.");
+      return;
+    }
+
+    if (!isDemo) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeType = getSupportedMimeType();
+        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+
+        chunksRef.current = [];
+        streamRef.current = stream;
+        recorderRef.current = recorder;
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunksRef.current.push(event.data);
+          }
+        };
+
+        recorder.onerror = () => {
+          setError("Microphone recording failed.");
+        };
+
+        recorder.start();
+      } catch {
+        setError("Microphone permission was denied or unavailable.");
+        cleanupStream();
+        return;
+      }
+    }
+
     setSubmitted(true);
   };
 
-  const stopRecording = () => {
-    onStop?.(timeRef.current);
+  const stopRecording = async () => {
+    const duration = timeRef.current;
+    const recorder = recorderRef.current;
+
+    if (recorder && recorder.state !== "inactive") {
+      stopPromiseRef.current = new Promise<void>((resolve) => {
+        recorder.onstop = () => {
+          const blob = new Blob(chunksRef.current, {
+            type: recorder.mimeType || "audio/webm",
+          });
+
+          if (blob.size > 0) {
+            onRecordingComplete?.({
+              blob,
+              duration,
+              mimeType: recorder.mimeType || blob.type || "audio/webm",
+              url: URL.createObjectURL(blob),
+            });
+          }
+
+          cleanupStream();
+          resolve();
+        };
+      });
+
+      recorder.stop();
+      await stopPromiseRef.current;
+      stopPromiseRef.current = null;
+    } else {
+      cleanupStream();
+    }
+
     setSubmitted(false);
     setTime(0);
+    onStop?.(duration);
+  };
+
+  const cleanupStream = () => {
+    recorderRef.current = null;
+    chunksRef.current = [];
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
   };
 
   return (
@@ -176,9 +274,15 @@ export function AIVoiceInput({
         </div>
 
         <p className="min-h-4 text-center text-xs text-black/70 dark:text-white/70" aria-live="polite">
-          {disabled ? "Voice input unavailable" : submitted ? listeningHint : idleHint}
+          {disabled ? "Voice input unavailable" : error ? error : submitted ? listeningHint : idleHint}
         </p>
       </div>
     </div>
   );
+}
+
+function getSupportedMimeType() {
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+
+  return candidates.find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
 }
