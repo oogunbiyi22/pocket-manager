@@ -1,20 +1,46 @@
 "use client";
 
-import { useState } from "react";
-import { AIVoiceInput } from "@/components/ui/ai-voice-input";
+import { useEffect, useRef, useState } from "react";
+import { AIVoiceInput, VoiceRecording } from "@/components/ui/ai-voice-input";
 
 export function AIVoiceInputDemo() {
-  const [recordings, setRecordings] = useState<{ duration: number; timestamp: Date }[]>([]);
+  const [recordings, setRecordings] = useState<Array<{ duration: number; timestamp: Date; url: string; mimeType: string }>>([]);
+  const retiredUrlsRef = useRef<string[]>([]);
+  const recordingsRef = useRef(recordings);
 
-  const handleStop = (duration: number) => {
-    if (duration <= 0) return;
-    setRecordings((prev) => [...prev.slice(-4), { duration, timestamp: new Date() }]);
+  useEffect(() => {
+    recordingsRef.current = recordings;
+  }, [recordings]);
+
+  useEffect(() => {
+    return () => {
+      retiredUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      recordingsRef.current.forEach((recording) => URL.revokeObjectURL(recording.url));
+    };
+  }, []);
+
+  const handleStop = (recording: VoiceRecording) => {
+    if (recording.duration <= 0) return;
+    setRecordings((prev) => {
+      const trimmed = prev.slice(0, 3);
+      retiredUrlsRef.current.push(...prev.slice(3).map((item) => item.url));
+
+      return [
+        {
+          duration: recording.duration,
+          timestamp: new Date(),
+          url: recording.url,
+          mimeType: recording.mimeType,
+        },
+        ...trimmed,
+      ];
+    });
   };
 
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-        <AIVoiceInput onStop={handleStop} />
+        <AIVoiceInput onRecordingComplete={handleStop} />
       </div>
 
       {recordings.length ? (
@@ -29,6 +55,9 @@ export function AIVoiceInputDemo() {
                 <div className="mt-1 text-white/55">
                   {recording.duration}s · {recording.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                 </div>
+                <audio controls className="mt-3 w-full" preload="metadata">
+                  <source src={recording.url} type={recording.mimeType} />
+                </audio>
               </div>
             ))}
         </div>

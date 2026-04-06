@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
-import { AIVoiceInput } from "@/components/ui/ai-voice-input";
+import { AIVoiceInput, VoiceRecording } from "@/components/ui/ai-voice-input";
 import { getCaptureInboxPreview, getManagerBrief } from "@/lib/backstage-data";
 
 export default function CapturePage() {
@@ -13,8 +13,44 @@ export default function CapturePage() {
   const captureInbox = getCaptureInboxPreview([activeProject]);
   const recentActivity = events.filter((item) => item.projectId === activeProject.id).slice(0, 4);
   const [quickTask, setQuickTask] = useState("");
-  const [voiceNotes, setVoiceNotes] = useState<Array<{ duration: number; createdAt: string }>>([]);
+  const [voiceNotes, setVoiceNotes] = useState<Array<{ duration: number; createdAt: string; url: string; mimeType: string }>>([]);
   const [captureStatus, setCaptureStatus] = useState("Captured");
+  const retiredVoiceUrlsRef = useRef<string[]>([]);
+  const voiceNotesRef = useRef(voiceNotes);
+
+  useEffect(() => {
+    voiceNotesRef.current = voiceNotes;
+  }, [voiceNotes]);
+
+  useEffect(() => {
+    return () => {
+      retiredVoiceUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      voiceNotesRef.current.forEach((note) => URL.revokeObjectURL(note.url));
+    };
+  }, []);
+
+  const handleVoiceCapture = (recording: VoiceRecording) => {
+    setVoiceNotes((current) => {
+      const trimmed = current.slice(0, 3);
+      const retired = current.slice(3);
+      retiredVoiceUrlsRef.current.push(...retired.map((note) => note.url));
+      const next = [
+        {
+          duration: recording.duration,
+          createdAt: new Date().toISOString(),
+          url: recording.url,
+          mimeType: recording.mimeType,
+        },
+        ...trimmed,
+      ];
+      return next;
+    });
+
+    addQuickContentIdea(
+      activeProject.id,
+      `Voice note captured (${recording.duration}s): review the recording and turn it into the next rollout move.`,
+    );
+  };
 
   return (
     <AppShell title="Capture" eyebrow="Fast input lane">
@@ -68,13 +104,12 @@ export default function CapturePage() {
                 <AIVoiceInput
                   onStop={(duration) => {
                     if (duration <= 0) return;
-                    setVoiceNotes((current) => [
-                      { duration, createdAt: new Date().toISOString() },
-                      ...current,
-                    ].slice(0, 4));
-                    addQuickContentIdea(activeProject.id, `Voice note captured (${duration}s): turn this into the next rollout move.`);
                   }}
+                  onRecordingComplete={handleVoiceCapture}
                 />
+              </div>
+              <div className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-3 text-sm text-white/70">
+                Voice capture now records locally in the browser. Pocket turns the note into a room idea and keeps playback here for quick review.
               </div>
             </div>
 
@@ -166,6 +201,9 @@ export default function CapturePage() {
                     <div className="mt-2 text-white/60">
                       {note.duration}s · {new Date(note.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                     </div>
+                    <audio controls className="mt-3 w-full" preload="metadata">
+                      <source src={note.url} type={note.mimeType} />
+                    </audio>
                   </div>
                 ))}
               </div>
