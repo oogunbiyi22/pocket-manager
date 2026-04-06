@@ -846,6 +846,68 @@ export function getProjectTriageBoard(sourceProjects: Project[] = projects) {
   });
 }
 
+export function getAutopilotRecommendations(project: Project) {
+  const blockedTask = project.tasks.find((task) => task.blocked);
+  const nextTask = project.tasks.find((task) => task.status !== "Done");
+  const followUp = project.outreach.find((item) => item.status === "Follow-up due");
+  const draftOutreach = project.outreach.find((item) => item.status === "Draft" || item.status === "Not contacted");
+  const missingAsset = project.missingAssets[0];
+  const contentIdea = project.contentIdeas[0];
+  const readiness = getReleaseReadiness(project);
+
+  const chain = [
+    {
+      title: blockedTask ? `Clear blocker on ${blockedTask.title}` : project.nextStep,
+      detail: blockedTask?.unblock ?? "Push the main room move before the day gets fragmented.",
+      tone: blockedTask ? "Urgent" : readiness.score >= 75 ? "Ready" : "Active",
+      reason: blockedTask ? "Unblocking this restores downstream momentum." : "This is the highest-leverage room action right now.",
+    },
+    {
+      title: missingAsset ? `Lock ${missingAsset}` : `Finish ${nextTask?.title ?? "the active room task"}`,
+      detail: missingAsset
+        ? "The package still has a visible gap. Close it before expanding the rollout."
+        : `${nextTask?.dueLabel ?? "Today"} · keep execution moving so the room does not slip back into planning.`,
+      tone: missingAsset ? "Package" : "Execution",
+      reason: missingAsset ? "A tighter package makes every later move easier." : "Finishing active work keeps pressure from stacking up.",
+    },
+    {
+      title: followUp
+        ? `Follow up with ${followUp.name}`
+        : draftOutreach
+          ? `Send ${draftOutreach.name}`
+          : `Ship ${contentIdea ?? "one visible content move"}`,
+      detail: followUp
+        ? "The room already created contact momentum. Do not let it go cold."
+        : draftOutreach
+          ? "A drafted contact is close enough to become a real outward move."
+          : "Use one idea to create external proof of motion this week.",
+      tone: followUp ? "Follow-up" : draftOutreach ? "Outreach" : "Output",
+      reason: "Pocket should always end the chain with visible external movement.",
+    },
+  ];
+
+  return chain;
+}
+
+export function getAutopilotStack(sourceProjects: Project[] = projects) {
+  return sourceProjects
+    .flatMap((project) =>
+      getAutopilotRecommendations(project).map((item, index) => ({
+        id: `${project.id}-autopilot-${index}`,
+        projectId: project.id,
+        projectName: project.name,
+        step: index + 1,
+        title: item.title,
+        detail: item.detail,
+        tone: item.tone,
+        reason: item.reason,
+        score: (index === 0 ? 90 : index === 1 ? 72 : 58) + Math.max(0, 21 - project.daysLeft),
+      })),
+    )
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6);
+}
+
 export function getPocketExecutionLanes(sourceProjects: Project[] = projects) {
   return [
     {

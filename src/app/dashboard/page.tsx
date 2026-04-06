@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppShell, Panel } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
+  getAutopilotStack,
   getDecisionEngine,
   getEmergencyMode,
   getCompanionProfile,
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const activeProject = projects[0];
   const snapshot = getManagerSnapshot(projects);
   const todayQueue = getTodayQueue(projects);
+  const autopilotStack = getAutopilotStack(projects);
   const blockers = todayQueue.filter((task) => task.blocked);
   const focusCards = getDailyFocusCards(projects);
   const captureInbox = getCaptureInboxPreview(projects);
@@ -87,6 +89,32 @@ export default function DashboardPage() {
                   <div className="font-medium text-white">{item.title}</div>
                   <div className="mt-2 leading-6 text-white/65">{item.detail}</div>
                 </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Autopilot stack" description="Pocket should keep the next chain of moves visible without waiting for another prompt.">
+            <div className="space-y-3 text-sm text-white/75">
+              {autopilotStack.slice(0, 4).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/projects/${item.projectId}`}
+                  className="block rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-4 transition hover:border-emerald-300/25 hover:bg-emerald-300/10"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">
+                        {item.projectName} · Step {item.step}
+                      </div>
+                      <div className="mt-2 font-medium text-white">{item.title}</div>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.tone}
+                    </div>
+                  </div>
+                  <div className="mt-3 leading-6 text-white/70">{item.detail}</div>
+                  <div className="mt-3 text-xs uppercase tracking-[0.18em] text-white/45">{item.reason}</div>
+                </Link>
               ))}
             </div>
           </Panel>

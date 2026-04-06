@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppShell, Panel } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
+  getAutopilotRecommendations,
   getDecisionEngine,
   getBlockedTaskCount,
   getOpenTaskCount,
@@ -64,6 +65,7 @@ export default function ProjectsPage() {
               const revenue = getRevenueBrain(project)[0];
               const roomState = roomStates.find((item) => item.id === project.id);
               const followThrough = getPostReleaseMode(project)[0];
+              const autopilot = getAutopilotRecommendations(project);
 
               return (
                 <Link
@@ -95,6 +97,17 @@ export default function ProjectsPage() {
                   </div>
                   <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-white/65">
                     <span className="text-white">Follow-through:</span> {followThrough.detail}
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-4 text-sm text-white/75">
+                    <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">Autopilot chain</div>
+                    <div className="mt-3 space-y-2">
+                      {autopilot.slice(0, 2).map((item) => (
+                        <div key={item.title}>
+                          <div className="font-medium text-white">{item.title}</div>
+                          <div className="mt-1 text-white/60">{item.reason}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-white/55">
                     <span className="rounded-full border border-white/10 px-2.5 py-1">{openTasks} open tasks</span>

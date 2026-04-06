@@ -6,6 +6,7 @@ import { ChangeEvent, useState } from "react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
+  getAutopilotRecommendations,
   getAssetActionLinks,
   getAudienceOwnershipLayer,
   getCollaborationPockets,
@@ -53,6 +54,7 @@ export default function ProjectDetailPage() {
   }
 
   const timeline = getProjectTimeline(project);
+  const autopilot = getAutopilotRecommendations(project);
   const openTasks = getOpenTaskCount(project);
   const blockedTasks = getBlockedTaskCount(project);
   const readiness = getReleaseReadiness(project);
@@ -195,16 +197,16 @@ export default function ProjectDetailPage() {
 
         <Panel title="Immediate next actions" description="Keep the room narrow enough to move without drifting.">
           <div className="space-y-3 text-sm text-white/75">
-            {[
-              project.nextStep,
-              project.missingAssets[0] ? `Resolve: ${project.missingAssets[0]}` : "No missing asset at the top right now.",
-              project.tasks.find((task) => task.status !== "Done")?.title ?? "No open task at the top right now.",
-              project.outreach.find((item) => item.status === "Draft" || item.status === "Follow-up due")
-                ? `Outreach: ${project.outreach.find((item) => item.status === "Draft" || item.status === "Follow-up due")?.name}`
-                : "No urgent outreach follow-up right now.",
-            ].map((item) => (
-              <div key={item} className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-4">
-                {item}
+            {autopilot.map((item, index) => (
+              <div key={item.title} className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="font-medium text-white">Step {index + 1}: {item.title}</div>
+                  <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                    {item.tone}
+                  </div>
+                </div>
+                <div className="mt-3 leading-6 text-white/70">{item.detail}</div>
+                <div className="mt-3 text-xs uppercase tracking-[0.18em] text-white/45">{item.reason}</div>
               </div>
             ))}
           </div>

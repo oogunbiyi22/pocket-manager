@@ -225,6 +225,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (actionType === "Task") {
               return {
                 ...project,
+                nextStep: `Finish manager follow-through for ${project.nextStep.toLowerCase()}`,
+                managerNote: `Manager converted the room into a task lane: ${project.nextStep}`,
+                priorities: [`Finish manager follow-through`, ...project.priorities].slice(0, 5),
                 tasks: [
                   {
                     title: `Manager follow-through: ${project.nextStep}`,
@@ -241,6 +244,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (actionType === "Pitch draft") {
               return {
                 ...project,
+                nextStep: `Review and send the draft for ${project.outreach[0]?.name ?? project.name}`,
+                managerNote: `Manager opened an outreach draft lane for ${project.name}.`,
+                priorities: [`Send outreach draft`, ...project.priorities].slice(0, 5),
                 outreach: project.outreach.map((item, index) =>
                   index === 0 ? { ...item, status: "Draft" } : item,
                 ),
@@ -250,6 +256,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (actionType === "Content item") {
               return {
                 ...project,
+                nextStep: `Turn the queued content move into a scheduled post for ${project.name}.`,
+                managerNote: `Manager queued a content move for the room and pushed it into follow-through.`,
+                priorities: [`Schedule new content move`, ...project.priorities].slice(0, 5),
                 contentIdeas: [
                   `Queued by manager: ${project.contentIdeas[0] ?? "new rollout move"}`,
                   ...project.contentIdeas,
@@ -260,7 +269,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (actionType === "Reminder") {
               return {
                 ...project,
+                nextStep: "Check the saved follow-up and keep the room moving today.",
                 managerNote: `${project.managerNote} Follow-up timing was saved so the room does not lose momentum.`,
+                priorities: [`Check saved follow-up timing`, ...project.priorities].slice(0, 5),
               };
             }
 
@@ -370,11 +381,26 @@ export function PocketProvider({ children }: { children: ReactNode }) {
               return project;
             }
 
+            const updatedTasks = project.tasks.map((task) =>
+              task.title === taskTitle ? { ...task, status, blocked: status === "Done" ? false : task.blocked } : task,
+            );
+            const nextOpenTask = updatedTasks.find((task) => task.status !== "Done");
+
             return {
               ...project,
-              tasks: project.tasks.map((task) =>
-                task.title === taskTitle ? { ...task, status, blocked: status === "Done" ? false : task.blocked } : task,
-              ),
+              tasks: updatedTasks,
+              nextStep:
+                status === "Done"
+                  ? nextOpenTask?.title ?? "Review the room and queue the next move."
+                  : `Move ${taskTitle.toLowerCase()} forward today.`,
+              managerNote:
+                status === "Done"
+                  ? `Task completed: ${taskTitle}. Pocket pushed the next room move to the front.`
+                  : `Task updated: ${taskTitle} is now ${status.toLowerCase()}.`,
+              priorities:
+                status === "Done"
+                  ? project.priorities.filter((item) => item !== taskTitle).slice(0, 5)
+                  : [taskTitle, ...project.priorities.filter((item) => item !== taskTitle)].slice(0, 5),
             };
           }),
         );
@@ -388,6 +414,15 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
+              nextStep:
+                status === "Sent"
+                  ? `Track replies from ${contactName} and queue the next outreach move.`
+                  : `Update and send outreach for ${contactName}.`,
+              managerNote:
+                status === "Sent"
+                  ? `Outreach moved live: ${contactName} was sent.`
+                  : `Outreach status changed for ${contactName}: ${status}.`,
+              priorities: [`Outreach: ${contactName}`, ...project.priorities.filter((item) => item !== `Outreach: ${contactName}`)].slice(0, 5),
               outreach: project.outreach.map((item) =>
                 item.name === contactName ? { ...item, status } : item,
               ),
@@ -454,6 +489,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
                 ...project,
                 nextStep: summary,
                 managerNote: `Manager generated a new execution move: ${summary}`,
+                priorities: [summary, ...project.priorities.filter((item) => item !== summary)].slice(0, 5),
                 tasks: [
                   {
                     title: summary,
@@ -470,7 +506,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (input.intent === "Pitch draft") {
               return {
                 ...project,
+                nextStep: `Review and send the draft: ${summary}`,
                 managerNote: `Manager drafted an outreach angle around: ${summary}`,
+                priorities: [`Send draft: ${summary}`, ...project.priorities].slice(0, 5),
                 outreach: [
                   {
                     name: summary,
@@ -485,7 +523,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (input.intent === "Content item") {
               return {
                 ...project,
+                nextStep: `Turn "${summary}" into a posted rollout move.`,
                 managerNote: `Manager queued a content move: ${summary}`,
+                priorities: [`Ship content: ${summary}`, ...project.priorities].slice(0, 5),
                 contentIdeas: [summary, ...project.contentIdeas].slice(0, 6),
               };
             }
@@ -505,6 +545,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
               ...project,
               managerNote: `Manager reminder saved: ${summary}`,
               nextStep: summary,
+              priorities: [summary, ...project.priorities].slice(0, 5),
             };
           }),
         );
@@ -550,6 +591,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             return {
               ...project,
               missingAssets: project.missingAssets.filter((item) => item !== assetName),
+              nextStep: `Use ${assetName.toLowerCase()} to tighten the room package and move the rollout forward.`,
+              managerNote: `Missing asset resolved: ${assetName}. Pocket promoted the room package forward.`,
+              priorities: [`Use ${assetName}`, ...project.priorities.filter((item) => item !== `Use ${assetName}`)].slice(0, 5),
               assets: [
                 ...project.assets,
                 {
