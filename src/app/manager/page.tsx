@@ -14,6 +14,7 @@ import {
   getManagerMemory,
   getManagerOutputConversions,
   getProjectSprint,
+  getRecentActivity,
   getRevenueBrain,
   getSongWorld,
   getStudioPipeline,
@@ -22,7 +23,7 @@ import {
 } from "@/lib/backstage-data";
 
 export default function ManagerPage() {
-  const { activeProject, convertManagerAction, runManagerComposer } = usePocket();
+  const { activeProject, convertManagerAction, projects, runManagerComposer } = usePocket();
   const managerBrief = getManagerBrief(activeProject);
   const managerMoves = getProjectSprint(activeProject);
   const managerMemory = getManagerMemory();
@@ -37,10 +38,33 @@ export default function ManagerPage() {
   const audienceLayer = getAudienceOwnershipLayer(activeProject);
   const emergencyMode = getEmergencyMode(activeProject);
   const outputConversions = getManagerOutputConversions(activeProject);
+  const recentActivity = getRecentActivity(projects);
   const managerOutputs = [
     { title: "Next move", detail: managerBrief.bestMove },
     { title: "Main risk", detail: managerBrief.mainRisk },
     { title: "Best prompt", detail: managerBrief.supportPrompt },
+  ];
+  const quickBriefs = [
+    {
+      title: "Create today's task",
+      intent: "Task" as const,
+      brief: `Lock ${activeProject.nextStep.toLowerCase()} today and remove the main blocker.`,
+    },
+    {
+      title: "Draft outreach move",
+      intent: "Pitch draft" as const,
+      brief: `Write one sharp outreach angle for ${activeProject.name} that feels complete and credible.`,
+    },
+    {
+      title: "Queue content idea",
+      intent: "Content item" as const,
+      brief: `Turn ${activeProject.name} into one clean mobile-first content beat for this week.`,
+    },
+    {
+      title: "Request missing asset",
+      intent: "Asset" as const,
+      brief: activeProject.missingAssets[0] ?? "Final rollout asset",
+    },
   ];
 
   return (
@@ -145,6 +169,22 @@ export default function ManagerPage() {
             </div>
           </Panel>
 
+          <Panel title="Quick briefs" description="One tap should turn manager thinking into a saved room object.">
+            <div className="grid gap-3 md:grid-cols-2 text-sm text-white/70">
+              {quickBriefs.map((item) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => runManagerComposer(activeProject.id, { intent: item.intent, brief: item.brief })}
+                  className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 text-left transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+                >
+                  <div className="font-medium text-white">{item.title}</div>
+                  <div className="mt-2 leading-6 text-white/65">{item.brief}</div>
+                </button>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Taste engine" description="The product should carry creative judgment, not only logistics.">
             <div className="space-y-3 text-sm text-white/70">
               {tasteBoard.map((item) => (
@@ -227,6 +267,27 @@ export default function ManagerPage() {
               {managerMemory.map((item) => (
                 <div key={item} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
                   {item}
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Room activity" description="Manager should stay aware of what actually changed in the rooms.">
+            <div className="space-y-3 text-sm text-white/70">
+              {recentActivity.slice(0, 5).map((item) => (
+                <div key={item.id} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-white">{item.title}</div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
+                        {item.projectName} · {item.kind}
+                      </div>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                      {item.emphasis}
+                    </div>
+                  </div>
+                  <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
                 </div>
               ))}
             </div>

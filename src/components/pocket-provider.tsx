@@ -277,6 +277,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
+              nextStep: input.title,
+              managerNote: `Captured a new task for today: ${input.title}`,
+              priorities: [input.title, ...project.priorities.filter((item) => item !== input.title)].slice(0, 5),
               tasks: [
                 {
                   title: input.title,
@@ -300,6 +303,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
+              managerNote: `Saved a new room asset: ${input.name}`,
               assets: [
                 {
                   name: input.name,
@@ -308,6 +312,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
                 },
                 ...project.assets,
               ],
+              priorities: [`Review asset: ${input.name}`, ...project.priorities].slice(0, 5),
               missingAssets: project.missingAssets.filter((item) => item.toLowerCase() !== input.name.toLowerCase()),
             };
           }),
@@ -322,7 +327,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
+              managerNote: `Added outreach contact: ${input.name}`,
               outreach: [input, ...project.outreach],
+              priorities: [`Reach out to ${input.name}`, ...project.priorities].slice(0, 5),
             };
           }),
         );
@@ -346,6 +353,8 @@ export function PocketProvider({ children }: { children: ReactNode }) {
                 })),
                 ...project.assets,
               ],
+              nextStep: `Review ${uploads[0].name} and connect it to the rollout package.`,
+              priorities: [`Review uploaded file: ${uploads[0].name}`, ...project.priorities].slice(0, 5),
               missingAssets: project.missingAssets.filter(
                 (item) => !uploadNames.some((name) => name.includes(item.toLowerCase()) || item.toLowerCase().includes(name)),
               ),
@@ -395,6 +404,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
+              managerNote: `Captured a fast vault placeholder: ${assetLabel}`,
               assets: [
                 {
                   name: `${slugify(assetLabel)}.asset`,
@@ -403,6 +413,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
                 },
                 ...project.assets,
               ],
+              priorities: [`Review ${assetLabel}`, ...project.priorities].slice(0, 5),
             };
           }),
         );
@@ -416,7 +427,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
+              managerNote: `Captured a new content angle: ${idea}`,
               contentIdeas: [idea, ...project.contentIdeas].slice(0, 5),
+              nextStep: `Turn "${idea}" into a real rollout move.`,
             };
           }),
         );
