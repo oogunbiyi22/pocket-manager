@@ -22,6 +22,13 @@ export default function VaultPage() {
   const projectMemories = projects.flatMap((project) =>
     getProjectMemory(project).map((memory) => ({ projectId: project.id, projectName: project.name, memory })),
   );
+  const missingAssets = projects.flatMap((project) =>
+    project.missingAssets.map((asset) => ({
+      projectId: project.id,
+      projectName: project.name,
+      name: asset,
+    })),
+  );
   const vaultSummary = {
     totalAssets: rawAssets.length,
     uploadedAssets: rawAssets.filter((asset) => asset.status === "Uploaded" || asset.status === "Captured").length,
@@ -74,6 +81,36 @@ export default function VaultPage() {
         </Panel>
 
         <div className="space-y-6">
+          <Panel title="Vault gaps" description="The vault should also show what still needs to land, not only what already exists.">
+            <div className="space-y-3 text-sm text-white/70">
+              {missingAssets.length ? (
+                missingAssets.map((asset) => (
+                  <Link
+                    key={`${asset.projectId}-${asset.name}`}
+                    href={`/projects/${asset.projectId}`}
+                    className="block rounded-2xl border border-amber-300/15 bg-amber-200/5 px-4 py-4 transition hover:border-amber-100/30"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-white">{asset.name}</div>
+                        <div className="mt-1 text-xs uppercase tracking-[0.18em] text-amber-100/70">
+                          {asset.projectName}
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-amber-100/20 px-2.5 py-1 text-[11px] text-amber-50/80">
+                        Missing
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-white/10 px-4 py-4 text-white/45">
+                  No open vault gaps right now.
+                </div>
+              )}
+            </div>
+          </Panel>
+
           <Panel title="Raw vault inventory" description="The actual asset records saved inside project rooms.">
             <div className="space-y-3 text-sm text-white/70">
               {rawAssets.length ? (

@@ -7,9 +7,10 @@ import {
   getCaptureInboxPreview,
   getCrossSurfaceSignals,
   getEmergencyMode,
-  getPocketExecutionLanes,
   getManagerBrief,
+  getPocketExecutionLanes,
   getProjectSprint,
+  getRecentActivity,
   getReleaseReadiness,
   getTasteBoard,
 } from "@/lib/backstage-data";
@@ -30,6 +31,7 @@ export default function MobilePage() {
   const crossSurfaceSignals = getCrossSurfaceSignals(projects);
   const executionLanes = getPocketExecutionLanes(projects);
   const emergencyMode = getEmergencyMode(activeProject);
+  const recentActivity = getRecentActivity(projects);
   const tasteBoard = getTasteBoard(activeProject);
 
   return (
@@ -168,6 +170,33 @@ export default function MobilePage() {
           </div>
         </Panel>
 
+        <Panel title="Recent movement" description="The phone should show what changed without making you hunt for it.">
+          <div className="space-y-3 text-sm text-white/70">
+            {recentActivity.slice(0, 4).map((item) => (
+              <Link
+                key={item.id}
+                href={`/projects/${item.projectId}`}
+                className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-white">{item.title}</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
+                      {item.projectName} · {item.kind}
+                    </div>
+                  </div>
+                  <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
+                    {item.emphasis}
+                  </div>
+                </div>
+                <div className="mt-3 leading-6 text-white/65">{item.detail}</div>
+              </Link>
+            ))}
+          </div>
+        </Panel>
+      </div>
+
+      <div className="mt-6">
         <Panel title="Mobile moments" description="The lived experience this route is trying to support.">
           <ul className="space-y-3 text-sm text-white/70">
             {mobileMoments.map((moment) => (
