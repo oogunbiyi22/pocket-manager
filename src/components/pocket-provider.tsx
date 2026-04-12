@@ -55,6 +55,10 @@ type AddCollaboratorInput = {
   signed: boolean;
 };
 
+type SongMetadataInput = Partial<
+  Pick<SongCatalogItem, "isrc" | "upc" | "releaseDate" | "genre" | "mood" | "bpm" | "musicalKey" | "language" | "territory">
+>;
+
 type ProfileInput = {
   artistName: string;
   role: string;
@@ -142,6 +146,7 @@ type PocketContextValue = {
   createProject: (input: CreateProjectInput) => string | null;
   createSong: (input: CreateSongInput) => string | null;
   addSongCollaborator: (songId: string, input: AddCollaboratorInput) => void;
+  updateSongMetadata: (songId: string, input: SongMetadataInput) => void;
   completeRevenueAction: (songId: string, streamType: string, collectionBody: string) => void;
   updatePlatformConnection: (platformId: string, status: PlatformConnectionStatus) => void;
   convertManagerAction: (projectId: string, actionType: string) => void;
@@ -445,6 +450,47 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           detail: `${input.ownershipPercentage}% ${input.role.replaceAll("_", " ")} split added to the song.`,
           kind: "Room",
           emphasis: input.signed ? "Signed" : "Unsigned",
+        });
+      },
+      updateSongMetadata(songId, input) {
+        setSongs((current) =>
+          current.map((song) => {
+            if (song.id !== songId) {
+              return song;
+            }
+
+            const nextSong = {
+              ...song,
+              ...input,
+              isrc: input.isrc ?? song.isrc,
+              releaseDate: input.releaseDate ?? song.releaseDate,
+              territory: input.territory ?? song.territory,
+            };
+            const metadataComplete = Boolean(
+              nextSong.isrc &&
+                nextSong.upc &&
+                nextSong.releaseDate &&
+                nextSong.genre &&
+                nextSong.mood &&
+                nextSong.bpm &&
+                nextSong.musicalKey &&
+                nextSong.language &&
+                nextSong.territory,
+            );
+
+            return {
+              ...nextSong,
+              metadataComplete,
+            };
+          }),
+        );
+
+        pushEvent({
+          projectId: songId,
+          title: "Metadata updated",
+          detail: "Song metadata was saved and readiness recalculated.",
+          kind: "Room",
+          emphasis: "Metadata",
         });
       },
       completeRevenueAction(songId, streamType, collectionBody) {

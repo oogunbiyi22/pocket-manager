@@ -32,9 +32,14 @@ export default function StudioPage() {
           The current build priority remains: song catalog, platform connections, gap engine, next action queue, onboarding, readiness, Pocket In, notifications, and financial basics.
         </section>
 
-        <Link href={`/projects/${activeSong?.id ?? "late-nights"}`} className="mt-5 inline-flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
-          Return to song room
-        </Link>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link href={`/projects/${activeSong?.id ?? "late-nights"}`} className="inline-flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
+            Return to song room
+          </Link>
+          <Link href="/epk" className="inline-flex rounded-lg border-[0.5px] border-black/15 px-5 py-3 text-sm font-medium text-[#111]">
+            Build EPK
+          </Link>
+        </div>
       </main>
     </AppShell>
   );

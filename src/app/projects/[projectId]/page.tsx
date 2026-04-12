@@ -19,11 +19,22 @@ import { usePocket } from "@/components/pocket-provider";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ projectId: string }>();
-  const { addSongCollaborator, completeRevenueAction, projects, songs } = usePocket();
+  const { addSongCollaborator, completeRevenueAction, projects, songs, updateSongMetadata } = usePocket();
   const projectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
   const song = songs.find((item) => item.id === projectId);
   const fallbackProject = getProjectById(projectId, projects);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [metadataForm, setMetadataForm] = useState({
+    isrc: song?.isrc ?? "",
+    upc: song?.upc ?? "",
+    releaseDate: song?.releaseDate === "Release date needed" ? "" : song?.releaseDate ?? "",
+    genre: song?.genre ?? "",
+    mood: song?.mood ?? "",
+    bpm: song?.bpm ? String(song.bpm) : "",
+    musicalKey: song?.musicalKey ?? "",
+    language: song?.language ?? "",
+    territory: song?.territory ?? "United States",
+  });
   const [splitForm, setSplitForm] = useState({
     name: "",
     role: "writer" as const,
@@ -60,6 +71,17 @@ export default function ProjectDetailPage() {
       signed: false,
     });
     setSplitForm({ name: "", role: "writer", ownershipPercentage: "0" });
+  }
+
+  function saveMetadata() {
+    if (!song) {
+      return;
+    }
+
+    updateSongMetadata(song.id, {
+      ...metadataForm,
+      bpm: metadataForm.bpm ? Number(metadataForm.bpm) : undefined,
+    });
   }
 
   return (
@@ -234,6 +256,37 @@ export default function ProjectDetailPage() {
                       </div>
                     ))}
                   </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {[
+                      ["ISRC", "isrc"],
+                      ["UPC", "upc"],
+                      ["Release date", "releaseDate"],
+                      ["Genre", "genre"],
+                      ["Mood", "mood"],
+                      ["BPM", "bpm"],
+                      ["Key", "musicalKey"],
+                      ["Language", "language"],
+                      ["Territory", "territory"],
+                    ].map(([label, key]) => (
+                      <label key={key} className="block text-sm text-[#514d47]">
+                        <span className="mb-2 block">{label}</span>
+                        <input
+                          type={key === "releaseDate" ? "date" : "text"}
+                          value={metadataForm[key as keyof typeof metadataForm]}
+                          onChange={(event) =>
+                            setMetadataForm((current) => ({
+                              ...current,
+                              [key]: event.target.value,
+                            }))
+                          }
+                          className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <button type="button" onClick={saveMetadata} className="mt-4 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+                    Save metadata
+                  </button>
                 </div>
               </section>
             ) : null}
@@ -265,9 +318,14 @@ export default function ProjectDetailPage() {
         </section>
 
         {song ? (
-          <Link href="/studio" className="mt-5 flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
-            Create promo content
-          </Link>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/studio" className="flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
+              Create promo content
+            </Link>
+            <Link href="/epk" className="flex rounded-lg border-[0.5px] border-black/15 px-5 py-3 text-sm font-medium text-[#111]">
+              Build EPK
+            </Link>
+          </div>
         ) : null}
       </main>
     </AppShell>
