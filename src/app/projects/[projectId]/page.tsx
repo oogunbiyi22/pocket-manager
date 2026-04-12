@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import {
   formatMoney,
@@ -41,6 +41,29 @@ export default function ProjectDetailPage() {
     role: "writer" as const,
     ownershipPercentage: "0",
   });
+  const [splitSheetCopied, setSplitSheetCopied] = useState(false);
+  const splitTotal = song?.collaborators.reduce((total, collaborator) => total + collaborator.ownershipPercentage, 0) ?? 0;
+  const unsignedSplits = song?.collaborators.filter((collaborator) => !collaborator.signed).length ?? 0;
+  const splitSheetText = useMemo(() => {
+    if (!song) {
+      return "";
+    }
+
+    return [
+      "Pocket Manager split sheet preview",
+      `Song: ${song.title}`,
+      `ISRC: ${song.isrc || "Needed"}`,
+      `Release date: ${song.releaseDate}`,
+      `Total split: ${splitTotal}%`,
+      "",
+      ...song.collaborators.map(
+        (collaborator) =>
+          `${collaborator.name} - ${collaborator.role.replaceAll("_", " ")} - ${collaborator.ownershipPercentage}% - ${collaborator.signed ? "signed" : "unsigned"}`,
+      ),
+      "",
+      "This prototype preview is not a signed legal agreement. V5 PDF generation and DocuSign routing belong to the backend/subscription phases.",
+    ].join("\n");
+  }, [song, splitTotal]);
 
   if (!song && !fallbackProject) {
     notFound();
@@ -83,6 +106,15 @@ export default function ProjectDetailPage() {
       ...metadataForm,
       bpm: metadataForm.bpm ? Number(metadataForm.bpm) : undefined,
     });
+  }
+
+  async function copySplitSheet() {
+    if (!splitSheetText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(splitSheetText);
+    setSplitSheetCopied(true);
   }
 
   return (
@@ -237,6 +269,30 @@ export default function ProjectDetailPage() {
                     <button type="button" onClick={addSplit} className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
                       Add collaborator
                     </button>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6d6860]">Split sheet preview</div>
+                      <p className="mt-2 text-sm leading-6 text-[#514d47]">
+                        {splitTotal}% assigned · {unsignedSplits} unsigned collaborator{unsignedSplits === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${splitTotal === 100 && unsignedSplits === 0 ? statusClass("connected") : statusClass("incomplete")}`}>
+                      {splitTotal === 100 && unsignedSplits === 0 ? "Ready" : "Needs review"}
+                    </span>
+                  </div>
+                  <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap rounded-lg border-[0.5px] border-black/10 bg-white p-3 text-xs leading-5 text-[#514d47]">
+                    {splitSheetText}
+                  </pre>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={copySplitSheet} className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+                      {splitSheetCopied ? "Copied" : "Copy split sheet"}
+                    </button>
+                    <Link href="/settings" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+                      PDF backend pending
+                    </Link>
                   </div>
                 </div>
               </div>
