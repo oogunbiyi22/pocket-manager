@@ -9,13 +9,13 @@ export default function StudioPage() {
   const activeSong = songs[0];
 
   return (
-    <AppShell title="Studio" eyebrow="Phase 13">
+    <AppShell title="Promo Studio" eyebrow="Signal">
       <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Promo Studio</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Create for {activeSong?.title ?? "your catalog"}.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            V5 keeps Studio as a main tab, but generation starts in Phase 13 after the core revenue system, payments, and backend acceptance criteria pass.
+            Promo Studio now lives inside Signal. Generation starts after the core catalog, Gap, action, and pitching surfaces are stable enough to judge.
           </p>
         </section>
 
@@ -29,7 +29,7 @@ export default function StudioPage() {
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-          The current build priority remains: song catalog, platform connections, gap engine, next action queue, onboarding, readiness, Pocket In, notifications, and financial basics.
+          The current build priority remains: song catalog, platform connections, The Gap, next action queue, onboarding, Readiness, Drop, notifications, and Harvest basics.
         </section>
 
         <div className="mt-5 flex flex-wrap gap-3">

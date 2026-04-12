@@ -13,8 +13,9 @@ import { usePocket } from "@/components/pocket-provider";
 
 const navItems = [
   { href: "/mobile", label: "Home" },
-  { href: "/projects", label: "Songs" },
-  { href: "/studio", label: "Studio" },
+  { href: "/work", label: "Work" },
+  { href: "/signal", label: "Signal" },
+  { href: "/harvest", label: "Harvest" },
   { href: "/settings", label: "Profile" },
 ];
 
@@ -35,12 +36,7 @@ export function AppShell({
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
   const activeReadiness = activeSong ? getSongReadinessScore(activeSong) : 0;
-  const activeNav =
-    pathname.startsWith("/mobile")
-      ? "Pocket App"
-      : pathname.startsWith("/platforms")
-        ? "Profile"
-      : [...navItems, ...mobileNavItems].find((item) => isNavActive(pathname, item.href))?.label ?? "Pocket";
+  const activeNav = getActiveSurface(pathname);
 
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#111]">
@@ -57,7 +53,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 className={`rounded-lg px-4 py-2 text-sm transition ${
-                  isNavActive(pathname, item.href)
+                  activeNav === item.label
                     ? "bg-[#0a0a0a] text-white"
                     : "text-[#5d5a54] hover:bg-[#f4f1eb] hover:text-[#111]"
                 }`}
@@ -127,13 +123,13 @@ export function AppShell({
       </main>
 
       <div className="fixed inset-x-4 bottom-4 z-40 md:hidden">
-        <nav className="grid grid-cols-4 rounded-xl border-[0.5px] border-black/15 bg-white p-2">
+        <nav className="grid grid-cols-5 rounded-xl border-[0.5px] border-black/15 bg-white p-2">
           {mobileNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={`rounded-lg px-3 py-3 text-center text-[11px] font-medium uppercase tracking-[0.12em] transition ${
-                isNavActive(pathname, item.href)
+                activeNav === item.label
                   ? "bg-[#0a0a0a] text-white"
                   : "text-[#6d6860] hover:bg-[#f4f1eb] hover:text-[#111]"
               }`}
@@ -145,22 +141,63 @@ export function AppShell({
       </div>
 
       <Link
-        href="/capture"
+        href="/drop"
         className="fixed bottom-24 left-4 z-50 grid size-12 place-items-center rounded-full border-[0.5px] border-black/15 bg-white text-2xl font-light text-[#0a0a0a] md:bottom-6"
-        aria-label="Open Pocket In"
+        aria-label="Open Drop"
       >
         +
+      </Link>
+      <Link
+        href="/a"
+        className="fixed bottom-24 right-4 z-50 grid size-12 place-items-center rounded-full border-[0.5px] border-black/15 bg-[#0d0d0b] text-[15px] font-medium text-[#f5f4f0] md:bottom-6"
+        aria-label="Open A"
+      >
+        A
+        <span className="absolute right-0 top-0 size-2 rounded-full bg-[#ef9f27]" />
       </Link>
     </div>
   );
 }
 
-function isNavActive(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/";
+function getActiveSurface(pathname: string) {
+  if (pathname.startsWith("/mobile")) return "Home";
+  if (
+    pathname.startsWith("/work") ||
+    pathname.startsWith("/projects") ||
+    pathname.startsWith("/albums") ||
+    pathname.startsWith("/radar") ||
+    pathname.startsWith("/vault") ||
+    pathname.startsWith("/guild")
+  ) {
+    return "Work";
   }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (
+    pathname.startsWith("/signal") ||
+    pathname.startsWith("/studio") ||
+    pathname.startsWith("/epk") ||
+    pathname.startsWith("/pitch-kits") ||
+    pathname.startsWith("/sync")
+  ) {
+    return "Signal";
+  }
+  if (
+    pathname.startsWith("/harvest") ||
+    pathname.startsWith("/financial") ||
+    pathname.startsWith("/actions") ||
+    pathname.startsWith("/statements") ||
+    pathname.startsWith("/contracts") ||
+    pathname.startsWith("/beats") ||
+    pathname.startsWith("/forecast") ||
+    pathname.startsWith("/valuation")
+  ) {
+    return "Harvest";
+  }
+  if (pathname.startsWith("/settings") || pathname.startsWith("/platforms") || pathname.startsWith("/notifications")) {
+    return "Profile";
+  }
+  if (pathname.startsWith("/drop") || pathname.startsWith("/capture")) return "Drop";
+  if (pathname.startsWith("/a") || pathname.startsWith("/manager")) return "A";
+  return "Pocket";
 }
 
 export function Panel({

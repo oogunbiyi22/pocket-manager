@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 
-type PocketInItem = {
+type DropItem = {
   id: string;
   type: "Note" | "Voice memo" | "File" | "Link";
   body: string;
@@ -17,17 +17,17 @@ const CAPTURE_STORAGE_KEY = "pocket-manager-captures";
 
 export default function CapturePage() {
   const { songs } = usePocket();
-  const [type, setType] = useState<PocketInItem["type"]>("Note");
+  const [type, setType] = useState<DropItem["type"]>("Note");
   const [songId, setSongId] = useState(songs[0]?.id ?? "inbox");
   const [body, setBody] = useState("");
-  const [items, setItems] = useState<PocketInItem[]>(() => {
+  const [items, setItems] = useState<DropItem[]>(() => {
     if (typeof window === "undefined") {
       return [];
     }
 
     try {
       const raw = window.localStorage.getItem(CAPTURE_STORAGE_KEY);
-      const parsed = raw ? (JSON.parse(raw) as PocketInItem[]) : [];
+      const parsed = raw ? (JSON.parse(raw) as DropItem[]) : [];
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       window.localStorage.removeItem(CAPTURE_STORAGE_KEY);
@@ -60,13 +60,13 @@ export default function CapturePage() {
   }
 
   return (
-    <AppShell title="Pocket In" eyebrow="Quick capture">
+    <AppShell title="Drop" eyebrow="Fast capture">
       <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Pocket In</div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Drop</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Save it before it gets lost.</h2>
           <p className="mt-3 text-sm leading-6 text-white/60">
-            Capture notes, voice reminders, links, and file references. Route them to a song now or leave them in the inbox.
+            Capture notes, voice reminders, links, and file references. Route them to a Room now or leave them in the inbox.
           </p>
         </section>
 
@@ -107,7 +107,7 @@ export default function CapturePage() {
           />
 
           <button type="button" onClick={saveCapture} className="h-[52px] rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
-            Save to Pocket
+            Save Drop
           </button>
         </section>
 
