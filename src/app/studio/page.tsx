@@ -29,7 +29,7 @@ export default function StudioPage() {
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-          The current build priority remains: song catalog, platform connections, The Gap, next action queue, onboarding, Readiness, Drop, notifications, and Harvest basics.
+          The current build priority remains: song catalog, platform connections, The Gap, next action queue, onboarding, Readiness, Pocket, notifications, and Harvest basics.
         </section>
 
         <div className="mt-5 flex flex-wrap gap-3">

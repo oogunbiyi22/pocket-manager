@@ -1,1 +1,5 @@
-export { default } from "../capture/page";
+import { redirect } from "next/navigation";
+
+export default function DropPage() {
+  redirect("/pocket");
+}

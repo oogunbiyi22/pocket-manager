@@ -2,7 +2,7 @@ export const mobileTabs = [
   { label: "Home", href: "/dashboard" },
   { label: "App", href: "/mobile" },
   { label: "Past Work", href: "/projects" },
-  { label: "Pocket In", href: "/capture" },
+  { label: "Pocket", href: "/pocket" },
   { label: "Vault", href: "/vault" },
   { label: "Profile", href: "/settings" },
 ] as const;
@@ -10,7 +10,7 @@ export const mobileTabs = [
 export const quickCaptureActions = [
   {
     title: "Add task",
-    copy: "Drop the next thing that needs doing before it disappears.",
+    copy: "Pocket the next thing that needs doing before it disappears.",
   },
   {
     title: "Voice note",
@@ -25,14 +25,14 @@ export const quickCaptureActions = [
 export const mobileMoments = [
   "Open the app and know the top 3 priorities instantly.",
   "Jump from a notification into the active project without hunting.",
-  "Pocket in ideas, files, and tasks from the phone in seconds.",
+  "Pocket ideas, files, and tasks from the phone in seconds.",
   "Ask the AI manager what matters next while on the move.",
 ] as const;
 
 export const mobileOperatingModes = [
   {
     title: "Commute mode",
-    copy: "Only show urgent moves, blockers, and one fast Pocket In action.",
+    copy: "Only show urgent moves, blockers, and one fast Pocket action.",
   },
   {
     title: "Session mode",

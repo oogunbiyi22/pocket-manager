@@ -73,7 +73,7 @@ export function AgentChatPanel({
             {(companion?.canCarry ?? [
               "Build from the active project context automatically.",
               "Turn vague ideas into tasks, timelines, and outreach drafts.",
-              "Keep Pocket In fast instead of chat-heavy.",
+              "Keep Pocket fast instead of chat-heavy.",
             ]).map((item) => (
               <li key={item}>{item}</li>
             ))}

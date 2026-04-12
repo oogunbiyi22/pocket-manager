@@ -12,11 +12,11 @@ import {
 import { usePocket } from "@/components/pocket-provider";
 
 const navItems = [
-  { href: "/mobile", label: "Home" },
-  { href: "/work", label: "Work" },
-  { href: "/signal", label: "Signal" },
-  { href: "/harvest", label: "Harvest" },
-  { href: "/settings", label: "Profile" },
+  { href: "/mobile", label: "Home", icon: "⌂" },
+  { href: "/work", label: "Work", icon: "♪" },
+  { href: "/signal", label: "Signal", icon: "◎" },
+  { href: "/harvest", label: "Harvest", icon: "$" },
+  { href: "/settings", label: "Profile", icon: "○" },
 ];
 
 const mobileNavItems = navItems;
@@ -123,27 +123,27 @@ export function AppShell({
       </main>
 
       <div className="fixed inset-x-4 bottom-4 z-40 md:hidden">
-        <nav className="grid grid-cols-5 rounded-xl border-[0.5px] border-black/15 bg-white p-2">
+        <nav className="grid grid-cols-5 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-1 py-2">
           {mobileNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-lg px-3 py-3 text-center text-[11px] font-medium uppercase tracking-[0.12em] transition ${
-                activeNav === item.label
-                  ? "bg-[#0a0a0a] text-white"
-                  : "text-[#6d6860] hover:bg-[#f4f1eb] hover:text-[#111]"
-              }`}
+              className="flex flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-center transition hover:bg-white"
             >
-              {item.label}
+              <span className={`text-sm leading-none ${activeNav === item.label ? "text-[#0d0d0b]" : "text-[#9a9a8a]"}`}>{item.icon}</span>
+              <span className={`text-[9px] leading-none ${activeNav === item.label ? "font-medium text-[#0d0d0b]" : "text-[#9a9a8a]"}`}>
+                {item.label}
+              </span>
+              <span className={`h-[3px] w-4 rounded-full ${activeNav === item.label ? "bg-[#0d0d0b]" : "bg-transparent"}`} />
             </Link>
           ))}
         </nav>
       </div>
 
       <Link
-        href="/drop"
+        href="/pocket"
         className="fixed bottom-24 left-4 z-50 grid size-12 place-items-center rounded-full border-[0.5px] border-black/15 bg-white text-2xl font-light text-[#0a0a0a] md:bottom-6"
-        aria-label="Open Drop"
+        aria-label="Open Pocket"
       >
         +
       </Link>
@@ -195,7 +195,7 @@ function getActiveSurface(pathname: string) {
   if (pathname.startsWith("/settings") || pathname.startsWith("/platforms") || pathname.startsWith("/notifications")) {
     return "Profile";
   }
-  if (pathname.startsWith("/drop") || pathname.startsWith("/capture")) return "Drop";
+  if (pathname.startsWith("/pocket") || pathname.startsWith("/drop") || pathname.startsWith("/capture")) return "Pocket";
   if (pathname.startsWith("/a") || pathname.startsWith("/manager")) return "A";
   return "Pocket";
 }

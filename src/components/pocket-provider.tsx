@@ -910,7 +910,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         pushEvent({
           projectId,
           title: assetLabel,
-          detail: "Pocket In created a fast vault asset request.",
+          detail: "Pocket created a fast vault asset request.",
           kind: "Capture",
           emphasis: "Captured",
         });
@@ -922,7 +922,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
-              managerNote: `Pocket In saved a vault asset request: ${assetLabel}`,
+              managerNote: `Pocket saved a vault asset request: ${assetLabel}`,
               assets: [
                 {
                   name: `${slugify(assetLabel)}.asset`,
@@ -940,7 +940,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         pushEvent({
           projectId,
           title: idea,
-          detail: "Pocket In saved a new content angle into the room.",
+          detail: "Pocket saved a new content angle into the room.",
           kind: "Capture",
           emphasis: "Idea",
         });
@@ -952,7 +952,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
-              managerNote: `Pocket In saved a new content angle: ${idea}`,
+              managerNote: `Pocket saved a new content angle: ${idea}`,
               contentIdeas: [idea, ...project.contentIdeas].slice(0, 5),
               nextStep: `Turn "${idea}" into a real rollout move.`,
             };
