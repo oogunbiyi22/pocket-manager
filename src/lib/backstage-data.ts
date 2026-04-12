@@ -1002,21 +1002,84 @@ export function getRevenueActionQueue(songs: SongCatalogItem[] = seedSongs) {
     .flatMap((song) =>
       song.revenueStreams
         .filter((stream) => stream.estimatedGap > 0 || stream.status === "not_registered" || stream.status === "incomplete")
-        .map((stream) => ({
-          id: `${song.id}-${stream.streamType}-${stream.collectionBody}`,
-          title: `${stream.action} for "${song.title}"`,
-          action: stream.action,
-          songId: song.id,
-          songTitle: song.title,
-          streamType: stream.streamType,
-          collectionBody: stream.collectionBody,
-          estimatedValue: stream.estimatedGap,
-          estimatedTime: stream.streamType === "digital_performance" ? "~5 minutes" : "~8 minutes",
-          priority: getRevenueStreamPriority(stream.streamType) + stream.estimatedGap,
-          reason: stream.reason,
-        })),
+        .map((stream) => {
+          const guidance = getRevenueActionGuidance(stream);
+
+          return {
+            id: `${song.id}-${stream.streamType}-${stream.collectionBody}`,
+            title: `${stream.action} for "${song.title}"`,
+            action: stream.action,
+            songId: song.id,
+            songTitle: song.title,
+            streamType: stream.streamType,
+            collectionBody: stream.collectionBody,
+            estimatedValue: stream.estimatedGap,
+            estimatedTime: guidance.estimatedTime,
+            priority: getRevenueStreamPriority(stream.streamType) + stream.estimatedGap,
+            reason: stream.reason,
+            why: guidance.why,
+            steps: guidance.steps,
+            externalUrl: guidance.externalUrl,
+          };
+        }),
     )
     .sort((left, right) => right.priority - left.priority);
+}
+
+function getRevenueActionGuidance(stream: RevenueStream) {
+  const fallback = {
+    estimatedTime: "~8 minutes",
+    why: "This closes a detected revenue or registration gap for the song.",
+    steps: ["Open the song room", "Review the missing registration detail", "Complete the platform step", "Mark done in Pocket Manager"],
+    externalUrl: "/platforms",
+  };
+
+  const guidance: Partial<Record<RevenueStreamType, typeof fallback>> = {
+    digital_performance: {
+      estimatedTime: "~5 minutes",
+      why: "SoundExchange-style registration helps master owners and featured artists collect eligible digital performance royalties.",
+      steps: ["Confirm the ISRC and release title", "Open SoundExchange registration", "Register the recording or verify it is already listed", "Return here and mark done"],
+      externalUrl: "https://www.soundexchange.com/",
+    },
+    performance_royalty: {
+      estimatedTime: "~5 minutes",
+      why: "A PRO repertoire entry helps writers and publishers collect performance royalties tied to the composition.",
+      steps: ["Confirm writer split and PRO affiliation", "Open the PRO repertoire portal", "Add the song title, ISRC, and split details", "Return here and mark done"],
+      externalUrl: "https://www.bmi.com/",
+    },
+    mechanical: {
+      estimatedTime: "~8 minutes",
+      why: "The MLC or publisher path helps route digital mechanical royalties for the composition.",
+      steps: ["Confirm writer and publisher/admin details", "Open The MLC or your publishing admin", "Search the song and add missing registration data", "Return here and mark done"],
+      externalUrl: "https://www.themlc.com/",
+    },
+    youtube: {
+      estimatedTime: "~8 minutes",
+      why: "Content ID helps claim master usage when the recording appears in YouTube videos.",
+      steps: ["Confirm the master owner", "Open YouTube or distributor Content ID settings", "Claim or enable Content ID for the recording", "Return here and mark done"],
+      externalUrl: "https://studio.youtube.com/",
+    },
+    streaming: {
+      estimatedTime: "~6 minutes",
+      why: "Distributor collection is the base path for confirmed streaming income.",
+      steps: ["Open the distributor account", "Verify the release is live", "Import or review the latest statement", "Return here and mark done"],
+      externalUrl: "/platforms",
+    },
+    neighboring_rights: {
+      estimatedTime: "~10 minutes",
+      why: "Neighboring rights can matter when the artist/master-owner has eligible usage outside the United States.",
+      steps: ["Confirm performer and master owner role", "Review eligible territories", "Choose the neighboring rights society or admin path", "Return here and mark done"],
+      externalUrl: "/platforms",
+    },
+    sync: {
+      estimatedTime: "Review",
+      why: "Sync needs rights clarity before any pitch or license can move safely.",
+      steps: ["Confirm master and publishing ownership", "Check split sheet status", "Prepare clean file and instrumental if available", "Review the pitch or brief"],
+      externalUrl: "/epk",
+    },
+  };
+
+  return guidance[stream.streamType] ?? fallback;
 }
 
 export function getRevenueEstimateMethodology(song: SongCatalogItem, stream: RevenueStream) {
