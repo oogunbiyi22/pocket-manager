@@ -168,6 +168,16 @@ export default function SettingsPage() {
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Catalog Valuation</div>
+          <p className="mt-3 text-sm leading-6 text-[#514d47]">
+            Elite directional preview for catalog value range and the actions most likely to improve it.
+          </p>
+          <Link href="/valuation" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+            Open valuation
+          </Link>
+        </section>
+
+        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Subscription</div>
           <p className="mt-3 text-sm leading-6 text-[#514d47]">
             Free tier tracks up to 3 songs, shows gap ranges, and gives one next action at a time. Pro unlocks exact estimates, unlimited songs, full queue, Release Radar, statements, split sheets, and exports.
