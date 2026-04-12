@@ -121,6 +121,9 @@ export default function FinancialPage() {
           <button type="button" onClick={copySummary} className="mt-3 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
             {copied ? "Copied" : "Copy summary"}
           </button>
+          <Link href="/statements" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+            Read statement
+          </Link>
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">

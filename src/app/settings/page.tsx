@@ -62,6 +62,9 @@ export default function SettingsPage() {
           <Link href="/financial" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
             Open financial summary
           </Link>
+          <Link href="/statements" className="ml-2 mt-4 inline-flex rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+            Read statement
+          </Link>
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
