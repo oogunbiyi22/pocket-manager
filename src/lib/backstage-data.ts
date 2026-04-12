@@ -82,6 +82,14 @@ export type RoyaltyRateReference = {
   caveat: string;
 };
 
+export type ReleaseRadarCheckpoint = {
+  daysBefore: number;
+  title: string;
+  detail: string;
+  targetDate: string;
+  status: "Done" | "Due now" | "Upcoming" | "Missed";
+};
+
 export type SongCatalogItem = {
   id: string;
   title: string;
@@ -508,6 +516,54 @@ export const royaltyRateReferences: Record<RevenueStreamType, RoyaltyRateReferen
     caveat: "No sync dollar estimate should be shown without a real brief or offer.",
   },
 };
+
+export const releaseRadarMilestones = [
+  {
+    daysBefore: 30,
+    title: "Register the song",
+    detail: "Register with the PRO and submit the recording to SoundExchange.",
+  },
+  {
+    daysBefore: 21,
+    title: "Start outside pitching",
+    detail: "Pitch playlists, curators, blogs, and early supporters while there is still time.",
+  },
+  {
+    daysBefore: 14,
+    title: "Verify distributor metadata",
+    detail: "Check ISRC, UPC, title spelling, credits, artwork, and delivery status.",
+  },
+  {
+    daysBefore: 7,
+    title: "Create and schedule promo",
+    detail: "Prepare announcement, short video, caption set, and EPK/pitch material.",
+  },
+  {
+    daysBefore: 3,
+    title: "Confirm links and collaborators",
+    detail: "Send pre-save or smart links, confirm split status, and notify collaborators.",
+  },
+  {
+    daysBefore: 1,
+    title: "Final platform check",
+    detail: "Confirm platform pages, artwork, audio, credits, and release date are correct.",
+  },
+  {
+    daysBefore: 0,
+    title: "Release day",
+    detail: "Post announcement, notify collaborators, and watch early platform availability.",
+  },
+  {
+    daysBefore: -7,
+    title: "First-week review",
+    detail: "Check early stream counts, save proof of performance, and verify reporting signals.",
+  },
+  {
+    daysBefore: -30,
+    title: "Royalty registration review",
+    detail: "Confirm royalty registrations and collection paths are active after release.",
+  },
+];
 
 export const onboardingSteps = [
   "Who are you? artist / producer / engineer / DJ / songwriter",
@@ -1104,6 +1160,52 @@ export function getRevenueEstimateMethodology(song: SongCatalogItem, stream: Rev
   };
 }
 
+export function getReleaseRadar(song: SongCatalogItem, now = new Date()) {
+  const releaseDate = parseDateOnly(song.releaseDate);
+
+  if (!releaseDate) {
+    return [];
+  }
+
+  return releaseRadarMilestones.map((milestone) => {
+    const targetDate = new Date(releaseDate);
+    targetDate.setDate(targetDate.getDate() - milestone.daysBefore);
+    const daysUntilTarget = Math.ceil((targetDate.getTime() - startOfDay(now).getTime()) / 86400000);
+
+    return {
+      ...milestone,
+      targetDate: toDateKey(targetDate),
+      status: getRadarStatus(daysUntilTarget),
+    };
+  });
+}
+
+export function getNextReleaseRadarCheckpoint(song: SongCatalogItem, now = new Date()) {
+  const checkpoints = getReleaseRadar(song, now);
+  return checkpoints.find((checkpoint) => checkpoint.status === "Due now") ?? checkpoints.find((checkpoint) => checkpoint.status === "Upcoming") ?? checkpoints[checkpoints.length - 1];
+}
+
+function getRadarStatus(daysUntilTarget: number): ReleaseRadarCheckpoint["status"] {
+  if (daysUntilTarget < -2) {
+    return "Missed";
+  }
+
+  if (daysUntilTarget <= 0) {
+    return "Due now";
+  }
+
+  return "Upcoming";
+}
+
+function parseDateOnly(value: string) {
+  if (!value || value === "Release date needed") {
+    return null;
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function getRevenueStreamPriority(streamType: RevenueStreamType) {
   const priority: Record<RevenueStreamType, number> = {
     digital_performance: 1000,
@@ -1147,6 +1249,12 @@ function startOfWeek(date: Date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
   next.setDate(next.getDate() - next.getDay());
+  return next;
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
   return next;
 }
 

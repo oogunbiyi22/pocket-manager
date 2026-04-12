@@ -75,6 +75,16 @@ export default function SettingsPage() {
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Release Radar</div>
+          <p className="mt-3 text-sm leading-6 text-[#514d47]">
+            Build the release countdown from each song date: registration, pitching, metadata, promo, final checks, release day, and post-release review.
+          </p>
+          <Link href="/radar" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+            Open Release Radar
+          </Link>
+        </section>
+
+        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next action queue</div>
           <p className="mt-3 text-sm leading-6 text-[#514d47]">
             Free shows one top action. Pro unlocks the full prioritized queue and lets creators work through every gap.
