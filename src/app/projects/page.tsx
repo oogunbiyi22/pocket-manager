@@ -28,6 +28,12 @@ export default function ProjectsPage() {
           >
             Add song
           </Link>
+          <Link
+            href="/albums"
+            className="ml-3 mt-4 inline-flex rounded-lg border-[0.5px] border-white/20 px-4 py-3 text-sm font-medium text-white transition duration-200 ease-out hover:bg-white/10"
+          >
+            Build EP / Album
+          </Link>
         </div>
 
         <div className="mt-5 space-y-3">
