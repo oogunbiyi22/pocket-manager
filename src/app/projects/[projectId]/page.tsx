@@ -118,44 +118,55 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <AppShell title={title} eyebrow="Song room">
-      <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Release readiness</div>
-              <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">{title}</h2>
-              <p className="mt-3 text-sm leading-6 text-white/58">
+    <AppShell title={title} eyebrow="The Room">
+      <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#141412] text-white">
+        <section className="bg-[#1e1e1b] px-5 py-5">
+          <div className="flex items-end gap-4">
+            <div className="grid size-20 shrink-0 place-items-center rounded-xl border-[0.5px] border-white/10 bg-[#33332f] text-[11px] uppercase tracking-[0.16em] text-white/35">
+              Art
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">The Room</div>
+              <h2 className="mt-2 truncate text-3xl font-light tracking-[-0.03em] text-white">{title}</h2>
+              <p className="mt-2 text-sm leading-6 text-white/45">
                 {song ? `${song.isrc} · ${song.releaseDate} · ${song.territory}` : "Manual song added. Add ISRC and platform registrations next."}
               </p>
             </div>
-            <div className="rounded-xl border-[0.5px] border-white/15 px-4 py-3 text-right">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Score</div>
-              <div className="mt-1 text-4xl font-normal">{readinessScore}/100</div>
-            </div>
           </div>
+        </section>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <Metric label="Total secured" value={formatMoney(confirmedIncome)} />
-            <Metric label="Estimated missing" value={formatGapEstimate(estimatedGap)} amber />
-            <Metric label="Gap score" value={`${gapScore}%`} />
+        <section className="flex items-center gap-4 border-y-[0.5px] border-white/10 bg-[#141412] px-5 py-4">
+          <div className={`grid size-16 shrink-0 place-items-center rounded-full border-[4px] text-[18px] font-medium ${readinessScore === 100 ? "border-[#97c459] text-[#97c459]" : readinessScore <= 40 ? "border-[#e24b4a] text-[#e24b4a]" : "border-[#ef9f27] text-[#ef9f27]"}`}>
+            {readinessScore}
           </div>
+          <div>
+            <div className="text-[15px] font-medium text-white">{readinessScore}% Readiness</div>
+            <p className="mt-1 text-sm leading-6 text-white/35">
+              {readinessChecklist.filter((item) => !item.done).length} items blocking full optimization.
+            </p>
+          </div>
+        </section>
+
+        <section className="grid gap-3 bg-[#141412] px-5 py-5 sm:grid-cols-3">
+          <Metric label="Total secured" value={formatMoney(confirmedIncome)} />
+          <Metric label="The Gap" value={formatGapEstimate(estimatedGap)} amber />
+          <Metric label="Gap score" value={`${gapScore}%`} />
         </section>
 
         {song ? (
           <>
-            <section className="mt-5">
-              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Revenue gap breakdown</div>
-              <div className="space-y-3">
+            <section className="px-5 pb-5">
+              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#6a6a5a]">Revenue streams</div>
+              <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b]">
                 {registrationRows.map((stream) => {
                   const methodology = getRevenueEstimateMethodology(song, stream);
 
                   return (
-                    <article key={`${stream.streamType}-${stream.collectionBody}`} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-                      <div className="flex items-start justify-between gap-3">
+                    <article key={`${stream.streamType}-${stream.collectionBody}`} className="border-b-[0.5px] border-white/10 p-4 last:border-b-0">
+                      <div className="flex items-center justify-between gap-3">
                         <div>
-                          <h3 className="text-[15px] font-normal text-[#111]">{stream.label}</h3>
-                          <p className="mt-1 text-xs text-[#6d6860]">{stream.collectionBody}</p>
+                          <h3 className="text-[15px] font-normal text-white">{stream.label}</h3>
+                          <p className="mt-1 text-xs text-white/35">{stream.collectionBody}</p>
                         </div>
                         <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${statusClass(stream.status)}`}>
                           {stream.status.replaceAll("_", " ")}
@@ -163,40 +174,40 @@ export default function ProjectDetailPage() {
                       </div>
 
                       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
-                          <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Collected</div>
-                          <div className="mt-1">{formatMoney(stream.actualAmount)}</div>
+                        <div className="rounded-lg border-[0.5px] border-white/10 bg-[#141412] px-3 py-3 text-sm">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-white/30">Collected</div>
+                          <div className="mt-1 text-[#97c459]">{formatMoney(stream.actualAmount)}</div>
                         </div>
-                        <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
-                          <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Estimated gap</div>
-                          <div className="mt-1">{formatGapEstimate(stream.estimatedGap)}</div>
+                        <div className="rounded-lg border-[0.5px] border-white/10 bg-[#141412] px-3 py-3 text-sm">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-white/30">Estimated Gap</div>
+                          <div className="mt-1 text-[#e24b4a]">{formatGapEstimate(stream.estimatedGap)}</div>
                         </div>
                       </div>
 
-                      <p className="mt-3 text-sm leading-6 text-[#514d47]">Reason: {stream.reason}</p>
+                      <p className="mt-3 text-sm leading-6 text-white/55">Reason: {stream.reason}</p>
                       {stream.estimatedGap > 0 ? (
                         <p className="mt-2 text-xs leading-5 text-[#854f0b]">
                           Free tier shows a range. Upgrade to Pro for the exact estimate and full action queue.
                         </p>
                       ) : null}
-                      <details className="mt-3 rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-2 text-sm text-[#514d47]">
+                      <details className="mt-3 rounded-lg border-[0.5px] border-white/10 bg-[#141412] px-3 py-2 text-sm text-white/55">
                         <summary className="cursor-pointer list-none marker:hidden">How is this calculated?</summary>
-                        <div className="mt-3 rounded-lg bg-[#fafaf8] p-3 leading-6">
+                        <div className="mt-3 rounded-lg bg-[#1e1e1b] p-3 leading-6">
                           <div>{stream.rateNote}</div>
-                          <div className="mt-3 text-[#111]">{methodology.formula}</div>
+                          <div className="mt-3 text-white">{methodology.formula}</div>
                           <ul className="mt-3 space-y-1">
                             {methodology.basis.map((item) => (
                               <li key={item}>{item}</li>
                             ))}
                           </ul>
-                          <div className="mt-3 text-xs leading-5 text-[#6d6860]">{methodology.caveat}</div>
+                          <div className="mt-3 text-xs leading-5 text-white/35">{methodology.caveat}</div>
                         </div>
                       </details>
 
                       <button
                         type="button"
                         onClick={() => completeRevenueAction(song.id, stream.streamType, stream.collectionBody)}
-                        className="mt-3 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
+                        className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-[#0d0d0b]"
                       >
                         {stream.action}
                       </button>
@@ -206,7 +217,7 @@ export default function ProjectDetailPage() {
               </div>
             </section>
 
-            <section className="mt-5 grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+            <section className="grid gap-5 bg-white px-5 py-5 text-[#111] lg:grid-cols-[1fr_0.9fr]">
               <div>
                 <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Readiness checklist</div>
                 <div className="space-y-3">
@@ -299,7 +310,7 @@ export default function ProjectDetailPage() {
             </section>
 
             {metadataIntelligence ? (
-              <section className="mt-5">
+              <section className="bg-white px-5 pb-5 text-[#111]">
                 <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Metadata intelligence</div>
                 <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -362,12 +373,12 @@ export default function ProjectDetailPage() {
             ) : null}
           </>
         ) : (
-          <section className="mt-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#854f0b]">
+          <section className="m-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#854f0b]">
             Add an ISRC or connect one platform so Pocket can calculate the first estimated revenue gap. It never shows a blank or fake zero state.
           </section>
         )}
 
-        <section className="mt-5">
+        <section className="bg-white px-5 pb-5 text-[#111]">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Files</div>
           <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
             <p className="text-sm leading-6 text-[#514d47]">
@@ -388,7 +399,7 @@ export default function ProjectDetailPage() {
         </section>
 
         {song ? (
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 bg-white px-5 pb-5 text-[#111]">
             <Link href="/studio" className="flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
               Create promo content
             </Link>
