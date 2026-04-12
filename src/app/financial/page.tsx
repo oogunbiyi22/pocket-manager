@@ -124,6 +124,9 @@ export default function FinancialPage() {
           <Link href="/statements" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
             Read statement
           </Link>
+          <Link href="/forecast" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+            Forecast income
+          </Link>
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">

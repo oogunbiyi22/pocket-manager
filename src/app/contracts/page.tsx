@@ -27,7 +27,7 @@ export default function ContractsPage() {
       <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Legal awareness</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Spot clauses that deserve a real attorney's attention.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Spot clauses that deserve a real attorney attention.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
             This prototype uses simple local rule checks. V5 contract scanning with Claude and PDF upload is not implemented yet.
           </p>
