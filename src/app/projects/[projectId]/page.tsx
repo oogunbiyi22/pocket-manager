@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import {
   formatMoney,
   formatGapEstimate,
+  getMetadataIntelligence,
   getProjectById,
   getSongConfirmedIncome,
   getSongEstimatedGap,
@@ -40,6 +41,7 @@ export default function ProjectDetailPage() {
   const gapScore = song ? getSongGapScore(song) : 100;
   const registrationRows = song?.revenueStreams ?? [];
   const readinessChecklist = song ? getSongReadinessChecklist(song) : [];
+  const metadataIntelligence = song ? getMetadataIntelligence(song) : null;
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []).map((file) => file.name);
@@ -203,6 +205,38 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
             </section>
+
+            {metadataIntelligence ? (
+              <section className="mt-5">
+                <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Metadata intelligence</div>
+                <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-[15px] font-medium text-[#111]">{metadataIntelligence.score}% complete</div>
+                      <p className="mt-2 text-sm leading-6 text-[#514d47]">
+                        Missing metadata can block royalty routing, playlist context, sync matching, and future promo generation.
+                      </p>
+                    </div>
+                    <Link href="/settings" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+                      Pro suggestions
+                    </Link>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {metadataIntelligence.checks.map((check) => (
+                      <div key={check.label} className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[#111]">{check.label}</span>
+                          <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${check.done ? statusClass("connected") : statusClass("incomplete")}`}>
+                            {check.done ? "Set" : "Missing"}
+                          </span>
+                        </div>
+                        {!check.done ? <p className="mt-2 text-xs leading-5 text-[#6b6b65]">{check.suggestion}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            ) : null}
           </>
         ) : (
           <section className="mt-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#854f0b]">

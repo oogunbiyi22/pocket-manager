@@ -78,7 +78,13 @@ export type SongCatalogItem = {
   id: string;
   title: string;
   isrc: string;
+  upc?: string;
   releaseDate: string;
+  genre?: string;
+  mood?: string;
+  bpm?: number;
+  musicalKey?: string;
+  language?: string;
   streams: number;
   territory: string;
   collaborators: Array<{
@@ -850,6 +856,57 @@ export function getSongReadinessChecklist(song: SongCatalogItem) {
       href: `/projects/${song.id}`,
     },
   ];
+}
+
+export function getMetadataIntelligence(song: SongCatalogItem) {
+  const checks = [
+    {
+      label: "ISRC",
+      done: Boolean(song.isrc),
+      suggestion: "Add the recording ISRC so platforms can match the master correctly.",
+    },
+    {
+      label: "UPC",
+      done: Boolean(song.upc),
+      suggestion: "Add the release UPC when this song belongs to a single, EP, or album package.",
+    },
+    {
+      label: "Genre",
+      done: Boolean(song.genre),
+      suggestion: "Add a primary genre to improve routing, playlist context, and sync matching.",
+    },
+    {
+      label: "Mood",
+      done: Boolean(song.mood),
+      suggestion: "Add mood tags so future Promo Studio and sync matching can use the song correctly.",
+    },
+    {
+      label: "BPM",
+      done: Boolean(song.bpm),
+      suggestion: "Add BPM for DJ, sync, and playlist workflow accuracy.",
+    },
+    {
+      label: "Key",
+      done: Boolean(song.musicalKey),
+      suggestion: "Add musical key for producers, DJs, and sync/pitch metadata.",
+    },
+    {
+      label: "Language",
+      done: Boolean(song.language),
+      suggestion: "Add language to avoid metadata ambiguity across territories.",
+    },
+    {
+      label: "Territory",
+      done: Boolean(song.territory),
+      suggestion: "Confirm primary territory so royalty estimates stay conservative and explainable.",
+    },
+  ];
+
+  return {
+    score: Math.round((checks.filter((check) => check.done).length / checks.length) * 100),
+    checks,
+    missing: checks.filter((check) => !check.done),
+  };
 }
 
 export function getNextRevenueAction(songs: SongCatalogItem[] = seedSongs) {
