@@ -29,7 +29,7 @@ export default function ContractsPage() {
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Legal awareness</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Spot clauses that deserve a real attorney attention.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This prototype uses simple local rule checks. V5 contract scanning with Claude and PDF upload is not implemented yet.
+            This prototype uses simple local rule checks. Full AI contract scanning and PDF upload are not implemented yet.
           </p>
         </section>
 
