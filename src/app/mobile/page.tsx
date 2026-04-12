@@ -119,6 +119,9 @@ export default function MobilePage() {
             <Link href="/settings" className="mt-3 block text-center text-xs text-[#854f0b]">
               Upgrade to see exact dollar estimates
             </Link>
+            <Link href="/actions" className="mt-2 block text-center text-xs text-[#5d5a54]">
+              Preview full action queue
+            </Link>
           </div>
         </section>
 

@@ -853,16 +853,7 @@ export function getSongReadinessChecklist(song: SongCatalogItem) {
 }
 
 export function getNextRevenueAction(songs: SongCatalogItem[] = seedSongs) {
-  const candidates = songs.flatMap((song) =>
-    song.revenueStreams
-      .filter((stream) => stream.estimatedGap > 0 || stream.status === "not_registered" || stream.status === "incomplete")
-      .map((stream) => ({
-        song,
-        stream,
-        priority: getRevenueStreamPriority(stream.streamType) + stream.estimatedGap,
-      })),
-  );
-  const top = candidates.sort((left, right) => right.priority - left.priority)[0];
+  const top = getRevenueActionQueue(songs)[0];
 
   if (!top) {
     return {
@@ -878,15 +869,37 @@ export function getNextRevenueAction(songs: SongCatalogItem[] = seedSongs) {
   }
 
   return {
-    title: `${top.stream.action} for "${top.song.title}"`,
-    estimatedValue: top.stream.estimatedGap,
-    estimatedTime: top.stream.streamType === "digital_performance" ? "~5 minutes" : "~8 minutes",
-    songId: top.song.id,
-    songTitle: top.song.title,
-    streamType: top.stream.streamType,
-    collectionBody: top.stream.collectionBody,
-    action: top.stream.action,
+    title: top.title,
+    estimatedValue: top.estimatedValue,
+    estimatedTime: top.estimatedTime,
+    songId: top.songId,
+    songTitle: top.songTitle,
+    streamType: top.streamType,
+    collectionBody: top.collectionBody,
+    action: top.action,
   };
+}
+
+export function getRevenueActionQueue(songs: SongCatalogItem[] = seedSongs) {
+  return songs
+    .flatMap((song) =>
+      song.revenueStreams
+        .filter((stream) => stream.estimatedGap > 0 || stream.status === "not_registered" || stream.status === "incomplete")
+        .map((stream) => ({
+          id: `${song.id}-${stream.streamType}-${stream.collectionBody}`,
+          title: `${stream.action} for "${song.title}"`,
+          action: stream.action,
+          songId: song.id,
+          songTitle: song.title,
+          streamType: stream.streamType,
+          collectionBody: stream.collectionBody,
+          estimatedValue: stream.estimatedGap,
+          estimatedTime: stream.streamType === "digital_performance" ? "~5 minutes" : "~8 minutes",
+          priority: getRevenueStreamPriority(stream.streamType) + stream.estimatedGap,
+          reason: stream.reason,
+        })),
+    )
+    .sort((left, right) => right.priority - left.priority);
 }
 
 function getRevenueStreamPriority(streamType: RevenueStreamType) {
