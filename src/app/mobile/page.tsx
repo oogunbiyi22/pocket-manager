@@ -49,12 +49,12 @@ export default function MobilePage() {
   }
 
   return (
-    <AppShell title="Pocket Manager" eyebrow="Revenue intelligence">
-      <main className="mx-auto max-w-md overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f4f1eb] text-[#111]">
+    <AppShell title="Pocket Manager" eyebrow="The situation">
+      <main className="mx-auto max-w-md overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] text-[#111]">
         <header className="flex items-center justify-between bg-[#f4f1eb] px-5 py-4">
           <div>
             <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#5d5a54]">Pocket</div>
-            <div className="text-[15px] text-[#111]">Revenue command</div>
+            <div className="text-[15px] text-[#111]">The Situation</div>
           </div>
           <Link
             href="/settings"
@@ -65,9 +65,9 @@ export default function MobilePage() {
           </Link>
         </header>
 
-        <section className="bg-[#0a0a0a] px-5 py-6 text-white">
+        <section className="bg-[#0d0d0b] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Total secured</div>
-          <div className="mt-3 text-5xl font-normal tracking-[-0.04em]">{formatMoney(summary.totalSecured)}</div>
+          <div className="mt-3 text-5xl font-light tracking-[-0.04em]">{formatMoney(summary.totalSecured)}</div>
           <div className="mt-3 text-sm text-white/55">
             {summary.activeIncomeStreams} active income stream{summary.activeIncomeStreams === 1 ? "" : "s"} this quarter
           </div>
@@ -78,14 +78,14 @@ export default function MobilePage() {
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-medium text-[#854f0b] marker:hidden">
               <span>
                 {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"} not fully registered ·{" "}
-                {formatGapEstimate(summary.totalEstimatedGap)} uncollected
+                The Gap: {formatGapEstimate(summary.totalEstimatedGap)} uncollected
               </span>
               <span className="rounded-full border border-[#854f0b]/20 px-3 py-1 text-[11px] uppercase tracking-[0.14em]">
                 Details
               </span>
             </summary>
             <div className="border-t border-[#854f0b]/20 px-5 py-4 text-sm leading-6 text-[#854f0b]">
-              Estimates are conservative and rounded down. Tap a song below to see the stream-by-stream math and the platform action to fix it.
+              Estimates are conservative and rounded down. Tap a Room below to see the stream-by-stream math and the platform action to fix it.
             </div>
           </details>
         ) : null}
@@ -96,7 +96,7 @@ export default function MobilePage() {
             <div className="mt-3 text-xl font-normal leading-7 text-[#111]">{nextAction.title}</div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-[#ef9f27]/20 px-3 py-1 text-[#854f0b]">
-                Recovery: {formatGapEstimate(nextAction.estimatedValue)}
+                Gap impact: {formatGapEstimate(nextAction.estimatedValue)}
               </span>
               <span className="rounded-full bg-black/[0.06] px-3 py-1 text-[#34312d]">
                 Time: {nextAction.estimatedTime}
@@ -120,13 +120,13 @@ export default function MobilePage() {
               Upgrade to see exact dollar estimates
             </Link>
             <Link href="/actions" className="mt-2 block text-center text-xs text-[#5d5a54]">
-              Preview full action queue
+              Preview The Gap queue
             </Link>
           </div>
         </section>
 
         <section className="px-5 pb-6">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Active songs</div>
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Active Rooms</div>
           <div className="space-y-3">
             {songs.slice(0, 5).map((song) => {
               const gapScore = getSongGapScore(song);
@@ -156,7 +156,7 @@ export default function MobilePage() {
                   </div>
                   <div className="mt-3 flex items-center justify-between text-sm text-[#514d47]">
                     <span>{openGaps ? `${openGaps} streams unregistered` : "Fully optimized"}</span>
-                    <span>{readiness}/100 ready</span>
+                    <span>{readiness}/100 Readiness</span>
                   </div>
                 </Link>
               );
