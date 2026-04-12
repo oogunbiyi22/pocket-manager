@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
-import { formatGapEstimate, getRevenueGapSummary, seedPlatformConnections } from "@/lib/backstage-data";
+import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
 
 export default function SettingsPage() {
-  const { profile, signedIn, signOut, songs } = usePocket();
+  const { platformConnections, profile, signedIn, signOut, songs } = usePocket();
   const summary = getRevenueGapSummary(songs);
-  const connected = seedPlatformConnections.filter((platform) => platform.status === "connected").length;
-  const incomplete = seedPlatformConnections.filter((platform) => platform.status !== "connected").length;
+  const connected = platformConnections.filter((platform) => platform.status === "connected").length;
+  const incomplete = platformConnections.filter((platform) => platform.status !== "connected").length;
   const gapsClosed = songs.flatMap((song) => song.revenueStreams).filter((stream) => stream.status === "collecting").length;
 
   return (
@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
         <section className="mt-5 grid gap-3 sm:grid-cols-3">
           <ProfileMetric label="Songs tracked" value={`${summary.totalSongs}/3`} />
-          <ProfileMetric label="Platforms connected" value={`${connected}/${seedPlatformConnections.length}`} />
+          <ProfileMetric label="Platforms connected" value={`${connected}/${platformConnections.length}`} />
           <ProfileMetric label="Gaps closed" value={`${gapsClosed}`} />
         </section>
 

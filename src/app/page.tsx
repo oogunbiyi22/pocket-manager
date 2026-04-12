@@ -7,16 +7,15 @@ import {
   formatMoney,
   getNextRevenueAction,
   getRevenueGapSummary,
-  seedPlatformConnections,
   seedSongs,
 } from "@/lib/backstage-data";
 
 export default function Home() {
-  const { songs } = usePocket();
+  const { platformConnections, songs } = usePocket();
   const catalog = songs.length ? songs : seedSongs;
   const summary = getRevenueGapSummary(catalog);
   const nextAction = getNextRevenueAction(catalog);
-  const missingPlatforms = seedPlatformConnections.filter((platform) => platform.status !== "connected").length;
+  const missingPlatforms = platformConnections.filter((platform) => platform.status !== "connected").length;
 
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#111]">

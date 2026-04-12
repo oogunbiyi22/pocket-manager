@@ -1,9 +1,10 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
-import { seedPlatformConnections } from "@/lib/backstage-data";
+import { usePocket } from "@/components/pocket-provider";
 
 export default function PlatformsPage() {
+  const { platformConnections, updatePlatformConnection } = usePocket();
   const groups = ["Distributor", "PRO", "Digital Performance", "Publishing", "Content ID", "Analytics"] as const;
 
   return (
@@ -19,7 +20,7 @@ export default function PlatformsPage() {
 
         <div className="mt-5 space-y-6">
           {groups.map((group) => {
-            const platforms = seedPlatformConnections.filter((platform) => platform.group === group);
+            const platforms = platformConnections.filter((platform) => platform.group === group);
 
             if (!platforms.length) {
               return null;
@@ -42,13 +43,20 @@ export default function PlatformsPage() {
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3 text-sm text-[#514d47]">
                         <span>{platform.missingStep}</span>
+                        <button
+                          type="button"
+                          onClick={() => updatePlatformConnection(platform.id, "connected")}
+                          className="rounded-lg border-[0.5px] border-black/15 px-3 py-2 text-xs text-[#111] transition duration-200 ease-out hover:bg-[#f4f1eb]"
+                        >
+                          {platform.status === "connected" ? "Connected" : "Mark connected"}
+                        </button>
                         <a
                           href={platformActionUrl(platform.id)}
                           target="_blank"
                           rel="noreferrer"
                           className="rounded-lg border-[0.5px] border-black/15 px-3 py-2 text-xs text-[#111] transition duration-200 ease-out hover:bg-[#f4f1eb]"
                         >
-                          {platform.status === "connected" ? "Review" : "Fix"}
+                          {platform.status === "connected" ? "Review" : "Open"}
                         </a>
                       </div>
                     </div>

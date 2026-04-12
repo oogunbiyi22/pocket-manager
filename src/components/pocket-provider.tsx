@@ -8,7 +8,19 @@ import {
   useMemo,
   useState,
 } from "react";
-import { CreatorMoneyEntry, MoneyEntryType, Project, RevenueStream, seedMoneyEntries, seedProjects, seedSongs, SongCatalogItem } from "@/lib/backstage-data";
+import {
+  CreatorMoneyEntry,
+  MoneyEntryType,
+  PlatformConnection,
+  PlatformConnectionStatus,
+  Project,
+  RevenueStream,
+  seedMoneyEntries,
+  seedPlatformConnections,
+  seedProjects,
+  seedSongs,
+  SongCatalogItem,
+} from "@/lib/backstage-data";
 import { TaskStatus } from "@/lib/backstage-data";
 
 const PROJECTS_STORAGE_KEY = "pocket-manager-projects";
@@ -17,6 +29,7 @@ const SESSION_STORAGE_KEY = "pocket-manager-session";
 const EVENTS_STORAGE_KEY = "pocket-manager-events";
 const MONEY_STORAGE_KEY = "pocket-manager-money";
 const SONGS_STORAGE_KEY = "pocket-manager-songs";
+const PLATFORMS_STORAGE_KEY = "pocket-manager-platforms";
 
 type CreateProjectInput = {
   name: string;
@@ -104,6 +117,7 @@ type PocketSnapshot = {
   events: PocketEvent[];
   moneyEntries?: CreatorMoneyEntry[];
   songs?: SongCatalogItem[];
+  platformConnections?: PlatformConnection[];
 };
 
 export type PocketEvent = {
@@ -119,6 +133,7 @@ export type PocketEvent = {
 type PocketContextValue = {
   projects: Project[];
   songs: SongCatalogItem[];
+  platformConnections: PlatformConnection[];
   activeProject: Project;
   profile: PocketProfile;
   signedIn: boolean;
@@ -128,6 +143,7 @@ type PocketContextValue = {
   createSong: (input: CreateSongInput) => string | null;
   addSongCollaborator: (songId: string, input: AddCollaboratorInput) => void;
   completeRevenueAction: (songId: string, streamType: string, collectionBody: string) => void;
+  updatePlatformConnection: (platformId: string, status: PlatformConnectionStatus) => void;
   convertManagerAction: (projectId: string, actionType: string) => void;
   updateTaskStatus: (projectId: string, taskTitle: string, status: TaskStatus) => void;
   updateOutreachStatus: (projectId: string, contactName: string, status: string) => void;
@@ -156,6 +172,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [projects, setProjects] = useState<Project[]>(seedProjects);
   const [songs, setSongs] = useState<SongCatalogItem[]>(seedSongs);
+  const [platformConnections, setPlatformConnections] = useState<PlatformConnection[]>(seedPlatformConnections);
   const [profile, setProfile] = useState<PocketProfile>(getDefaultProfile);
   const [signedIn, setSignedIn] = useState(false);
   const [events, setEvents] = useState<PocketEvent[]>([]);
@@ -214,6 +231,16 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         window.localStorage.removeItem(SONGS_STORAGE_KEY);
       }
 
+      try {
+        const rawPlatforms = window.localStorage.getItem(PLATFORMS_STORAGE_KEY);
+        if (rawPlatforms) {
+          const parsed = JSON.parse(rawPlatforms) as PlatformConnection[];
+          setPlatformConnections(Array.isArray(parsed) && parsed.length ? parsed : seedPlatformConnections);
+        }
+      } catch {
+        window.localStorage.removeItem(PLATFORMS_STORAGE_KEY);
+      }
+
       setHydrated(true);
     });
   }, []);
@@ -248,6 +275,11 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(songs));
   }, [hydrated, songs]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(PLATFORMS_STORAGE_KEY, JSON.stringify(platformConnections));
+  }, [hydrated, platformConnections]);
+
   const value = useMemo<PocketContextValue>(() => {
     const activeProject = projects[0] ?? seedProjects[0];
     const pushEvent = (event: Omit<PocketEvent, "id" | "createdAt">) => {
@@ -264,6 +296,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     return {
       projects,
       songs,
+      platformConnections,
       activeProject,
       profile,
       signedIn,
@@ -447,6 +480,51 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           detail: `${streamType.replaceAll("_", " ")} action was marked complete.`,
           kind: "Money",
           emphasis: "Closed",
+        });
+      },
+      updatePlatformConnection(platformId, status) {
+        const platform = platformConnections.find((item) => item.id === platformId);
+
+        setPlatformConnections((current) =>
+          current.map((item) =>
+            item.id === platformId
+              ? {
+                  ...item,
+                  status,
+                  missingStep: status === "connected" ? "Connected" : item.missingStep,
+                }
+              : item,
+          ),
+        );
+
+        if (status === "connected" && platform) {
+          setSongs((current) =>
+            current.map((song) => ({
+              ...song,
+              distributionPlatforms:
+                platform.group === "Distributor" && !song.distributionPlatforms.includes(platform.name)
+                  ? [platform.name, ...song.distributionPlatforms]
+                  : song.distributionPlatforms,
+              revenueStreams: song.revenueStreams.map((stream) =>
+                streamMatchesPlatform(stream, platform)
+                  ? {
+                      ...stream,
+                      status: stream.actualAmount > 0 ? "collecting" : "registered_not_collecting",
+                      reason: `${platform.name} is connected. Import statements or verify reporting to confirm collection.`,
+                      action: `Review ${platform.name}`,
+                    }
+                  : stream,
+              ),
+            })),
+          );
+        }
+
+        pushEvent({
+          projectId: songs[0]?.id ?? "catalog",
+          title: `Platform ${status.replaceAll("_", " ")}: ${platform?.name ?? platformId}`,
+          detail: status === "connected" ? "Platform connection marked connected in the prototype." : "Platform connection status updated.",
+          kind: "Money",
+          emphasis: status,
         });
       },
       convertManagerAction(projectId, actionType) {
@@ -940,6 +1018,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           events,
           moneyEntries,
           songs,
+          platformConnections,
         };
 
         return JSON.stringify(snapshot, null, 2);
@@ -958,6 +1037,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           setEvents(Array.isArray(parsed.events) ? parsed.events : []);
           setMoneyEntries(Array.isArray(parsed.moneyEntries) ? parsed.moneyEntries : seedMoneyEntries);
           setSongs(Array.isArray(parsed.songs) ? parsed.songs : seedSongs);
+          setPlatformConnections(Array.isArray(parsed.platformConnections) ? parsed.platformConnections : seedPlatformConnections);
 
           return { ok: true, message: "Pocket data imported. Your active room is restored." };
         } catch {
@@ -971,6 +1051,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         setEvents([]);
         setMoneyEntries(seedMoneyEntries);
         setSongs(seedSongs);
+        setPlatformConnections(seedPlatformConnections);
       },
       resolveMissingAsset(projectId, assetName) {
         pushEvent({
@@ -1020,7 +1101,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         });
       },
     };
-  }, [events, moneyEntries, profile, projects, signedIn, songs]);
+  }, [events, moneyEntries, platformConnections, profile, projects, signedIn, songs]);
 
   return <PocketContext.Provider value={value}>{children}</PocketContext.Provider>;
 }
@@ -1139,6 +1220,37 @@ function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
       rateNote: "Starter estimate for UGC monetization risk. YouTube analytics refines the number.",
     },
   ];
+}
+
+function streamMatchesPlatform(stream: RevenueStream, platform: PlatformConnection) {
+  const collectionBody = stream.collectionBody.toLowerCase();
+  const platformName = platform.name.toLowerCase();
+
+  if (collectionBody === platformName) {
+    return true;
+  }
+
+  if (platform.group === "Distributor" && stream.streamType === "streaming") {
+    return true;
+  }
+
+  if (platform.group === "PRO" && stream.streamType === "performance_royalty") {
+    return collectionBody === "pro" || collectionBody === platformName;
+  }
+
+  if (platform.id === "soundexchange" && stream.streamType === "digital_performance") {
+    return true;
+  }
+
+  if (platform.id === "mlc" && stream.streamType === "mechanical") {
+    return true;
+  }
+
+  if (platform.id === "youtube" && stream.streamType === "youtube") {
+    return true;
+  }
+
+  return false;
 }
 
 function getDefaultProfile(): PocketProfile {
