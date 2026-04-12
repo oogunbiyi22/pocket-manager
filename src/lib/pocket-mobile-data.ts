@@ -1,23 +1,23 @@
 export const mobileTabs = [
-  { label: "Today", href: "/dashboard" },
-  { label: "Mobile", href: "/mobile" },
-  { label: "Projects", href: "/projects" },
-  { label: "Capture", href: "/capture" },
+  { label: "Home", href: "/dashboard" },
+  { label: "App", href: "/mobile" },
+  { label: "Past Work", href: "/projects" },
+  { label: "Pocket In", href: "/capture" },
   { label: "Vault", href: "/vault" },
-  { label: "Settings", href: "/settings" },
+  { label: "Profile", href: "/settings" },
 ] as const;
 
 export const quickCaptureActions = [
   {
-    title: "Quick task",
+    title: "Add task",
     copy: "Drop the next thing that needs doing before it disappears.",
   },
   {
     title: "Voice note",
-    copy: "Capture a thought, lyric idea, or rollout note while moving.",
+    copy: "Save a thought, lyric idea, or rollout note while moving.",
   },
   {
-    title: "Upload asset",
+    title: "Add file",
     copy: "Throw artwork, audio, or references into the active project vault fast.",
   },
 ] as const;
@@ -25,18 +25,18 @@ export const quickCaptureActions = [
 export const mobileMoments = [
   "Open the app and know the top 3 priorities instantly.",
   "Jump from a notification into the active project without hunting.",
-  "Capture ideas, files, and tasks from the phone in seconds.",
+  "Pocket in ideas, files, and tasks from the phone in seconds.",
   "Ask the AI manager what matters next while on the move.",
 ] as const;
 
 export const mobileOperatingModes = [
   {
     title: "Commute mode",
-    copy: "Only show urgent moves, blockers, and one fast capture action.",
+    copy: "Only show urgent moves, blockers, and one fast Pocket In action.",
   },
   {
     title: "Session mode",
-    copy: "Keep the active project open with tasks, missing assets, and voice capture close.",
+    copy: "Keep the active project open with tasks, missing assets, and voice notes close.",
   },
   {
     title: "Manager mode",

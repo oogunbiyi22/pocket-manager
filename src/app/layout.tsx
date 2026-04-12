@@ -3,8 +3,11 @@ import { PocketProvider } from "@/components/pocket-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pocket Manager",
-  description: "Pocket Manager is the mobile-first operator app for artists, with a lighter desktop landing surface.",
+  title: {
+    default: "Pocket Manager",
+    template: "%s | Pocket Manager",
+  },
+  description: "Pocket Manager finds missing creator revenue paths and tells music creatives exactly what to do next.",
 };
 
 export default function RootLayout({
@@ -13,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-[#05060a] text-white">
+    <html lang="en" className="h-full scroll-smooth antialiased" data-scroll-behavior="smooth">
+      <body className="min-h-full bg-[#f4f1eb] text-[#111]">
         <PocketProvider>{children}</PocketProvider>
       </body>
     </html>

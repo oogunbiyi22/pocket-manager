@@ -39,6 +39,94 @@ export type ReadinessItem = {
 
 export type ReleaseMode = "Build" | "Pre-release" | "Release Week" | "Post-release" | "Recovery";
 
+export type MoneyEntryType = "Income" | "Expense";
+
+export type CreatorMoneyEntry = {
+  id: string;
+  type: MoneyEntryType;
+  amount: number;
+  source: string;
+  category: string;
+  note: string;
+  date: string;
+};
+
+export type RevenueStreamStatus = "collecting" | "registered_not_collecting" | "not_registered" | "incomplete" | "unknown";
+
+export type RevenueStreamType =
+  | "streaming"
+  | "digital_performance"
+  | "performance_royalty"
+  | "mechanical"
+  | "neighboring_rights"
+  | "youtube"
+  | "sync";
+
+export type RevenueStream = {
+  streamType: RevenueStreamType;
+  label: string;
+  collectionBody: string;
+  status: RevenueStreamStatus;
+  actualAmount: number;
+  estimatedGap: number;
+  reason: string;
+  action: string;
+  rateNote: string;
+};
+
+export type SongCatalogItem = {
+  id: string;
+  title: string;
+  isrc: string;
+  releaseDate: string;
+  streams: number;
+  territory: string;
+  collaborators: Array<{
+    name: string;
+    role: "writer" | "producer" | "featured_artist" | "master_owner";
+    ownershipPercentage: number;
+    signed: boolean;
+  }>;
+  distributionPlatforms: string[];
+  metadataComplete: boolean;
+  artworkUploaded: boolean;
+  splitSheetSigned: boolean;
+  revenueStreams: RevenueStream[];
+};
+
+export type PlatformConnectionStatus = "connected" | "not_connected" | "incomplete";
+export type SubscriptionTier = "free" | "pro" | "elite";
+
+export type PlatformConnection = {
+  id: string;
+  name: string;
+  group: "Distributor" | "PRO" | "Digital Performance" | "Publishing" | "Content ID" | "Analytics";
+  status: PlatformConnectionStatus;
+  method: string;
+  missingStep: string;
+};
+
+export type MiniPromoAsset = {
+  title: string;
+  format: string;
+  status: "Ready to draft" | "Needs file" | "Needs review";
+  copy: string;
+  use: string;
+  source: string;
+};
+
+export type CalmCreativePath = {
+  headline: string;
+  promise: string;
+  bestShortcut: string;
+  steps: Array<{
+    label: string;
+    action: string;
+    detail: string;
+    lane: TaskLane;
+  }>;
+};
+
 export const projects: Project[] = [
   {
     id: "late-nights",
@@ -175,6 +263,186 @@ export const projects: Project[] = [
 
 export const seedProjects = projects;
 
+export const seedMoneyEntries: CreatorMoneyEntry[] = [
+  {
+    id: "money-gig-1",
+    type: "Income",
+    amount: 450,
+    source: "Gig",
+    category: "Live",
+    note: "Friday set deposit",
+    date: new Date().toISOString(),
+  },
+  {
+    id: "money-streaming-1",
+    type: "Income",
+    amount: 82,
+    source: "Streaming",
+    category: "Royalties",
+    note: "Weekly platform estimate",
+    date: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: "money-studio-1",
+    type: "Income",
+    amount: 300,
+    source: "Freelance",
+    category: "Session",
+    note: "Vocal mix balance",
+    date: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+  {
+    id: "money-expense-1",
+    type: "Expense",
+    amount: 64,
+    source: "Tools",
+    category: "Subscription",
+    note: "Creative software",
+    date: new Date(Date.now() - 86400000).toISOString(),
+  },
+];
+
+export const seedSongs: SongCatalogItem[] = [
+  {
+    id: "late-nights",
+    title: "Late Nights",
+    isrc: "QZPMB2400011",
+    releaseDate: "2026-05-03",
+    streams: 340000,
+    territory: "United States",
+    collaborators: [
+      { name: "Badman", role: "master_owner", ownershipPercentage: 60, signed: true },
+      { name: "Milo Keys", role: "producer", ownershipPercentage: 25, signed: false },
+      { name: "J. Night", role: "writer", ownershipPercentage: 15, signed: true },
+    ],
+    distributionPlatforms: ["DistroKid", "Spotify", "Apple Music"],
+    metadataComplete: true,
+    artworkUploaded: false,
+    splitSheetSigned: false,
+    revenueStreams: [
+      {
+        streamType: "streaming",
+        label: "Streaming royalties",
+        collectionBody: "DistroKid",
+        status: "collecting",
+        actualAmount: 120,
+        estimatedGap: 0,
+        reason: "Distributor collection is active.",
+        action: "Review distributor statement",
+        rateNote: "Confirmed collected amount from distributor statement.",
+      },
+      {
+        streamType: "digital_performance",
+        label: "Digital performance royalties",
+        collectionBody: "SoundExchange",
+        status: "not_registered",
+        actualAmount: 0,
+        estimatedGap: 68,
+        reason: "Not registered on SoundExchange.",
+        action: "Register now",
+        rateNote: "Conservative estimate from non-interactive digital performance collection path.",
+      },
+      {
+        streamType: "performance_royalty",
+        label: "Performance royalties (writer)",
+        collectionBody: "BMI",
+        status: "not_registered",
+        actualAmount: 0,
+        estimatedGap: 42,
+        reason: "Song not logged with PRO.",
+        action: "Add to BMI repertoire",
+        rateNote: "Conservative estimate based on public performance collection opportunity.",
+      },
+      {
+        streamType: "mechanical",
+        label: "Mechanical royalties",
+        collectionBody: "The MLC",
+        status: "incomplete",
+        actualAmount: 0,
+        estimatedGap: 31,
+        reason: "Mechanical royalty path is not fully connected.",
+        action: "Connect MLC path",
+        rateNote: "Rounded down estimate for digital mechanical collection.",
+      },
+      {
+        streamType: "youtube",
+        label: "YouTube Content ID",
+        collectionBody: "YouTube",
+        status: "not_registered",
+        actualAmount: 0,
+        estimatedGap: 24,
+        reason: "Master is not claimed for Content ID.",
+        action: "Claim Content ID",
+        rateNote: "Low conservative estimate for user-generated video usage risk.",
+      },
+    ],
+  },
+  {
+    id: "neon-heart",
+    title: "Neon Heart",
+    isrc: "QZPMB2400012",
+    releaseDate: "2026-05-24",
+    streams: 126000,
+    territory: "United States",
+    collaborators: [
+      { name: "Badman", role: "master_owner", ownershipPercentage: 70, signed: true },
+      { name: "Wave Lab", role: "producer", ownershipPercentage: 30, signed: true },
+    ],
+    distributionPlatforms: ["TuneCore", "Spotify"],
+    metadataComplete: false,
+    artworkUploaded: true,
+    splitSheetSigned: true,
+    revenueStreams: [
+      {
+        streamType: "streaming",
+        label: "Streaming royalties",
+        collectionBody: "TuneCore",
+        status: "collecting",
+        actualAmount: 54,
+        estimatedGap: 0,
+        reason: "Distributor collection is active.",
+        action: "Review distributor statement",
+        rateNote: "Confirmed collected amount from distributor statement.",
+      },
+      {
+        streamType: "digital_performance",
+        label: "Digital performance royalties",
+        collectionBody: "SoundExchange",
+        status: "not_registered",
+        actualAmount: 0,
+        estimatedGap: 26,
+        reason: "Not registered on SoundExchange.",
+        action: "Register now",
+        rateNote: "Conservative estimate from non-interactive digital performance collection path.",
+      },
+      {
+        streamType: "performance_royalty",
+        label: "Performance royalties (writer)",
+        collectionBody: "ASCAP",
+        status: "registered_not_collecting",
+        actualAmount: 0,
+        estimatedGap: 12,
+        reason: "Registration exists, but metadata is incomplete.",
+        action: "Complete metadata",
+        rateNote: "Rounded down estimate because registration exists but is blocked by metadata.",
+      },
+    ],
+  },
+];
+
+export const seedPlatformConnections: PlatformConnection[] = [
+  { id: "distrokid", name: "DistroKid", group: "Distributor", status: "connected", method: "OAuth or statement import", missingStep: "Connected" },
+  { id: "tunecore", name: "TuneCore", group: "Distributor", status: "incomplete", method: "OAuth or manual", missingStep: "Upload latest statement" },
+  { id: "cdbaby", name: "CD Baby", group: "Distributor", status: "not_connected", method: "OAuth or manual", missingStep: "Connect account" },
+  { id: "ascap", name: "ASCAP", group: "PRO", status: "incomplete", method: "Manual verification + ISRC lookup", missingStep: "Verify repertoire" },
+  { id: "bmi", name: "BMI", group: "PRO", status: "not_connected", method: "Manual verification + ISRC lookup", missingStep: "Register works" },
+  { id: "sesac", name: "SESAC", group: "PRO", status: "not_connected", method: "Manual verification", missingStep: "Verify affiliation" },
+  { id: "soundexchange", name: "SoundExchange", group: "Digital Performance", status: "not_connected", method: "Manual verification + ISRC lookup", missingStep: "Register recordings" },
+  { id: "mlc", name: "The MLC", group: "Publishing", status: "not_connected", method: "Manual verification", missingStep: "Connect mechanical path" },
+  { id: "youtube", name: "YouTube", group: "Content ID", status: "not_connected", method: "OAuth", missingStep: "Claim master recordings" },
+  { id: "spotify", name: "Spotify for Artists", group: "Analytics", status: "connected", method: "OAuth", missingStep: "Connected" },
+];
+
 export const onboardingSteps = [
   "Who are you? artist / producer / engineer / DJ / songwriter",
   "What are you releasing or building right now?",
@@ -188,12 +456,16 @@ export const onboardingProfiles = [
     copy: "Needs one place for releases, captions, priorities, and outreach without juggling five apps.",
   },
   {
-    title: "Producer / writer",
-    copy: "Needs a fast way to organize files, rough ideas, and collaborator follow-ups while moving.",
+    title: "Producer / songwriter",
+    copy: "Needs a fast way to organize beats, song starts, references, splits, and collaborator follow-ups.",
   },
   {
-    title: "Manager-minded self-starter",
-    copy: "Needs calm next steps, decision support, and a system that keeps momentum from slipping.",
+    title: "Engineer / DJ",
+    copy: "Needs clean control over mix notes, set assets, client files, promo pieces, and delivery status.",
+  },
+  {
+    title: "Creative operator",
+    copy: "Needs calm next steps, decision support, and a system that keeps entertainment work moving.",
   },
 ] as const;
 
@@ -227,9 +499,24 @@ export const projectTemplates = [
     bestFor: "Songs where visuals carry a major part of the momentum.",
   },
   {
+    title: "Session / beat pack",
+    focus: "Organize rough bounces, references, collaborators, notes, and small promo moves around one creative batch.",
+    bestFor: "Songwriters, producers, and studio collaborators turning raw work into usable assets.",
+  },
+  {
+    title: "Mix / master delivery",
+    focus: "Track versions, client notes, approvals, delivery files, and simple share-ready updates.",
+    bestFor: "Audio engineers and producers managing a clean handoff without losing context.",
+  },
+  {
+    title: "DJ set / event push",
+    focus: "Package a set, flyer copy, music links, clips, guest tags, and follow-up reminders in one room.",
+    bestFor: "DJs and live creatives promoting a set, event, or recorded mix.",
+  },
+  {
     title: "Low-budget release",
     focus: "Strip the plan down to the highest-leverage free and cheap moves.",
-    bestFor: "Artists under real budget pressure who still need the release to land.",
+    bestFor: "Creatives under real budget pressure who still need the work to land.",
   },
 ] as const;
 
@@ -255,7 +542,7 @@ export const roomTemplatePreviews = [
 ] as const;
 
 export const quickActions = [
-  ["/projects/new", "Create release workspace"],
+  ["/projects/new", "Create creative room"],
   ["/manager", "Ask AI manager"],
   ["/projects/late-nights", "Open active project"],
   ["/settings", "Set your personal operating mode"],
@@ -371,6 +658,289 @@ export function getManagerSnapshot(sourceProjects: Project[] = projects) {
     blockedTasks,
     dueToday,
   };
+}
+
+export function getCreatorMoneySummary(entries: CreatorMoneyEntry[]) {
+  const now = new Date();
+  const todayKey = toDateKey(now);
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentWeekStart = startOfWeek(now).getTime();
+  const lastWeekStart = currentWeekStart - 7 * 86400000;
+  const currentWeekEnd = currentWeekStart + 7 * 86400000;
+
+  const income = entries.filter((entry) => entry.type === "Income");
+  const expenses = entries.filter((entry) => entry.type === "Expense");
+  const todayIncome = sumMoney(income.filter((entry) => toDateKey(new Date(entry.date)) === todayKey));
+  const weekIncome = sumMoney(income.filter((entry) => isBetween(new Date(entry.date).getTime(), currentWeekStart, currentWeekEnd)));
+  const lastWeekIncome = sumMoney(income.filter((entry) => isBetween(new Date(entry.date).getTime(), lastWeekStart, currentWeekStart)));
+  const monthIncome = sumMoney(income.filter((entry) => entry.date.startsWith(monthKey)));
+  const weekExpenses = sumMoney(expenses.filter((entry) => isBetween(new Date(entry.date).getTime(), currentWeekStart, currentWeekEnd)));
+  const recent = [...entries].sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime()).slice(0, 4);
+  const netThisWeek = weekIncome - weekExpenses;
+  const trendDelta = weekIncome - lastWeekIncome;
+
+  return {
+    todayIncome,
+    weekIncome,
+    monthIncome,
+    weekExpenses,
+    netThisWeek,
+    trendLabel:
+      lastWeekIncome === 0
+        ? "New income week"
+        : trendDelta >= 0
+          ? `Up ${formatMoney(trendDelta)} vs last week`
+          : `Down ${formatMoney(Math.abs(trendDelta))} vs last week`,
+    recent,
+  };
+}
+
+export function getCreatorMoneyInsight(entries: CreatorMoneyEntry[]) {
+  const summary = getCreatorMoneySummary(entries);
+  const strongestIncome = entries
+    .filter((entry) => entry.type === "Income")
+    .sort((left, right) => right.amount - left.amount)[0];
+  const largestExpense = entries
+    .filter((entry) => entry.type === "Expense")
+    .sort((left, right) => right.amount - left.amount)[0];
+
+  if (summary.weekExpenses > summary.weekIncome * 0.5 && summary.weekIncome > 0) {
+    return `Spending is taking a lot of this week's income. Check ${largestExpense?.source ?? "the biggest expense"} before adding new costs.`;
+  }
+
+  if (strongestIncome) {
+    return `${strongestIncome.source} is the strongest money signal right now. Follow up while the momentum is warm.`;
+  }
+
+  return "Log one income or expense today so Pocket can start giving money guidance.";
+}
+
+export function getRevenueGapSummary(songs: SongCatalogItem[] = seedSongs) {
+  const totalSecured = songs.reduce(
+    (total, song) => total + song.revenueStreams.reduce((songTotal, stream) => songTotal + stream.actualAmount, 0),
+    0,
+  );
+  const totalEstimatedGap = songs.reduce(
+    (total, song) => total + song.revenueStreams.reduce((songTotal, stream) => songTotal + stream.estimatedGap, 0),
+    0,
+  );
+  const songsWithGaps = songs.filter((song) => getSongEstimatedGap(song) > 0).length;
+  const activeIncomeStreams = songs.flatMap((song) => song.revenueStreams).filter((stream) => stream.status === "collecting").length;
+
+  return {
+    totalSecured,
+    totalEstimatedGap,
+    songsWithGaps,
+    activeIncomeStreams,
+    totalSongs: songs.length,
+  };
+}
+
+export function getSongEstimatedGap(song: SongCatalogItem) {
+  return song.revenueStreams.reduce((total, stream) => total + stream.estimatedGap, 0);
+}
+
+export function getSongConfirmedIncome(song: SongCatalogItem) {
+  return song.revenueStreams.reduce((total, stream) => total + stream.actualAmount, 0);
+}
+
+export function getSongGapScore(song: SongCatalogItem) {
+  const gap = getSongEstimatedGap(song);
+  const secured = getSongConfirmedIncome(song);
+  const potential = secured + gap;
+
+  if (!potential) {
+    return 100;
+  }
+
+  return Math.round((gap / potential) * 100);
+}
+
+export function getSongReadinessScore(song: SongCatalogItem) {
+  const hasDistributor = song.revenueStreams.some((stream) => stream.streamType === "streaming" && stream.status === "collecting");
+  const hasPro = song.revenueStreams.some(
+    (stream) => stream.streamType === "performance_royalty" && stream.status !== "not_registered" && stream.status !== "unknown",
+  );
+  const hasSoundExchange = song.revenueStreams.some(
+    (stream) => stream.streamType === "digital_performance" && stream.status !== "not_registered" && stream.status !== "unknown",
+  );
+  const hasContentId = song.revenueStreams.some(
+    (stream) => stream.streamType === "youtube" && stream.status !== "not_registered" && stream.status !== "unknown",
+  );
+
+  return (
+    (song.isrc ? 10 : 0) +
+    (song.metadataComplete ? 15 : 0) +
+    (song.artworkUploaded ? 10 : 0) +
+    (hasDistributor ? 15 : 0) +
+    (hasPro ? 15 : 0) +
+    (hasSoundExchange ? 15 : 0) +
+    (hasContentId ? 10 : 0) +
+    (song.splitSheetSigned ? 10 : 0)
+  );
+}
+
+export function getSongReadinessChecklist(song: SongCatalogItem) {
+  const hasDistributor = song.revenueStreams.some((stream) => stream.streamType === "streaming" && stream.status === "collecting");
+  const hasPro = song.revenueStreams.some(
+    (stream) => stream.streamType === "performance_royalty" && stream.status !== "not_registered" && stream.status !== "unknown",
+  );
+  const hasSoundExchange = song.revenueStreams.some(
+    (stream) => stream.streamType === "digital_performance" && stream.status !== "not_registered" && stream.status !== "unknown",
+  );
+  const hasContentId = song.revenueStreams.some(
+    (stream) => stream.streamType === "youtube" && stream.status !== "not_registered" && stream.status !== "unknown",
+  );
+
+  return [
+    {
+      label: "ISRC assigned",
+      points: 10,
+      done: Boolean(song.isrc),
+      action: "Add ISRC",
+      href: "/projects/new",
+    },
+    {
+      label: "Metadata complete",
+      points: 15,
+      done: song.metadataComplete,
+      action: "Complete metadata",
+      href: `/projects/${song.id}`,
+    },
+    {
+      label: "Artwork uploaded",
+      points: 10,
+      done: song.artworkUploaded,
+      action: "Add artwork",
+      href: `/projects/${song.id}`,
+    },
+    {
+      label: "Distributed to DSPs",
+      points: 15,
+      done: hasDistributor,
+      action: "Connect distributor",
+      href: "/platforms",
+    },
+    {
+      label: "PRO registration complete",
+      points: 15,
+      done: hasPro,
+      action: "Fix PRO",
+      href: "/platforms",
+    },
+    {
+      label: "SoundExchange registered",
+      points: 15,
+      done: hasSoundExchange,
+      action: "Fix SoundExchange",
+      href: "/platforms",
+    },
+    {
+      label: "YouTube Content ID active",
+      points: 10,
+      done: hasContentId,
+      action: "Claim Content ID",
+      href: "/platforms",
+    },
+    {
+      label: "Split sheet signed",
+      points: 10,
+      done: song.splitSheetSigned,
+      action: "Send split",
+      href: `/projects/${song.id}`,
+    },
+  ];
+}
+
+export function getNextRevenueAction(songs: SongCatalogItem[] = seedSongs) {
+  const candidates = songs.flatMap((song) =>
+    song.revenueStreams
+      .filter((stream) => stream.estimatedGap > 0 || stream.status === "not_registered" || stream.status === "incomplete")
+      .map((stream) => ({
+        song,
+        stream,
+        priority: getRevenueStreamPriority(stream.streamType) + stream.estimatedGap,
+      })),
+  );
+  const top = candidates.sort((left, right) => right.priority - left.priority)[0];
+
+  if (!top) {
+    return {
+      title: "All detected revenue paths are covered",
+      estimatedValue: 0,
+      estimatedTime: "Review",
+      songId: songs[0]?.id ?? "late-nights",
+      songTitle: songs[0]?.title ?? "Catalog",
+      streamType: "streaming",
+      collectionBody: "Catalog",
+      action: "Review catalog",
+    };
+  }
+
+  return {
+    title: `${top.stream.action} for "${top.song.title}"`,
+    estimatedValue: top.stream.estimatedGap,
+    estimatedTime: top.stream.streamType === "digital_performance" ? "~5 minutes" : "~8 minutes",
+    songId: top.song.id,
+    songTitle: top.song.title,
+    streamType: top.stream.streamType,
+    collectionBody: top.stream.collectionBody,
+    action: top.stream.action,
+  };
+}
+
+function getRevenueStreamPriority(streamType: RevenueStreamType) {
+  const priority: Record<RevenueStreamType, number> = {
+    digital_performance: 1000,
+    performance_royalty: 900,
+    streaming: 850,
+    youtube: 700,
+    neighboring_rights: 650,
+    mechanical: 600,
+    sync: 500,
+  };
+
+  return priority[streamType];
+}
+
+export function formatMoney(amount: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  }).format(amount);
+}
+
+export function formatGapEstimate(amount: number, tier: SubscriptionTier = "free") {
+  if (tier !== "free") {
+    return `${formatMoney(amount)} estimated`;
+  }
+
+  if (amount <= 0) {
+    return "$0 estimated";
+  }
+
+  const roundedRange = Math.max(50, Math.floor(amount / 50) * 50);
+  return `~${formatMoney(roundedRange)}+ estimated`;
+}
+
+function sumMoney(entries: CreatorMoneyEntry[]) {
+  return entries.reduce((total, entry) => total + entry.amount, 0);
+}
+
+function startOfWeek(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  next.setDate(next.getDate() - next.getDay());
+  return next;
+}
+
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function isBetween(value: number, start: number, end: number) {
+  return value >= start && value < end;
 }
 
 export function getTodayQueue(sourceProjects: Project[] = projects) {
@@ -489,10 +1059,10 @@ export function getCaptureInboxPreview(sourceProjects: Project[] = projects) {
     {
       title: "Voice note",
       project: sourceProjects[1]?.name ?? "Second project",
-      copy: `Capture a short content angle for ${sourceProjects[1]?.name ?? "the next release"} while it is still fresh.`,
+      copy: `Pocket in a short content angle for ${sourceProjects[1]?.name ?? "the next release"} while it is still fresh.`,
     },
     {
-      title: "Asset drop",
+      title: "Add asset",
       project: sourceProjects[0]?.name ?? "Active project",
       copy: "Throw cover drafts, teaser clips, and notes into the room before they vanish into messages.",
     },
@@ -749,6 +1319,7 @@ export function getActiveRoomSummary(project: Project) {
   const blocked = getBlockedTaskCount(project);
 
   return {
+    id: project.id,
     name: project.name,
     state: readiness.state,
     readiness: readiness.score,
@@ -1250,6 +1821,93 @@ export function getSongWorld(project: Project) {
   return world;
 }
 
+export function getMiniPromoAssets(project: Project): MiniPromoAsset[] {
+  const songWorld = getSongWorld(project);
+  const missingVisual = project.missingAssets.find((asset) => /cover|visual|photo|clip|footage|video/i.test(asset));
+  const audioReady = project.assets.some((asset) => asset.type === "Audio" && asset.status === "Ready");
+  const leadIdea = project.contentIdeas[0] ?? project.nextStep;
+  const secondIdea = project.contentIdeas[1] ?? songWorld.rollout;
+  const leadAsset = project.assets[0]?.name ?? "the main file";
+  const roleContext = project.type.toLowerCase().includes("single")
+    ? "song"
+    : project.type.toLowerCase();
+
+  return [
+    {
+      title: "Hook teaser",
+      format: "15-second clip",
+      status: audioReady && !missingVisual ? "Ready to draft" : "Needs file",
+      copy: `Use ${project.name} as a short ${roleContext} teaser: ${leadIdea}.`,
+      use: "Post as the first short-form clip or story preview.",
+      source: audioReady ? leadAsset : "Needs main audio",
+    },
+    {
+      title: "Caption starter",
+      format: "Post copy",
+      status: "Ready to draft",
+      copy: `${songWorld.caption} Tie the caption to ${project.name} without over-explaining it.`,
+      use: "Use for Instagram, TikTok caption, YouTube Shorts, or a DJ/producer post.",
+      source: "Song world",
+    },
+    {
+      title: "Story card",
+      format: "Story / flyer text",
+      status: missingVisual ? "Needs file" : "Needs review",
+      copy: `${songWorld.visual} Keep the message simple: what it is, why it matters, and when to listen.`,
+      use: "Use as a story frame, gig plug, beat-pack post, or session recap.",
+      source: missingVisual ?? "Visual direction",
+    },
+    {
+      title: "Creator brief",
+      format: "Collab prompt",
+      status: project.outreach.length ? "Ready to draft" : "Needs review",
+      copy: `Ask a creator or collaborator to respond to ${project.name} with ${secondIdea.toLowerCase()}.`,
+      use: "Use for creator outreach, playlist pitch context, or a collaborator ask.",
+      source: project.outreach[0]?.name ?? "Outreach lane",
+    },
+  ];
+}
+
+export function getCalmCreativePath(project: Project): CalmCreativePath {
+  const promoAsset = getMiniPromoAssets(project)[0];
+  const blocker = project.missingAssets[0];
+  const nextTask = project.tasks.find((task) => task.status !== "Done");
+  const firstAction = blocker ? `Clear ${blocker}` : project.nextStep;
+  const promoAction = promoAsset
+    ? `Make ${promoAsset.title.toLowerCase()} for ${project.name}`
+    : `Make one small promo piece for ${project.name}`;
+
+  return {
+    headline: blocker
+      ? `Do not carry the whole room. Clear ${blocker.toLowerCase()} first.`
+      : "The room is calm enough to push one public move.",
+    promise: "Pocket reduces stress by turning the creative stack into one clear room, one next move, and one small output.",
+    bestShortcut: project.daysLeft <= 14 ? "Do less, ship the strongest next piece." : "Build the room slowly enough that the work stays clean.",
+    steps: [
+      {
+        label: "First",
+        action: firstAction,
+        detail: blocker
+          ? "One missing piece is creating more noise than the rest of the room. Handle it before expanding the plan."
+          : "Start with the manager's next move instead of reopening every decision.",
+        lane: blocker ? "Admin" : nextTask?.lane ?? "Create",
+      },
+      {
+        label: "Then",
+        action: promoAction,
+        detail: "Turn the work into one small shareable asset so momentum becomes visible.",
+        lane: "Promo",
+      },
+      {
+        label: "Later",
+        action: `Pocket one note or reference for ${project.name}`,
+        detail: "Save loose thoughts without letting them become another world to manage.",
+        lane: "Personal",
+      },
+    ],
+  };
+}
+
 export function getStudioPipeline(project: Project) {
   const audioReady = project.assets.some((asset) => asset.type === "Audio" && asset.status === "Ready");
   const hasClean = project.missingAssets.some((asset) => /clean/i.test(asset))
@@ -1367,22 +2025,22 @@ export function getManagerOutputConversions(project: Project) {
     {
       type: "Task",
       title: `Convert "${project.nextStep}" into a must-do task`,
-      detail: "Pocket should turn strategy into a dated task with urgency and owner context.",
+      detail: "Strategy becomes a dated task with urgency and owner context.",
     },
     {
       type: "Pitch draft",
       title: `Create first-pass outreach for ${project.outreach[0]?.name ?? "the lead target"}`,
-      detail: "Manager output should become a usable draft, not just advice about drafting.",
+      detail: "Manager output becomes a usable draft, not just advice about drafting.",
     },
     {
       type: "Content item",
       title: `Queue ${project.contentIdeas[0]?.toLowerCase() ?? "the lead content angle"} as a real rollout move`,
-      detail: "Good content guidance should drop into the room as an actual content object.",
+      detail: "Content guidance drops into the room as an actual content object.",
     },
     {
       type: "Reminder",
       title: "Set the next follow-up and unblock reminder",
-      detail: "The manager should preserve timing so momentum does not vanish between sessions.",
+      detail: "The manager preserves timing so momentum does not vanish between sessions.",
     },
   ] as const;
 }

@@ -99,6 +99,13 @@ export function AIVoiceInput({
     return () => clearInterval(intervalId);
   }, [submitted]);
 
+  const cleanupStream = () => {
+    recorderRef.current = null;
+    chunksRef.current = [];
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  };
+
   useEffect(() => {
     return () => {
       cleanupStream();
@@ -207,13 +214,6 @@ export function AIVoiceInput({
     setSubmitted(false);
     setTime(0);
     onStop?.(duration);
-  };
-
-  const cleanupStream = () => {
-    recorderRef.current = null;
-    chunksRef.current = [];
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
   };
 
   return (

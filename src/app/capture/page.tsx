@@ -1,279 +1,146 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { AppShell, Panel } from "@/components/app-shell";
+import { useEffect, useState } from "react";
+import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
-import { AIVoiceInput, VoiceRecording } from "@/components/ui/ai-voice-input";
-import { getCaptureInboxPreview, getManagerBrief } from "@/lib/backstage-data";
+
+type PocketInItem = {
+  id: string;
+  type: "Note" | "Voice memo" | "File" | "Link";
+  body: string;
+  songId: string;
+  createdAt: string;
+};
+
+const CAPTURE_STORAGE_KEY = "pocket-manager-captures";
 
 export default function CapturePage() {
-  const { activeProject, addQuickContentIdea, addQuickAsset, addTask, events, uploadAssets } = usePocket();
-  const managerBrief = getManagerBrief(activeProject);
-  const captureInbox = getCaptureInboxPreview([activeProject]);
-  const recentActivity = events.filter((item) => item.projectId === activeProject.id).slice(0, 4);
-  const [quickTask, setQuickTask] = useState("");
-  const [voiceNotes, setVoiceNotes] = useState<Array<{ duration: number; createdAt: string; url: string; mimeType: string }>>([]);
-  const [captureStatus, setCaptureStatus] = useState("Captured");
-  const retiredVoiceUrlsRef = useRef<string[]>([]);
-  const voiceNotesRef = useRef(voiceNotes);
+  const { songs } = usePocket();
+  const [type, setType] = useState<PocketInItem["type"]>("Note");
+  const [songId, setSongId] = useState(songs[0]?.id ?? "inbox");
+  const [body, setBody] = useState("");
+  const [items, setItems] = useState<PocketInItem[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    try {
+      const raw = window.localStorage.getItem(CAPTURE_STORAGE_KEY);
+      const parsed = raw ? (JSON.parse(raw) as PocketInItem[]) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      window.localStorage.removeItem(CAPTURE_STORAGE_KEY);
+      return [];
+    }
+  });
 
   useEffect(() => {
-    voiceNotesRef.current = voiceNotes;
-  }, [voiceNotes]);
+    window.localStorage.setItem(CAPTURE_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
 
-  useEffect(() => {
-    return () => {
-      retiredVoiceUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      voiceNotesRef.current.forEach((note) => URL.revokeObjectURL(note.url));
-    };
-  }, []);
+  function saveCapture() {
+    const cleanBody = body.trim();
 
-  const handleVoiceCapture = (recording: VoiceRecording) => {
-    setVoiceNotes((current) => {
-      const trimmed = current.slice(0, 3);
-      const retired = current.slice(3);
-      retiredVoiceUrlsRef.current.push(...retired.map((note) => note.url));
-      const next = [
-        {
-          duration: recording.duration,
-          createdAt: new Date().toISOString(),
-          url: recording.url,
-          mimeType: recording.mimeType,
-        },
-        ...trimmed,
-      ];
-      return next;
-    });
+    if (!cleanBody) {
+      return;
+    }
 
-    addQuickContentIdea(
-      activeProject.id,
-      `Voice note captured (${recording.duration}s): review the recording and turn it into the next rollout move.`,
-    );
-  };
+    setItems((current) => [
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type,
+        body: cleanBody,
+        songId,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ].slice(0, 40));
+    setBody("");
+  }
 
   return (
-    <AppShell title="Capture" eyebrow="Fast input lane">
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Panel
-          title="One-tap capture"
-          description="This route should let ideas land fast without forcing the user through the full manager page."
-        >
-          <div className="space-y-4">
-            <div className="rounded-3xl border border-emerald-300/15 bg-emerald-300/6 p-4 text-sm text-white/75">
-              <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">Active room</div>
-              <div className="mt-2 text-lg font-medium text-white">{activeProject.name}</div>
-              <div className="mt-2 leading-6 text-white/65">{managerBrief.bestMove}</div>
-            </div>
+    <AppShell title="Pocket In" eyebrow="Quick capture">
+      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
+        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Pocket In</div>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Save it before it gets lost.</h2>
+          <p className="mt-3 text-sm leading-6 text-white/60">
+            Capture notes, voice reminders, links, and file references. Route them to a song now or leave them in the inbox.
+          </p>
+        </section>
 
-            <div className="rounded-3xl border border-white/10 bg-black/10 p-4">
-              <div className="text-sm font-medium text-white">Quick task</div>
-              <div className="mt-2 text-sm leading-6 text-white/60">
-                Drop the next move into the active room before it disappears.
-              </div>
-              <input
-                value={quickTask}
-                onChange={(event) => setQuickTask(event.target.value)}
-                placeholder="Send revised cover options to designer"
-                className="mt-4 w-full rounded-2xl border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/25"
-              />
+        <section className="mt-5 grid gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(["Note", "Voice memo", "File", "Link"] as const).map((item) => (
               <button
+                key={item}
                 type="button"
-                onClick={() => {
-                  if (!quickTask.trim()) return;
-                  addTask(activeProject.id, {
-                    title: quickTask.trim(),
-                    lane: "Admin",
-                    dueLabel: "Today",
-                    energy: "Light",
-                  });
-                  setQuickTask("");
-                }}
-                className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200"
+                onClick={() => setType(item)}
+                className={`rounded-lg border-[0.5px] px-3 py-3 text-sm ${
+                  type === item ? "border-black/25 bg-[#0a0a0a] text-white" : "border-black/15 bg-[#f8f6f1] text-[#111]"
+                }`}
               >
-                Save to today
+                {item}
               </button>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-black/10 p-4">
-              <div className="text-sm font-medium text-white">Voice note</div>
-              <div className="mt-2 text-sm leading-6 text-white/60">
-                Capture a rough thought now and convert it into a room artifact later.
-              </div>
-              <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                <AIVoiceInput
-                  onStop={(duration) => {
-                    if (duration <= 0) return;
-                  }}
-                  onRecordingComplete={handleVoiceCapture}
-                />
-              </div>
-              <div className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-3 text-sm text-white/70">
-                Voice capture now records locally in the browser. Pocket turns the note into a room idea and keeps playback here for quick review.
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => addQuickAsset(activeProject.id, "Reference cover draft")}
-                className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 text-left text-sm text-white/75 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
-              >
-                <div className="font-medium text-white">Quick asset drop</div>
-                <div className="mt-2 text-white/60">Save a placeholder for the next visual or file handoff.</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => addQuickContentIdea(activeProject.id, "Captured from phone: one-line teaser angle")}
-                className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 text-left text-sm text-white/75 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
-              >
-                <div className="font-medium text-white">Quick idea</div>
-                <div className="mt-2 text-white/60">Save a content angle straight into the room memory.</div>
-              </button>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-black/10 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="text-sm font-medium text-white">Fast file capture</div>
-                  <div className="mt-2 text-sm leading-6 text-white/60">
-                    Drop a phone file straight into the active room vault without leaving capture mode.
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    value={captureStatus}
-                    onChange={(event) => setCaptureStatus(event.target.value)}
-                    className="rounded-full border border-white/10 bg-[#0a0a0f] px-4 py-2 text-sm text-white outline-none"
-                  />
-                  <label className="cursor-pointer rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-200">
-                    Capture files
-                    <input
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                        const files = Array.from(event.target.files ?? []);
-
-                        if (!files.length) {
-                          return;
-                        }
-
-                        uploadAssets(
-                          activeProject.id,
-                          files.map((file) => ({
-                            name: file.name,
-                            sizeLabel: formatFileSize(file.size),
-                            type: inferUploadType(file.type, file.name),
-                            status: captureStatus,
-                          })),
-                        );
-
-                        event.target.value = "";
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </Panel>
 
-        <div className="space-y-6">
-          <Panel title="Capture inbox" description="Pocket should show what fast capture is trying to feed, not just a blank form.">
-            <div className="space-y-3 text-sm text-white/70">
-              {captureInbox.map((item) => (
-                <div key={item.title} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
-                  <div className="font-medium text-white">{item.title}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-white/45">{item.project}</div>
-                  <div className="mt-2 leading-6 text-white/60">{item.copy}</div>
-                </div>
-              ))}
-            </div>
-          </Panel>
+          <select
+            value={songId}
+            onChange={(event) => setSongId(event.target.value)}
+            className="h-12 rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-3 text-sm outline-none"
+          >
+            <option value="inbox">Inbox, route later</option>
+            {songs.map((song) => (
+              <option key={song.id} value={song.id}>
+                {song.title}
+              </option>
+            ))}
+          </select>
 
-          <Panel title="Recent voice notes" description="Even before transcription exists, the route should preserve the capture event.">
-            {voiceNotes.length ? (
-              <div className="space-y-3 text-sm text-white/70">
-                {voiceNotes.map((note, index) => (
-                  <div key={`${note.createdAt}-${index}`} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
-                    <div className="font-medium text-white">Voice capture saved</div>
-                    <div className="mt-2 text-white/60">
-                      {note.duration}s · {new Date(note.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+          <textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder={type === "Link" ? "Paste link or reference" : type === "File" ? "Describe the file you need to attach" : "Write the thought fast"}
+            className="min-h-40 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-sm leading-6 outline-none"
+          />
+
+          <button type="button" onClick={saveCapture} className="h-[52px] rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
+            Save to Pocket
+          </button>
+        </section>
+
+        <section className="mt-6">
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Inbox</div>
+          <div className="space-y-3">
+            {items.length ? (
+              items.map((item) => {
+                const song = songs.find((candidate) => candidate.id === item.songId);
+
+                return (
+                  <div key={item.id} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="font-medium text-[#111]">{item.type}</div>
+                      <div className="text-xs text-[#6b6b65]">{song?.title ?? "Inbox"}</div>
                     </div>
-                    <audio controls className="mt-3 w-full" preload="metadata">
-                      <source src={note.url} type={note.mimeType} />
-                    </audio>
+                    <p className="mt-2 leading-6 text-[#514d47]">{item.body}</p>
+                    {song ? (
+                      <Link href={`/projects/${song.id}`} className="mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-3 py-2 text-xs text-[#111]">
+                        Open song
+                      </Link>
+                    ) : null}
                   </div>
-                ))}
-              </div>
+                );
+              })
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-sm text-white/45">
-                No voice captures yet.
+              <div className="rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-4 text-sm text-[#6b6b65]">
+                No captures yet.
               </div>
             )}
-          </Panel>
-
-          <Panel title="Active room movement" description="Capture should confirm what just landed in the room.">
-            <div className="space-y-3 text-sm text-white/70">
-              {recentActivity.length ? (
-                recentActivity.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/projects/${item.projectId}`}
-                    className="block rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-emerald-300/20 hover:bg-white/[0.04]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-medium text-white">{item.title}</div>
-                        <div className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-200/70">
-                          {item.kind}
-                        </div>
-                      </div>
-                      <div className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/55">
-                        {item.emphasis}
-                      </div>
-                    </div>
-                    <div className="mt-3 leading-6 text-white/60">{item.detail}</div>
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-white/10 px-4 py-4 text-white/45">
-                  No recent room movement yet.
-                </div>
-              )}
-            </div>
-          </Panel>
-        </div>
-      </div>
+          </div>
+        </section>
+      </main>
     </AppShell>
   );
-}
-
-function formatFileSize(size: number) {
-  if (size < 1024 * 1024) {
-    return `${Math.max(1, Math.round(size / 1024))} KB`;
-  }
-
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function inferUploadType(mimeType: string, fileName: string) {
-  if (mimeType.startsWith("image/")) {
-    return "Artwork";
-  }
-
-  if (mimeType.startsWith("video/")) {
-    return "Video";
-  }
-
-  if (mimeType.startsWith("audio/")) {
-    return "Audio";
-  }
-
-  if (/cover|art|photo|visual/i.test(fileName)) {
-    return "Artwork";
-  }
-
-  return "Document";
 }

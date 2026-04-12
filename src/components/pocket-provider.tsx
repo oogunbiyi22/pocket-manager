@@ -8,13 +8,15 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Project, seedProjects } from "@/lib/backstage-data";
+import { CreatorMoneyEntry, MoneyEntryType, Project, RevenueStream, seedMoneyEntries, seedProjects, seedSongs, SongCatalogItem } from "@/lib/backstage-data";
 import { TaskStatus } from "@/lib/backstage-data";
 
 const PROJECTS_STORAGE_KEY = "pocket-manager-projects";
 const PROFILE_STORAGE_KEY = "pocket-manager-profile";
 const SESSION_STORAGE_KEY = "pocket-manager-session";
 const EVENTS_STORAGE_KEY = "pocket-manager-events";
+const MONEY_STORAGE_KEY = "pocket-manager-money";
+const SONGS_STORAGE_KEY = "pocket-manager-songs";
 
 type CreateProjectInput = {
   name: string;
@@ -23,6 +25,21 @@ type CreateProjectInput = {
   stage: string;
   targetDate: string;
   goal: string;
+};
+
+type CreateSongInput = {
+  title: string;
+  isrc: string;
+  releaseDate: string;
+  distributor: string;
+  collaborators?: SongCatalogItem["collaborators"];
+};
+
+type AddCollaboratorInput = {
+  name: string;
+  role: SongCatalogItem["collaborators"][number]["role"];
+  ownershipPercentage: number;
+  signed: boolean;
 };
 
 type ProfileInput = {
@@ -61,6 +78,14 @@ type UploadAssetInput = {
   status: string;
 };
 
+type AddMoneyEntryInput = {
+  type: MoneyEntryType;
+  amount: number;
+  source: string;
+  category: string;
+  note: string;
+};
+
 type ManagerComposerInput = {
   intent: "Task" | "Pitch draft" | "Content item" | "Reminder" | "Asset";
   brief: string;
@@ -70,27 +95,44 @@ type PocketProfile = ProfileInput & {
   onboarded: boolean;
 };
 
+type PocketSnapshot = {
+  version: 1;
+  exportedAt: string;
+  profile: PocketProfile;
+  signedIn: boolean;
+  projects: Project[];
+  events: PocketEvent[];
+  moneyEntries?: CreatorMoneyEntry[];
+  songs?: SongCatalogItem[];
+};
+
 export type PocketEvent = {
   id: string;
   projectId: string;
   title: string;
   detail: string;
-  kind: "Task" | "Vault" | "Outreach" | "Manager" | "Capture" | "Room";
+  kind: "Task" | "Vault" | "Outreach" | "Manager" | "Capture" | "Room" | "Money";
   emphasis: string;
   createdAt: string;
 };
 
 type PocketContextValue = {
   projects: Project[];
+  songs: SongCatalogItem[];
   activeProject: Project;
   profile: PocketProfile;
   signedIn: boolean;
   events: PocketEvent[];
-  createProject: (input: CreateProjectInput) => void;
+  moneyEntries: CreatorMoneyEntry[];
+  createProject: (input: CreateProjectInput) => string | null;
+  createSong: (input: CreateSongInput) => string | null;
+  addSongCollaborator: (songId: string, input: AddCollaboratorInput) => void;
+  completeRevenueAction: (songId: string, streamType: string, collectionBody: string) => void;
   convertManagerAction: (projectId: string, actionType: string) => void;
   updateTaskStatus: (projectId: string, taskTitle: string, status: TaskStatus) => void;
   updateOutreachStatus: (projectId: string, contactName: string, status: string) => void;
   addTask: (projectId: string, input: AddTaskInput) => void;
+  addMoneyEntry: (projectId: string, input: AddMoneyEntryInput) => void;
   addAsset: (projectId: string, input: AddAssetInput) => void;
   addOutreachContact: (projectId: string, input: AddOutreachInput) => void;
   uploadAssets: (projectId: string, uploads: UploadAssetInput[]) => void;
@@ -101,6 +143,9 @@ type PocketContextValue = {
   signOut: () => void;
   completeOnboarding: (input: Omit<ProfileInput, "managerMode"> & { managerMode?: string }) => void;
   updateProfile: (updates: Partial<PocketProfile>) => void;
+  exportPocketData: () => string;
+  importPocketData: (rawSnapshot: string) => { ok: boolean; message: string };
+  resetPocketData: () => void;
   resolveMissingAsset: (projectId: string, assetName: string) => void;
   setActiveProject: (projectId: string) => void;
 };
@@ -108,85 +153,100 @@ type PocketContextValue = {
 const PocketContext = createContext<PocketContextValue | null>(null);
 
 export function PocketProvider({ children }: { children: ReactNode }) {
-  const [projects, setProjects] = useState<Project[]>(() => {
-    if (typeof window === "undefined") {
-      return seedProjects;
-    }
-
-    const raw = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
-
-    if (!raw) {
-      return seedProjects;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Project[];
-      return Array.isArray(parsed) && parsed.length ? parsed : seedProjects;
-    } catch {
-      window.localStorage.removeItem(PROJECTS_STORAGE_KEY);
-      return seedProjects;
-    }
-  });
-  const [profile, setProfile] = useState<PocketProfile>(() => {
-    if (typeof window === "undefined") {
-      return getDefaultProfile();
-    }
-
-    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-
-    if (!raw) {
-      return getDefaultProfile();
-    }
-
-    try {
-      return { ...getDefaultProfile(), ...(JSON.parse(raw) as Partial<PocketProfile>) };
-    } catch {
-      window.localStorage.removeItem(PROFILE_STORAGE_KEY);
-      return getDefaultProfile();
-    }
-  });
-  const [signedIn, setSignedIn] = useState<boolean>(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return window.localStorage.getItem(SESSION_STORAGE_KEY) === "signed-in";
-  });
-  const [events, setEvents] = useState<PocketEvent[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const raw = window.localStorage.getItem(EVENTS_STORAGE_KEY);
-
-    if (!raw) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as PocketEvent[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      window.localStorage.removeItem(EVENTS_STORAGE_KEY);
-      return [];
-    }
-  });
+  const [hydrated, setHydrated] = useState(false);
+  const [projects, setProjects] = useState<Project[]>(seedProjects);
+  const [songs, setSongs] = useState<SongCatalogItem[]>(seedSongs);
+  const [profile, setProfile] = useState<PocketProfile>(getDefaultProfile);
+  const [signedIn, setSignedIn] = useState(false);
+  const [events, setEvents] = useState<PocketEvent[]>([]);
+  const [moneyEntries, setMoneyEntries] = useState<CreatorMoneyEntry[]>(seedMoneyEntries);
 
   useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        const rawProjects = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
+        if (rawProjects) {
+          const parsed = JSON.parse(rawProjects) as Project[];
+          setProjects(Array.isArray(parsed) && parsed.length ? parsed : seedProjects);
+        }
+      } catch {
+        window.localStorage.removeItem(PROJECTS_STORAGE_KEY);
+      }
+
+      try {
+        const rawProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+        if (rawProfile) {
+          setProfile({ ...getDefaultProfile(), ...(JSON.parse(rawProfile) as Partial<PocketProfile>) });
+        }
+      } catch {
+        window.localStorage.removeItem(PROFILE_STORAGE_KEY);
+      }
+
+      setSignedIn(window.localStorage.getItem(SESSION_STORAGE_KEY) === "signed-in");
+
+      try {
+        const rawEvents = window.localStorage.getItem(EVENTS_STORAGE_KEY);
+        if (rawEvents) {
+          const parsed = JSON.parse(rawEvents) as PocketEvent[];
+          setEvents(Array.isArray(parsed) ? parsed : []);
+        }
+      } catch {
+        window.localStorage.removeItem(EVENTS_STORAGE_KEY);
+      }
+
+      try {
+        const rawMoney = window.localStorage.getItem(MONEY_STORAGE_KEY);
+        if (rawMoney) {
+          const parsed = JSON.parse(rawMoney) as CreatorMoneyEntry[];
+          setMoneyEntries(Array.isArray(parsed) ? parsed : seedMoneyEntries);
+        }
+      } catch {
+        window.localStorage.removeItem(MONEY_STORAGE_KEY);
+      }
+
+      try {
+        const rawSongs = window.localStorage.getItem(SONGS_STORAGE_KEY);
+        if (rawSongs) {
+          const parsed = JSON.parse(rawSongs) as SongCatalogItem[];
+          setSongs(Array.isArray(parsed) && parsed.length ? parsed : seedSongs);
+        }
+      } catch {
+        window.localStorage.removeItem(SONGS_STORAGE_KEY);
+      }
+
+      setHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-  }, [projects]);
+  }, [hydrated, projects]);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  }, [profile]);
+  }, [hydrated, profile]);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(SESSION_STORAGE_KEY, signedIn ? "signed-in" : "signed-out");
-  }, [signedIn]);
+  }, [hydrated, signedIn]);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
-  }, [events]);
+  }, [events, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(MONEY_STORAGE_KEY, JSON.stringify(moneyEntries));
+  }, [hydrated, moneyEntries]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(songs));
+  }, [hydrated, songs]);
 
   const value = useMemo<PocketContextValue>(() => {
     const activeProject = projects[0] ?? seedProjects[0];
@@ -203,12 +263,18 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
     return {
       projects,
+      songs,
       activeProject,
       profile,
       signedIn,
       events,
+      moneyEntries,
       createProject(input) {
         const projectId = slugify(input.name);
+
+        if (!projectId) {
+          return null;
+        }
 
         pushEvent({
           projectId,
@@ -227,7 +293,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             daysLeft: 28,
             goal: input.goal,
             health: "New room",
-            summary: `${input.type} workspace shaped around ${input.vibe.toLowerCase()} with a ${input.stage.toLowerCase()} starting posture and a ${input.targetDate.toLowerCase()} target window.`,
+            summary: `${input.type} room shaped around ${input.vibe.toLowerCase()} with a ${input.stage.toLowerCase()} starting posture and a ${input.targetDate.toLowerCase()} target window.`,
             managerNote:
               "This room was just created. Lock the first package pieces fast so the manager can judge from something real.",
             nextStep: `Define the first concrete move for ${input.name}.`,
@@ -268,14 +334,130 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           currentProject: input.name,
           targetWindow: input.targetDate,
         }));
+
+        return projectId;
+      },
+      createSong(input) {
+        const title = input.title.trim();
+        const songId = slugify(title);
+
+        if (!title || !songId) {
+          return null;
+        }
+
+        const distributor = input.distributor || "Not connected";
+        const hasDistributor = distributor !== "Not sure yet" && distributor !== "Not connected";
+        const song: SongCatalogItem = {
+          id: songId,
+          title,
+          isrc: input.isrc.trim(),
+          releaseDate: input.releaseDate || "Release date needed",
+          streams: 0,
+          territory: "United States",
+          collaborators: input.collaborators?.length
+            ? input.collaborators
+            : [{ name: profile.artistName || "You", role: "master_owner", ownershipPercentage: 100, signed: false }],
+          distributionPlatforms: hasDistributor ? [distributor] : [],
+          metadataComplete: Boolean(input.isrc.trim() && input.releaseDate),
+          artworkUploaded: false,
+          splitSheetSigned: false,
+          revenueStreams: buildStarterRevenueStreams(distributor),
+        };
+
+        pushEvent({
+          projectId: songId,
+          title: `Added song: ${title}`,
+          detail: input.isrc ? `ISRC ${input.isrc} added to the catalog.` : "Manual song added. ISRC is still missing.",
+          kind: "Room",
+          emphasis: "Catalog",
+        });
+
+        setSongs((current) => [song, ...current.filter((item) => item.id !== songId)]);
+        setProfile((current) => ({ ...current, currentProject: title }));
+
+        return songId;
+      },
+      addSongCollaborator(songId, input) {
+        const collaboratorName = input.name.trim();
+
+        if (!collaboratorName) {
+          return;
+        }
+
+        setSongs((current) =>
+          current.map((song) => {
+            if (song.id !== songId) {
+              return song;
+            }
+
+            return {
+              ...song,
+              collaborators: [
+                ...song.collaborators.filter((collaborator) => collaborator.name.toLowerCase() !== collaboratorName.toLowerCase()),
+                {
+                  name: collaboratorName,
+                  role: input.role,
+                  ownershipPercentage: Math.max(0, Math.min(100, Number(input.ownershipPercentage) || 0)),
+                  signed: input.signed,
+                },
+              ],
+              splitSheetSigned: input.signed && song.collaborators.every((collaborator) => collaborator.signed),
+            };
+          }),
+        );
+
+        pushEvent({
+          projectId: songId,
+          title: `Added split: ${collaboratorName}`,
+          detail: `${input.ownershipPercentage}% ${input.role.replaceAll("_", " ")} split added to the song.`,
+          kind: "Room",
+          emphasis: input.signed ? "Signed" : "Unsigned",
+        });
+      },
+      completeRevenueAction(songId, streamType, collectionBody) {
+        setSongs((current) =>
+          current.map((song) => {
+            if (song.id !== songId) {
+              return song;
+            }
+
+            return {
+              ...song,
+              revenueStreams: song.revenueStreams.map((stream) => {
+                if (stream.streamType !== streamType || stream.collectionBody !== collectionBody) {
+                  return stream;
+                }
+
+                return {
+                  ...stream,
+                  status: "collecting",
+                  actualAmount: stream.actualAmount + stream.estimatedGap,
+                  estimatedGap: 0,
+                  reason: `${stream.collectionBody} action marked complete.`,
+                  action: `Review ${stream.collectionBody}`,
+                };
+              }),
+            };
+          }),
+        );
+
+        pushEvent({
+          projectId: songId,
+          title: `Gap closed: ${collectionBody}`,
+          detail: `${streamType.replaceAll("_", " ")} action was marked complete.`,
+          kind: "Money",
+          emphasis: "Closed",
+        });
       },
       convertManagerAction(projectId, actionType) {
+        const normalizedActionType = normalizeManagerActionType(actionType);
+
         pushEvent({
           projectId,
           title: `Manager converted action: ${actionType}`,
           detail: "Pocket turned manager output into a saved room object.",
           kind: "Manager",
-          emphasis: actionType,
+          emphasis: normalizedActionType,
         });
         setProjects((current) =>
           current.map((project) => {
@@ -283,11 +465,11 @@ export function PocketProvider({ children }: { children: ReactNode }) {
               return project;
             }
 
-            if (actionType === "Task") {
+            if (normalizedActionType === "Task") {
               return {
                 ...project,
                 nextStep: `Finish manager follow-through for ${project.nextStep.toLowerCase()}`,
-                managerNote: `Manager converted the room into a task lane: ${project.nextStep}`,
+                managerNote: `Manager converted the next move into a task: ${project.nextStep}`,
                 priorities: [`Finish manager follow-through`, ...project.priorities].slice(0, 5),
                 tasks: [
                   {
@@ -302,11 +484,11 @@ export function PocketProvider({ children }: { children: ReactNode }) {
               };
             }
 
-            if (actionType === "Pitch draft") {
+            if (normalizedActionType === "Pitch draft") {
               return {
                 ...project,
                 nextStep: `Review and send the draft for ${project.outreach[0]?.name ?? project.name}`,
-                managerNote: `Manager opened an outreach draft lane for ${project.name}.`,
+                managerNote: `Manager opened an outreach draft for ${project.name}.`,
                 priorities: [`Send outreach draft`, ...project.priorities].slice(0, 5),
                 outreach: project.outreach.map((item, index) =>
                   index === 0 ? { ...item, status: "Draft" } : item,
@@ -314,7 +496,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
               };
             }
 
-            if (actionType === "Content item") {
+            if (normalizedActionType === "Content item") {
               return {
                 ...project,
                 nextStep: `Turn the queued content move into a scheduled post for ${project.name}.`,
@@ -327,12 +509,26 @@ export function PocketProvider({ children }: { children: ReactNode }) {
               };
             }
 
-            if (actionType === "Reminder") {
+            if (normalizedActionType === "Reminder") {
               return {
                 ...project,
                 nextStep: "Check the saved follow-up and keep the room moving today.",
                 managerNote: `${project.managerNote} Follow-up timing was saved so the room does not lose momentum.`,
                 priorities: [`Check saved follow-up timing`, ...project.priorities].slice(0, 5),
+              };
+            }
+
+            if (normalizedActionType === "Asset") {
+              const nextAsset = project.missingAssets[0] ?? "Final release package asset";
+
+              return {
+                ...project,
+                nextStep: `Upload or approve ${nextAsset.toLowerCase()} so the room can move.`,
+                managerNote: `Manager turned the missing asset into a vault request: ${nextAsset}`,
+                priorities: [`Upload or approve: ${nextAsset}`, ...project.priorities].slice(0, 5),
+                missingAssets: project.missingAssets.includes(nextAsset)
+                  ? project.missingAssets
+                  : [nextAsset, ...project.missingAssets].slice(0, 6),
               };
             }
 
@@ -372,6 +568,32 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             };
           }),
         );
+      },
+      addMoneyEntry(projectId, input) {
+        const amount = Math.max(0, Number(input.amount) || 0);
+
+        if (!amount) {
+          return;
+        }
+
+        const entry: CreatorMoneyEntry = {
+          id: `money-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: input.type,
+          amount,
+          source: input.source || (input.type === "Income" ? "Creative income" : "Creative expense"),
+          category: input.category || (input.type === "Income" ? "Other income" : "Other expense"),
+          note: input.note,
+          date: new Date().toISOString(),
+        };
+
+        pushEvent({
+          projectId,
+          title: `${entry.type}: ${entry.source}`,
+          detail: `${entry.type} logged for $${entry.amount.toLocaleString("en-US")}.`,
+          kind: "Money",
+          emphasis: entry.type,
+        });
+        setMoneyEntries((current) => [entry, ...current].slice(0, 200));
       },
       addAsset(projectId, input) {
         pushEvent({
@@ -539,7 +761,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         pushEvent({
           projectId,
           title: assetLabel,
-          detail: "Quick capture created a fast vault placeholder.",
+          detail: "Pocket In created a fast vault asset request.",
           kind: "Capture",
           emphasis: "Captured",
         });
@@ -551,7 +773,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
-              managerNote: `Captured a fast vault placeholder: ${assetLabel}`,
+              managerNote: `Pocket In saved a vault asset request: ${assetLabel}`,
               assets: [
                 {
                   name: `${slugify(assetLabel)}.asset`,
@@ -569,7 +791,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         pushEvent({
           projectId,
           title: idea,
-          detail: "Quick capture saved a new content angle into the room.",
+          detail: "Pocket In saved a new content angle into the room.",
           kind: "Capture",
           emphasis: "Idea",
         });
@@ -581,7 +803,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
             return {
               ...project,
-              managerNote: `Captured a new content angle: ${idea}`,
+              managerNote: `Pocket In saved a new content angle: ${idea}`,
               contentIdeas: [idea, ...project.contentIdeas].slice(0, 5),
               nextStep: `Turn "${idea}" into a real rollout move.`,
             };
@@ -708,6 +930,48 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           ...updates,
         }));
       },
+      exportPocketData() {
+        const snapshot: PocketSnapshot = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          profile,
+          signedIn,
+          projects,
+          events,
+          moneyEntries,
+          songs,
+        };
+
+        return JSON.stringify(snapshot, null, 2);
+      },
+      importPocketData(rawSnapshot) {
+        try {
+          const parsed = JSON.parse(rawSnapshot) as Partial<PocketSnapshot>;
+
+          if (!Array.isArray(parsed.projects) || parsed.projects.length === 0) {
+            return { ok: false, message: "Import needs at least one project room." };
+          }
+
+          setProjects(parsed.projects);
+          setProfile({ ...getDefaultProfile(), ...(parsed.profile ?? {}) });
+          setSignedIn(Boolean(parsed.signedIn));
+          setEvents(Array.isArray(parsed.events) ? parsed.events : []);
+          setMoneyEntries(Array.isArray(parsed.moneyEntries) ? parsed.moneyEntries : seedMoneyEntries);
+          setSongs(Array.isArray(parsed.songs) ? parsed.songs : seedSongs);
+
+          return { ok: true, message: "Pocket data imported. Your active room is restored." };
+        } catch {
+          return { ok: false, message: "Import failed. Paste a valid Pocket Manager JSON export." };
+        }
+      },
+      resetPocketData() {
+        setProjects(seedProjects);
+        setProfile(getDefaultProfile());
+        setSignedIn(false);
+        setEvents([]);
+        setMoneyEntries(seedMoneyEntries);
+        setSongs(seedSongs);
+      },
       resolveMissingAsset(projectId, assetName) {
         pushEvent({
           projectId,
@@ -742,6 +1006,10 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       },
       setActiveProject(projectId) {
         setProjects((current) => {
+          if (current[0]?.id === projectId) {
+            return current;
+          }
+
           const nextActive = current.find((project) => project.id === projectId);
 
           if (!nextActive) {
@@ -752,7 +1020,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         });
       },
     };
-  }, [events, profile, projects, signedIn]);
+  }, [events, moneyEntries, profile, projects, signedIn, songs]);
 
   return <PocketContext.Provider value={value}>{children}</PocketContext.Provider>;
 }
@@ -789,6 +1057,88 @@ function inferAssetType(assetName: string) {
   }
 
   return "Document";
+}
+
+function normalizeManagerActionType(actionType: string): ManagerComposerInput["intent"] {
+  if (/pitch/i.test(actionType)) {
+    return "Pitch draft";
+  }
+
+  if (/note|content|voice/i.test(actionType)) {
+    return "Content item";
+  }
+
+  if (/follow|remind/i.test(actionType)) {
+    return "Reminder";
+  }
+
+  if (/asset|vault|missing/i.test(actionType)) {
+    return "Asset";
+  }
+
+  return "Task";
+}
+
+function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
+  const hasDistributor = distributor !== "Not sure yet" && distributor !== "Not connected";
+
+  return [
+    {
+      streamType: "streaming",
+      label: "Streaming royalties",
+      collectionBody: hasDistributor ? distributor : "Distributor",
+      status: hasDistributor ? "registered_not_collecting" : "not_registered",
+      actualAmount: 0,
+      estimatedGap: hasDistributor ? 0 : 25,
+      reason: hasDistributor ? "Distributor selected. Statement import is still needed." : "No distributor connection selected.",
+      action: hasDistributor ? "Import latest statement" : "Connect distributor",
+      rateNote: "Streaming collection needs distributor data before Pocket can show confirmed income.",
+    },
+    {
+      streamType: "digital_performance",
+      label: "Digital performance royalties",
+      collectionBody: "SoundExchange",
+      status: "not_registered",
+      actualAmount: 0,
+      estimatedGap: 50,
+      reason: "Not registered on SoundExchange.",
+      action: "Register now",
+      rateNote: "Conservative starter estimate. Exact value improves after stream counts or statements are connected.",
+    },
+    {
+      streamType: "performance_royalty",
+      label: "Performance royalties (writer)",
+      collectionBody: "PRO",
+      status: "not_registered",
+      actualAmount: 0,
+      estimatedGap: 35,
+      reason: "Song is not logged with a PRO.",
+      action: "Log with PRO",
+      rateNote: "Conservative starter estimate. PRO territory and repertoire data refine the number.",
+    },
+    {
+      streamType: "mechanical",
+      label: "Mechanical royalties",
+      collectionBody: "The MLC",
+      status: "not_registered",
+      actualAmount: 0,
+      estimatedGap: 25,
+      reason: "Mechanical collection path is not connected.",
+      action: "Connect MLC path",
+      rateNote: "Starter estimate until download, stream, and composition metadata are imported.",
+    },
+    {
+      streamType: "youtube",
+      label: "YouTube Content ID",
+      collectionBody: "YouTube",
+      status: "not_registered",
+      actualAmount: 0,
+      estimatedGap: 20,
+      reason: "Master is not claimed for Content ID.",
+      action: "Claim Content ID",
+      rateNote: "Starter estimate for UGC monetization risk. YouTube analytics refines the number.",
+    },
+  ];
 }
 
 function getDefaultProfile(): PocketProfile {

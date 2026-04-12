@@ -65,15 +65,15 @@ export function AgentChatPanel({
           </div>
         ) : null}
         <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 p-4">
-          Copilot mode is being hardened into a real project-aware manager flow instead of a fragile embedded widget.
+          Copilot mode reads the active room, then turns pressure into saved tasks, drafts, assets, and reminders.
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-          <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">What it should do next</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-emerald-200/70">What it can carry</div>
           <ul className="mt-3 space-y-2 leading-6">
             {(companion?.canCarry ?? [
               "Build from the active project context automatically.",
               "Turn vague ideas into tasks, timelines, and outreach drafts.",
-              "Keep mobile capture fast instead of chat-heavy.",
+              "Keep Pocket In fast instead of chat-heavy.",
             ]).map((item) => (
               <li key={item}>{item}</li>
             ))}
@@ -156,7 +156,7 @@ export function AgentChatPanel({
           </div>
         </div>
         <div className="rounded-2xl border border-white/10 px-4 py-4 text-white/55">
-          Composer outputs land directly in the room state so the manager surface now changes the project instead of only describing it.
+          Composer outputs land directly in the room, so advice becomes something you can act on.
         </div>
       </div>
     </div>

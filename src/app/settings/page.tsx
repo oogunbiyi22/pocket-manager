@@ -1,180 +1,94 @@
 "use client";
 
-import { useState } from "react";
-import { AppShell, Panel } from "@/components/app-shell";
+import Link from "next/link";
+import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
-import {
-  artistDefaults,
-  companionSystemRules,
-  getPocketOperatingStates,
-  managerBehaviorModes,
-  pocketMoatLayers,
-  pocketSystemRules,
-} from "@/lib/backstage-data";
+import { formatGapEstimate, getRevenueGapSummary, seedPlatformConnections } from "@/lib/backstage-data";
 
 export default function SettingsPage() {
-  const operatingStates = getPocketOperatingStates();
-  const { profile, signedIn, signOut, updateProfile } = usePocket();
-  const [form, setForm] = useState({
-    artistName: profile.artistName,
-    role: profile.role,
-    vibe: profile.vibe,
-    currentProject: profile.currentProject,
-    targetWindow: profile.targetWindow,
-    mainGoal: profile.mainGoal,
-    managerMode: profile.managerMode,
-  });
+  const { profile, signedIn, signOut, songs } = usePocket();
+  const summary = getRevenueGapSummary(songs);
+  const connected = seedPlatformConnections.filter((platform) => platform.status === "connected").length;
+  const incomplete = seedPlatformConnections.filter((platform) => platform.status !== "connected").length;
+  const gapsClosed = songs.flatMap((song) => song.revenueStreams).filter((stream) => stream.status === "collecting").length;
 
   return (
-    <AppShell title="Settings" eyebrow="Profile and preferences">
-      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <Panel title="Artist defaults" description="Profile, goals, and planning defaults that shape recommendations.">
-          <div className="space-y-4 text-sm text-white/70">
-            {[
-              ["Artist name", "artistName"],
-              ["Primary role", "role"],
-              ["Genre / vibe", "vibe"],
-              ["Current project", "currentProject"],
-              ["Target window", "targetWindow"],
-              ["Main goal", "mainGoal"],
-            ].map(([label, key]) => (
-              <label key={label} className="block">
-                <span className="mb-2 block">{label}</span>
-                <input
-                  value={form[key as keyof typeof form]}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      [key]: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-white outline-none transition focus:border-emerald-300/25"
-                />
-              </label>
-            ))}
-
-            <label className="block">
-              <span className="mb-2 block">Manager mode</span>
-              <select
-                value={form.managerMode}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    managerMode: event.target.value,
-                  }))
-                }
-                className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-white outline-none transition focus:border-emerald-300/25"
-              >
-                {managerBehaviorModes.map((mode) => (
-                  <option key={mode.title} value={mode.title} className="bg-[#0a0a0f]">
-                    {mode.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => updateProfile(form)}
-                className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-200"
-              >
-                Save settings
-              </button>
-              {signedIn ? (
-                <button
-                  type="button"
-                  onClick={signOut}
-                  className="rounded-full border border-white/15 px-5 py-3 text-sm text-white/85 transition hover:border-white/30 hover:text-white"
-                >
-                  Sign out
-                </button>
-              ) : null}
+    <AppShell title="Profile" eyebrow="Account">
+      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
+        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Creator account</div>
+              <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">{profile.artistName}</h2>
+              <p className="mt-3 text-sm leading-6 text-white/60">
+                {profile.role} · Free tier · up to 3 songs with basic gap detection
+              </p>
             </div>
-
-            <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-4">
-              Active profile: {profile.artistName} · {profile.role} · {profile.managerMode}
-            </div>
-
-            <div className="space-y-3">
-              {artistDefaults.map((item) => (
-                <div key={item.title} className="rounded-2xl border border-white/10 px-4 py-4">
-                  <div className="font-medium text-white">{item.title}</div>
-                  <div className="mt-2 leading-6 text-white/60">{item.detail}</div>
-                </div>
-              ))}
+            <div className="rounded-xl border-[0.5px] border-white/15 px-4 py-3 text-right">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Estimated missing</div>
+              <div className="mt-1 text-3xl font-normal">{formatGapEstimate(summary.totalEstimatedGap)}</div>
             </div>
           </div>
-        </Panel>
+        </section>
 
-        <div className="space-y-6">
-          <Panel title="Manager behavior" description="How the manager should support the artist.">
-            <div className="space-y-3 text-sm text-white/70">
-              {managerBehaviorModes.map((mode) => (
-                <div key={mode.title} className="rounded-2xl border border-white/10 px-4 py-4">
-                  <div className="font-medium text-white">{mode.title}</div>
-                  <div className="mt-2 leading-6 text-white/60">{mode.detail}</div>
-                </div>
-              ))}
+        <section className="mt-5 grid gap-3 sm:grid-cols-3">
+          <ProfileMetric label="Songs tracked" value={`${summary.totalSongs}/3`} />
+          <ProfileMetric label="Platforms connected" value={`${connected}/${seedPlatformConnections.length}`} />
+          <ProfileMetric label="Gaps closed" value={`${gapsClosed}`} />
+        </section>
+
+        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Connected platforms summary</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-4 py-3 text-sm">
+              <div className="text-[#111]">Connected</div>
+              <div className="mt-1 text-[#3b6d11]">{connected} data paths ready</div>
             </div>
-          </Panel>
-
-          <Panel title="Pocket rules" description="Non-negotiables for how this product should behave.">
-            <ul className="space-y-3 text-sm text-white/70">
-              {pocketSystemRules.map((rule) => (
-                <li key={rule} className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-3">
-                  {rule}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="Moat layers" description="The product should never drift away from the real advantage stack.">
-            <ul className="space-y-3 text-sm text-white/70">
-              {pocketMoatLayers.map((layer) => (
-                <li key={layer} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                  {layer}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="Operating states" description="The mobile product should adapt to the user’s context, not just look different.">
-            <div className="space-y-3 text-sm text-white/70">
-              {operatingStates.map((item) => (
-                <div key={item.title} className="rounded-2xl border border-white/10 px-4 py-4">
-                  <div className="font-medium text-white">{item.title}</div>
-                  <div className="mt-2 leading-6 text-white/60">{item.detail}</div>
-                </div>
-              ))}
+            <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-4 py-3 text-sm">
+              <div className="text-[#111]">Needs attention</div>
+              <div className="mt-1 text-[#854f0b]">{incomplete} paths incomplete or missing</div>
             </div>
-          </Panel>
+          </div>
+          <Link href="/platforms" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+            Review platforms
+          </Link>
+        </section>
 
-          <Panel title="Continuity rules" description="Pocket should function as long-term artist memory, not only launch prep.">
-            <ul className="space-y-3 text-sm text-white/70">
-              {[
-                "Keep post-release follow-up visible instead of dropping the room after launch day.",
-                "Preserve what assets were used, what worked, and what should carry into the next campaign.",
-                "Let project memory become career memory over time.",
-              ].map((rule) => (
-                <li key={rule} className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                  {rule}
-                </li>
-              ))}
-            </ul>
-          </Panel>
+        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Financial summary</div>
+          <p className="mt-3 text-sm leading-6 text-[#514d47]">
+            Current quarter summary is available on Free. Pro unlocks full history, PDF export, and accountant-ready reporting.
+          </p>
+          <Link href="/financial" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+            Open financial summary
+          </Link>
+        </section>
 
-          <Panel title="Companion rules" description="The personal AI should feel premium, respectful, and trusted.">
-            <ul className="space-y-3 text-sm text-white/70">
-              {companionSystemRules.map((rule) => (
-                <li key={rule} className="rounded-2xl border border-emerald-300/15 bg-emerald-300/6 px-4 py-3">
-                  {rule}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        </div>
-      </div>
+        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Subscription</div>
+          <p className="mt-3 text-sm leading-6 text-[#514d47]">
+            Free tier tracks up to 3 songs, shows gap ranges, and gives one next action at a time. Pro unlocks exact estimates, unlimited songs, full queue, Release Radar, statements, split sheets, and exports.
+          </p>
+          <button type="button" className="mt-4 rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+            Start 7-day Pro trial
+          </button>
+        </section>
+
+        {signedIn ? (
+          <button type="button" onClick={signOut} className="mt-5 rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+            Sign out
+          </button>
+        ) : null}
+      </main>
     </AppShell>
+  );
+}
+
+function ProfileMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-4">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6d6860]">{label}</div>
+      <div className="mt-2 text-2xl font-normal text-[#111]">{value}</div>
+    </div>
   );
 }

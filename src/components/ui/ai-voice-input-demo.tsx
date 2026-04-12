@@ -13,9 +13,12 @@ export function AIVoiceInputDemo() {
   }, [recordings]);
 
   useEffect(() => {
+    const retiredUrls = retiredUrlsRef;
+    const currentRecordings = recordingsRef;
+
     return () => {
-      retiredUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      recordingsRef.current.forEach((recording) => URL.revokeObjectURL(recording.url));
+      retiredUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      currentRecordings.current.forEach((recording) => URL.revokeObjectURL(recording.url));
     };
   }, []);
 
