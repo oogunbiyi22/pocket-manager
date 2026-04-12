@@ -74,6 +74,14 @@ export type RevenueStream = {
   rateNote: string;
 };
 
+export type RoyaltyRateReference = {
+  label: string;
+  conservativeRate: string;
+  calculationBasis: string;
+  dataNeeded: string;
+  caveat: string;
+};
+
 export type SongCatalogItem = {
   id: string;
   title: string;
@@ -448,6 +456,58 @@ export const seedPlatformConnections: PlatformConnection[] = [
   { id: "youtube", name: "YouTube", group: "Content ID", status: "not_connected", method: "OAuth", missingStep: "Claim master recordings" },
   { id: "spotify", name: "Spotify for Artists", group: "Analytics", status: "connected", method: "OAuth", missingStep: "Connected" },
 ];
+
+export const royaltyRateReferences: Record<RevenueStreamType, RoyaltyRateReference> = {
+  streaming: {
+    label: "Streaming royalties",
+    conservativeRate: "$0.003-$0.005 per stream",
+    calculationBasis: "Confirmed distributor income when connected; otherwise platform stream count times the conservative low-end reference.",
+    dataNeeded: "Distributor statement, platform stream count, territory, and payout period.",
+    caveat: "Actual payout varies by platform, territory, subscription mix, label terms, and distributor deductions.",
+  },
+  digital_performance: {
+    label: "Digital performance royalties",
+    conservativeRate: "$0.0008-$0.002 per eligible play",
+    calculationBasis: "Eligible non-interactive digital plays times the conservative low-end SoundExchange-style reference.",
+    dataNeeded: "Eligible play count, master owner/featured artist status, territory, and SoundExchange registration state.",
+    caveat: "This prototype rounds down and treats the estimate as a registration gap, not guaranteed income.",
+  },
+  performance_royalty: {
+    label: "Performance royalties",
+    conservativeRate: "Varies by PRO, territory, venue, and usage",
+    calculationBasis: "Writer performance opportunity is estimated from catalog activity and registration status, then rounded down.",
+    dataNeeded: "PRO affiliation, repertoire registration, usage source, territory, and writer split.",
+    caveat: "PRO payments are not a fixed per-stream rate; the final backend must use statement and society-specific data.",
+  },
+  mechanical: {
+    label: "Mechanical royalties",
+    conservativeRate: "$0.091 reference for mechanical collection paths",
+    calculationBasis: "Mechanical collection opportunity is estimated from digital/release activity and MLC/publisher connection status.",
+    dataNeeded: "Writer ownership, publisher/admin setup, DSP activity, and The MLC or publisher registration state.",
+    caveat: "This is a routing warning and conservative estimate; final royalty treatment depends on format, territory, and license type.",
+  },
+  neighboring_rights: {
+    label: "Neighboring rights",
+    conservativeRate: "Varies by SCAPR member, territory, and performer role",
+    calculationBasis: "Territory and performer/master-owner gap is flagged where no neighboring rights path is connected.",
+    dataNeeded: "Performer role, master ownership, eligible territory activity, and society/agent registration.",
+    caveat: "V5 keeps this as a conservative estimate until real territory statements are connected.",
+  },
+  youtube: {
+    label: "YouTube Content ID",
+    conservativeRate: "$0.001-$0.003 per eligible view",
+    calculationBasis: "Eligible YouTube usage or risk is estimated from catalog activity and claim status, then rounded down.",
+    dataNeeded: "YouTube analytics, Content ID claim status, ownership conflicts, and territory.",
+    caveat: "Actual YouTube value depends on monetized views, claims, conflicts, ad markets, and distributor terms.",
+  },
+  sync: {
+    label: "Sync licensing",
+    conservativeRate: "Alert only in V5 core gap flow",
+    calculationBasis: "Sync is treated as an opportunity alert unless a real license/brief exists.",
+    dataNeeded: "Pitch context, rights clearance, master/publishing ownership, territory, media use, and term.",
+    caveat: "No sync dollar estimate should be shown without a real brief or offer.",
+  },
+};
 
 export const onboardingSteps = [
   "Who are you? artist / producer / engineer / DJ / songwriter",
@@ -957,6 +1017,28 @@ export function getRevenueActionQueue(songs: SongCatalogItem[] = seedSongs) {
         })),
     )
     .sort((left, right) => right.priority - left.priority);
+}
+
+export function getRevenueEstimateMethodology(song: SongCatalogItem, stream: RevenueStream) {
+  const reference = royaltyRateReferences[stream.streamType];
+  const roundedGap = Math.floor(stream.estimatedGap);
+
+  return {
+    reference,
+    formula:
+      stream.estimatedGap > 0
+        ? `${song.streams.toLocaleString()} catalog streams/activity signals x conservative ${reference.label.toLowerCase()} reference = ${formatMoney(roundedGap)} estimated gap`
+        : "No missing estimate is shown because this stream is currently marked as collecting or has no detectable gap.",
+    basis: [
+      `Song: "${song.title}"`,
+      `Territory: ${song.territory}`,
+      `Collection body: ${stream.collectionBody}`,
+      `Status: ${stream.status.replaceAll("_", " ")}`,
+      `Reference: ${reference.conservativeRate}`,
+      `Data needed: ${reference.dataNeeded}`,
+    ],
+    caveat: `${reference.caveat} All prototype estimates are labeled estimated and rounded down.`,
+  };
 }
 
 function getRevenueStreamPriority(streamType: RevenueStreamType) {

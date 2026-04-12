@@ -9,6 +9,7 @@ import {
   formatGapEstimate,
   getMetadataIntelligence,
   getProjectById,
+  getRevenueEstimateMethodology,
   getSongConfirmedIncome,
   getSongEstimatedGap,
   getSongGapScore,
@@ -114,49 +115,62 @@ export default function ProjectDetailPage() {
             <section className="mt-5">
               <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Revenue gap breakdown</div>
               <div className="space-y-3">
-                {registrationRows.map((stream) => (
-                  <article key={`${stream.streamType}-${stream.collectionBody}`} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-[15px] font-normal text-[#111]">{stream.label}</h3>
-                        <p className="mt-1 text-xs text-[#6d6860]">{stream.collectionBody}</p>
-                      </div>
-                      <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${statusClass(stream.status)}`}>
-                        {stream.status.replaceAll("_", " ")}
-                      </span>
-                    </div>
+                {registrationRows.map((stream) => {
+                  const methodology = getRevenueEstimateMethodology(song, stream);
 
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                      <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Collected</div>
-                        <div className="mt-1">{formatMoney(stream.actualAmount)}</div>
+                  return (
+                    <article key={`${stream.streamType}-${stream.collectionBody}`} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-[15px] font-normal text-[#111]">{stream.label}</h3>
+                          <p className="mt-1 text-xs text-[#6d6860]">{stream.collectionBody}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${statusClass(stream.status)}`}>
+                          {stream.status.replaceAll("_", " ")}
+                        </span>
                       </div>
-                      <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Estimated gap</div>
-                        <div className="mt-1">{formatGapEstimate(stream.estimatedGap)}</div>
+
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Collected</div>
+                          <div className="mt-1">{formatMoney(stream.actualAmount)}</div>
+                        </div>
+                        <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Estimated gap</div>
+                          <div className="mt-1">{formatGapEstimate(stream.estimatedGap)}</div>
+                        </div>
                       </div>
-                    </div>
 
-                    <p className="mt-3 text-sm leading-6 text-[#514d47]">Reason: {stream.reason}</p>
-                    {stream.estimatedGap > 0 ? (
-                      <p className="mt-2 text-xs leading-5 text-[#854f0b]">
-                        Free tier shows a range. Upgrade to Pro for the exact estimate and full action queue.
-                      </p>
-                    ) : null}
-                    <details className="mt-3 rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-2 text-sm text-[#514d47]">
-                      <summary className="cursor-pointer list-none marker:hidden">How is this calculated?</summary>
-                      <div className="mt-2 leading-6">{stream.rateNote}</div>
-                    </details>
+                      <p className="mt-3 text-sm leading-6 text-[#514d47]">Reason: {stream.reason}</p>
+                      {stream.estimatedGap > 0 ? (
+                        <p className="mt-2 text-xs leading-5 text-[#854f0b]">
+                          Free tier shows a range. Upgrade to Pro for the exact estimate and full action queue.
+                        </p>
+                      ) : null}
+                      <details className="mt-3 rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-2 text-sm text-[#514d47]">
+                        <summary className="cursor-pointer list-none marker:hidden">How is this calculated?</summary>
+                        <div className="mt-3 rounded-lg bg-[#fafaf8] p-3 leading-6">
+                          <div>{stream.rateNote}</div>
+                          <div className="mt-3 text-[#111]">{methodology.formula}</div>
+                          <ul className="mt-3 space-y-1">
+                            {methodology.basis.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                          <div className="mt-3 text-xs leading-5 text-[#6d6860]">{methodology.caveat}</div>
+                        </div>
+                      </details>
 
-                    <button
-                      type="button"
-                      onClick={() => completeRevenueAction(song.id, stream.streamType, stream.collectionBody)}
-                      className="mt-3 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
-                    >
-                      {stream.action}
-                    </button>
-                  </article>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => completeRevenueAction(song.id, stream.streamType, stream.collectionBody)}
+                        className="mt-3 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
+                      >
+                        {stream.action}
+                      </button>
+                    </article>
+                  );
+                })}
               </div>
             </section>
 
