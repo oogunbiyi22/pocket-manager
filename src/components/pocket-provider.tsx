@@ -43,7 +43,14 @@ type CreateProjectInput = {
 type CreateSongInput = {
   title: string;
   isrc: string;
+  upc?: string;
   releaseDate: string;
+  genre?: string;
+  mood?: string;
+  bpm?: number;
+  musicalKey?: string;
+  language?: string;
+  territory?: string;
   distributor: string;
   collaborators?: SongCatalogItem["collaborators"];
 };
@@ -385,18 +392,36 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
         const distributor = input.distributor || "Not connected";
         const hasDistributor = distributor !== "Not sure yet" && distributor !== "Not connected";
+        const territory = input.territory?.trim() || "United States";
+        const metadataComplete = Boolean(
+          input.isrc.trim() &&
+            input.upc?.trim() &&
+            input.releaseDate &&
+            input.genre?.trim() &&
+            input.mood?.trim() &&
+            input.bpm &&
+            input.musicalKey?.trim() &&
+            input.language?.trim() &&
+            territory,
+        );
         const song: SongCatalogItem = {
           id: songId,
           title,
           isrc: input.isrc.trim(),
+          upc: input.upc?.trim(),
           releaseDate: input.releaseDate || "Release date needed",
+          genre: input.genre?.trim(),
+          mood: input.mood?.trim(),
+          bpm: input.bpm,
+          musicalKey: input.musicalKey?.trim(),
+          language: input.language?.trim(),
           streams: 0,
-          territory: "United States",
+          territory,
           collaborators: input.collaborators?.length
             ? input.collaborators
             : [{ name: profile.artistName || "You", role: "master_owner", ownershipPercentage: 100, signed: false }],
           distributionPlatforms: hasDistributor ? [distributor] : [],
-          metadataComplete: Boolean(input.isrc.trim() && input.releaseDate),
+          metadataComplete,
           artworkUploaded: false,
           splitSheetSigned: false,
           revenueStreams: buildStarterRevenueStreams(distributor),

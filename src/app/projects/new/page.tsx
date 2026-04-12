@@ -11,7 +11,14 @@ export default function NewProjectPage() {
   const [form, setForm] = useState({
     title: "",
     isrc: "",
+    upc: "",
     releaseDate: "",
+    genre: "",
+    mood: "",
+    bpm: "",
+    musicalKey: "",
+    language: "",
+    territory: "United States",
     distributor: "DistroKid",
   });
 
@@ -25,7 +32,14 @@ export default function NewProjectPage() {
     const songId = createSong({
       title,
       isrc: form.isrc,
+      upc: form.upc,
       releaseDate: form.releaseDate,
+      genre: form.genre,
+      mood: form.mood,
+      bpm: form.bpm ? Number(form.bpm) : undefined,
+      musicalKey: form.musicalKey,
+      language: form.language,
+      territory: form.territory,
       distributor: form.distributor,
     });
 
@@ -68,6 +82,16 @@ export default function NewProjectPage() {
             </label>
 
             <label className="block text-sm text-[#514d47]">
+              <span className="mb-2 block">UPC</span>
+              <input
+                value={form.upc}
+                onChange={(event) => setForm((current) => ({ ...current, upc: event.target.value }))}
+                placeholder="196871234567"
+                className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
+              />
+            </label>
+
+            <label className="block text-sm text-[#514d47]">
               <span className="mb-2 block">Release date</span>
               <input
                 type="date"
@@ -76,6 +100,28 @@ export default function NewProjectPage() {
                 className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
               />
             </label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              ["Genre", "genre", "R&B"],
+              ["Mood", "mood", "Late night"],
+              ["BPM", "bpm", "92"],
+              ["Key", "musicalKey", "A minor"],
+              ["Language", "language", "English"],
+              ["Territory", "territory", "United States"],
+            ].map(([label, key, placeholder]) => (
+              <label key={key} className="block text-sm text-[#514d47]">
+                <span className="mb-2 block">{label}</span>
+                <input
+                  type={key === "bpm" ? "number" : "text"}
+                  value={form[key as keyof typeof form]}
+                  onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+                  placeholder={placeholder}
+                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
+                />
+              </label>
+            ))}
           </div>
 
           <label className="block text-sm text-[#514d47]">
