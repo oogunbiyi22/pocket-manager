@@ -11,10 +11,55 @@ import {
   getRevenueGapSummary,
   getSongGapScore,
   getSongReadinessScore,
+  getSongReadinessChecklist,
+  type SongCatalogItem,
 } from "@/lib/backstage-data";
 
+function generateBriefing(
+  songs: SongCatalogItem[],
+  summary: ReturnType<typeof getRevenueGapSummary>,
+  nextAction: ReturnType<typeof getNextRevenueAction>,
+  artistName: string,
+): string {
+  const firstName = artistName.split(" ")[0] || "You";
+  const topSong = songs[0];
+
+  if (!topSong) {
+    return `${firstName}, add your first song to get started. Once your catalog is in, I can tell you exactly what money is missing and what to fix first.`;
+  }
+
+  const readiness = getSongReadinessScore(topSong);
+  const checklist = getSongReadinessChecklist(topSong);
+  const blockers = checklist.filter((item) => !item.done).slice(0, 2);
+  const blockerText = blockers.length
+    ? blockers.map((b) => b.label.toLowerCase()).join(" and ")
+    : null;
+
+  if (summary.totalEstimatedGap === 0) {
+    return `${firstName}, catalog looks clean right now. No gaps detected. Stay on rollout — keep the outreach moving and look for the next release window to open.`;
+  }
+
+  const gapLine =
+    summary.songsWithGaps === 1
+      ? `1 song has uncollected money`
+      : `${summary.songsWithGaps} songs have uncollected money`;
+
+  const topLine = `"${topSong.title}" is at ${readiness}% readiness`;
+
+  const actionLine =
+    nextAction.estimatedValue > 0
+      ? `Fix ${nextAction.collectionBody} first — that's ${formatGapEstimate(nextAction.estimatedValue)} and takes ${nextAction.estimatedTime}.`
+      : `${nextAction.title} is the next move.`;
+
+  const blockerLine = blockerText
+    ? ` Sort ${blockerText} before you push.`
+    : "";
+
+  return `${topLine}. ${gapLine} — ${formatGapEstimate(summary.totalEstimatedGap)} total.${blockerLine} ${actionLine}`;
+}
+
 export default function MobilePage() {
-  const { completeRevenueAction, songs } = usePocket();
+  const { completeRevenueAction, songs, profile } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const [clearedActions, setClearedActions] = useState<string[]>([]);
   const availableSongs = useMemo(
@@ -64,6 +109,29 @@ export default function MobilePage() {
             B
           </Link>
         </header>
+
+        <section className="bg-[#141412] px-5 py-5 text-white">
+          <div className="flex items-start gap-3">
+            <Link
+              href="/a"
+              className="mt-[2px] grid size-7 shrink-0 place-items-center rounded-full bg-[#1e1e1b] text-[11px] font-medium text-[#f5f4f0]"
+              aria-label="Open A"
+            >
+              A
+            </Link>
+            <p className="text-[14px] leading-[1.65] text-white/75">
+              {generateBriefing(songs, summary, nextAction, profile.artistName)}
+            </p>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Link href="/a" className="rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-1.5 text-[11px] text-white/55">
+              Ask A →
+            </Link>
+            <Link href="/actions" className="rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-1.5 text-[11px] text-white/55">
+              See full queue
+            </Link>
+          </div>
+        </section>
 
         <section className="bg-[#0d0d0b] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Total secured</div>
