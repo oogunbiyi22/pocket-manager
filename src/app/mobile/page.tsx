@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -13,6 +14,27 @@ import {
   getSongReadinessScore,
   type SongCatalogItem,
 } from "@/lib/backstage-data";
+
+function CountUp({ target, prefix = "", suffix = "" }: { target: number; prefix?: string; suffix?: string }) {
+  const motionVal = useMotionValue(0);
+  const rounded = useTransform(motionVal, (v) => `${prefix}${Math.round(v).toLocaleString()}${suffix}`);
+  const [display, setDisplay] = useState(`${prefix}0${suffix}`);
+
+  useEffect(() => {
+    const controls = animate(motionVal, target, {
+      duration: 0.8,
+      ease: [0.16, 1, 0.3, 1],
+    });
+    const unsub = rounded.on("change", (v) => setDisplay(v));
+    return () => {
+      controls.stop();
+      unsub();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+
+  return <span>{display}</span>;
+}
 
 function ReadinessRing({ score }: { score: number }) {
   const r = 16;
@@ -49,10 +71,37 @@ function statusBadge(song: SongCatalogItem) {
   return { label: "Needs work", className: "bg-[#faeeda] text-[#854f0b]" };
 }
 
+const BRIEF_KEY = "pocket_brief_dismissed";
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function MobilePage() {
   const { completeRevenueAction, songs, profile } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const [clearedActions, setClearedActions] = useState<string[]>([]);
+
+  // Daily brief: show once per day, persist dismiss in localStorage
+  const [briefVisible, setBriefVisible] = useState(false);
+  const briefChecked = useRef(false);
+  useEffect(() => {
+    if (briefChecked.current) return;
+    briefChecked.current = true;
+    try {
+      const dismissed = localStorage.getItem(BRIEF_KEY);
+      if (dismissed !== getTodayKey()) {
+        setBriefVisible(true);
+      }
+    } catch {
+      setBriefVisible(true);
+    }
+  }, []);
+
+  function dismissBrief() {
+    try { localStorage.setItem(BRIEF_KEY, getTodayKey()); } catch { /* noop */ }
+    setBriefVisible(false);
+  }
 
   const availableSongs = useMemo(
     () =>
@@ -106,7 +155,7 @@ export default function MobilePage() {
         <section className="bg-[#0d0d0b] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Total secured</div>
           <div className="mt-3 text-[48px] font-light leading-none tracking-[-0.04em]">
-            {formatMoney(summary.totalSecured)}
+            $<CountUp target={summary.totalSecured} />
           </div>
           <div className="mt-3 text-sm text-white/45">
             This quarter · {summary.activeIncomeStreams} stream{summary.activeIncomeStreams === 1 ? "" : "s"} active
@@ -128,6 +177,46 @@ export default function MobilePage() {
           <div className="flex items-center gap-3 border-y border-[#97c459]/30 bg-[#eaf3de] px-5 py-3">
             <span className="text-sm text-[#3b6d11]">No gaps detected — catalog looks clean.</span>
           </div>
+        )}
+
+        {/* A daily brief */}
+        {briefVisible && (
+          <motion.section
+            className="px-5 pt-5"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            onDragEnd={(_, info) => { if (info.offset.y < -40) dismissBrief(); }}
+          >
+            <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-[#141412]">
+              <div className="flex items-start justify-between gap-3 px-4 py-4">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/35">A · Today</div>
+                  <p className="mt-2 text-sm leading-6 text-white/80">
+                    {summary.songsWithGaps > 0
+                      ? `${summary.songsWithGaps} song${summary.songsWithGaps === 1 ? "" : "s"} with open gaps. Biggest move: ${nextAction.title} — ${formatGapEstimate(nextAction.estimatedValue)} uncollected.`
+                      : "Catalog fully optimized. No open gaps today."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissBrief}
+                  className="shrink-0 text-lg font-light text-white/30"
+                  aria-label="Dismiss daily brief"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="border-t border-white/10 px-4 py-3">
+                <Link href="/a" className="text-xs font-medium text-white/45">
+                  Ask A →
+                </Link>
+              </div>
+            </div>
+          </motion.section>
         )}
 
         {/* Next action card */}
