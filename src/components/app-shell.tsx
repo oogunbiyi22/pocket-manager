@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
+import { motion } from "framer-motion";
 import {
   formatGapEstimate,
   getNextRevenueAction,
@@ -40,7 +41,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-[#f4f1eb] text-[#111]">
-      <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f4f1eb] px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f4f1eb]/80 px-4 py-3 backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)] sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-4">
           <Link href="/" className="shrink-0">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Pocket</div>
@@ -123,7 +124,7 @@ export function AppShell({
       </main>
 
       <div className="fixed inset-x-4 bottom-4 z-40 md:hidden">
-        <nav className="grid grid-cols-5 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-1 py-2">
+        <nav className="grid grid-cols-5 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0]/85 px-1 py-2 backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)]">
           {mobileNavItems.map((item) => (
             <Link
               key={item.href}
@@ -147,14 +148,20 @@ export function AppShell({
       >
         +
       </Link>
-      <Link
-        href="/a"
-        className="fixed bottom-24 right-4 z-50 grid size-12 place-items-center rounded-full border-[0.5px] border-black/15 bg-[#0d0d0b] text-[15px] font-medium text-[#f5f4f0] md:bottom-6"
-        aria-label="Open A"
+      <motion.div
+        className="fixed bottom-24 right-4 z-50 md:bottom-6"
+        animate={{ scale: [1, 1.02, 1] }}
+        transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
       >
-        A
-        <span className="absolute right-0 top-0 size-2 rounded-full bg-[#ef9f27]" />
-      </Link>
+        <Link
+          href="/a"
+          className="relative grid size-12 place-items-center rounded-full border-[0.5px] border-black/15 bg-[#0d0d0b] text-[15px] font-medium text-[#f5f4f0]"
+          aria-label="Open A"
+        >
+          A
+          <span className="absolute right-0 top-0 size-2 rounded-full bg-[#ef9f27]" />
+        </Link>
+      </motion.div>
     </div>
   );
 }
