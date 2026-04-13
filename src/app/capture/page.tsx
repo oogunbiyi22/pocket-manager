@@ -116,9 +116,30 @@ export default function CapturePage() {
           </div>
 
           <button type="button" onClick={saveCapture} className="h-[52px] rounded-xl bg-white px-5 py-3 text-sm font-medium text-[#0d0d0b]">
-            Save to Pocket
+            Pocket it
           </button>
         </section>
+
+        {items.slice(0, 3).length > 0 && (
+          <section className="border-b border-white/10 px-5 py-4">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Recently pocketed</div>
+            <div className="space-y-2">
+              {items.slice(0, 3).map((item) => {
+                const song = songs.find((s) => s.id === item.songId);
+                return (
+                  <div key={item.id} className="flex items-start gap-3 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-2.5 text-sm">
+                    <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">{item.type}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-white/70">{item.body}</span>
+                    <span className="shrink-0 text-[10px] text-white/30">{song?.title ?? "Inbox"}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <Link href="/vault" className="mt-3 inline-flex text-xs text-white/35">
+              View all →
+            </Link>
+          </section>
+        )}
 
         <section className="bg-white px-5 py-5 text-[#111]">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Inbox</div>

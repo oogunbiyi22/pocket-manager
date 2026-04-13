@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { motion } from "framer-motion";
+import { PocketSheet } from "@/components/pocket-sheet";
 import {
   formatGapEstimate,
   getNextRevenueAction,
@@ -33,6 +34,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const { songs } = usePocket();
+  const [pocketOpen, setPocketOpen] = useState(false);
   const activeSong = songs[0];
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
@@ -141,13 +143,15 @@ export function AppShell({
         </nav>
       </div>
 
-      <Link
-        href="/pocket"
+      <button
+        type="button"
+        onClick={() => setPocketOpen(true)}
         className="fixed bottom-24 left-4 z-50 grid size-12 place-items-center rounded-full border-[0.5px] border-black/15 bg-white text-2xl font-light text-[#0a0a0a] md:bottom-6"
         aria-label="Open Pocket"
       >
         +
-      </Link>
+      </button>
+      <PocketSheet open={pocketOpen} onClose={() => setPocketOpen(false)} />
       <motion.div
         className="fixed bottom-24 right-4 z-50 md:bottom-6"
         animate={{ scale: [1, 1.02, 1] }}
