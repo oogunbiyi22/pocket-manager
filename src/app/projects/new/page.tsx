@@ -1,9 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+
+type MBResult = {
+  title: string;
+  artist?: string;
+  releaseDate?: string;
+};
+
+function isValidIsrc(raw: string) {
+  const stripped = raw.replace(/-/g, "").toUpperCase();
+  return /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(stripped);
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -21,6 +32,58 @@ export default function NewProjectPage() {
     territory: "United States",
     distributor: "DistroKid",
   });
+
+  const [mbLookup, setMbLookup] = useState<{ status: "idle" | "loading" | "found" | "not-found"; result?: MBResult }>({ status: "idle" });
+  const lookupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function lookupIsrc(raw: string) {
+    const stripped = raw.replace(/-/g, "").toUpperCase();
+    if (!isValidIsrc(raw)) {
+      setMbLookup({ status: "idle" });
+      return;
+    }
+    setMbLookup({ status: "loading" });
+    try {
+      const res = await fetch(
+        `https://musicbrainz.org/ws/2/isrc/${stripped}?fmt=json&inc=recordings`,
+        { headers: { "User-Agent": "PocketManager/0.1 (hello@pocketmanager.app)" } },
+      );
+      if (!res.ok) throw new Error("not found");
+      const data = await res.json() as { recordings?: { title: string; "artist-credit"?: { name: string }[]; "first-release-date"?: string }[] };
+      const rec = data.recordings?.[0];
+      if (!rec) throw new Error("not found");
+      const artist = rec["artist-credit"]?.[0]?.name;
+      setMbLookup({
+        status: "found",
+        result: {
+          title: rec.title,
+          artist,
+          releaseDate: rec["first-release-date"],
+        },
+      });
+    } catch {
+      setMbLookup({ status: "not-found" });
+    }
+  }
+
+  function handleIsrcChange(value: string) {
+    setForm((f) => ({ ...f, isrc: value }));
+    setMbLookup({ status: "idle" });
+    if (lookupTimeout.current) clearTimeout(lookupTimeout.current);
+    if (value.trim()) {
+      lookupTimeout.current = setTimeout(() => lookupIsrc(value), 600);
+    }
+  }
+
+  function applyMbResult() {
+    if (!mbLookup.result) return;
+    setForm((f) => ({
+      ...f,
+      title: f.title || mbLookup.result!.title,
+      releaseDate: f.releaseDate || mbLookup.result!.releaseDate || "",
+    }));
+    setMbLookup((s) => ({ ...s, status: "idle" }));
+  }
 
   function submitSong() {
     const title = form.title.trim();
@@ -71,15 +134,35 @@ export default function NewProjectPage() {
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm text-[#514d47]">
+            <div className="block text-sm text-[#514d47]">
               <span className="mb-2 block">ISRC code</span>
-              <input
-                value={form.isrc}
-                onChange={(event) => setForm((current) => ({ ...current, isrc: event.target.value }))}
-                placeholder="US-ABC-24-00001"
-                className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-              />
-            </label>
+              <div className="relative">
+                <input
+                  value={form.isrc}
+                  onChange={(e) => handleIsrcChange(e.target.value)}
+                  placeholder="US-ABC-24-00001"
+                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
+                />
+                {mbLookup.status === "loading" && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#9a9a8a]">Looking up…</span>
+                )}
+              </div>
+              {mbLookup.status === "found" && mbLookup.result && (
+                <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-3 py-2.5 text-xs">
+                  <div>
+                    <span className="font-medium text-[#3b6d11]">{mbLookup.result.title}</span>
+                    {mbLookup.result.artist && <span className="ml-1 text-[#3b6d11]/70">· {mbLookup.result.artist}</span>}
+                    {mbLookup.result.releaseDate && <span className="ml-1 text-[#3b6d11]/50">· {mbLookup.result.releaseDate}</span>}
+                  </div>
+                  <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#3b6d11]">
+                    Use →
+                  </button>
+                </div>
+              )}
+              {mbLookup.status === "not-found" && (
+                <div className="mt-1.5 text-xs text-[#9a9a8a]">ISRC not found in MusicBrainz — enter details manually.</div>
+              )}
+            </div>
 
             <label className="block text-sm text-[#514d47]">
               <span className="mb-2 block">UPC</span>

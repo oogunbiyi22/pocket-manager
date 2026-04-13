@@ -70,11 +70,24 @@ export default function WorkPage() {
 
         <section className="border-b border-black/10 bg-white px-5 py-5">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Active Rooms</div>
-          <div className="space-y-2">
-            {songs.slice(0, 5).map((song) => (
-              <RoomRow key={song.id} song={song} />
-            ))}
-          </div>
+          {songs.length === 0 ? (
+            <div className="rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-6 text-center">
+              <div className="text-[15px] font-normal text-[#111]">No songs yet.</div>
+              <p className="mt-2 text-sm text-[#6b6b65]">Add a release to open your first Room and see the Gap.</p>
+              <Link
+                href="/projects/new"
+                className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-5 py-2.5 text-sm font-medium text-white"
+              >
+                Add first song →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {songs.slice(0, 5).map((song) => (
+                <RoomRow key={song.id} song={song} />
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="border-b border-black/10 px-5 py-5">
