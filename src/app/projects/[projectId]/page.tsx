@@ -14,6 +14,7 @@ import {
   getSongEstimatedGap,
   getSongReadinessChecklist,
   getSongReadinessScore,
+  releaseRadarMilestones,
 } from "@/lib/backstage-data";
 import { usePocket } from "@/components/pocket-provider";
 
@@ -96,6 +97,7 @@ export default function ProjectDetailPage() {
   const readinessChecklist = song ? getSongReadinessChecklist(song) : [];
   const metadataIntelligence = song ? getMetadataIntelligence(song) : null;
   const blockingCount = readinessChecklist.filter((item) => !item.done).length;
+  const runwayRows = song ? getRunwayRows(song.releaseDate) : [];
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []).map((file) => file.name);
@@ -385,6 +387,26 @@ export default function ProjectDetailPage() {
           </div>
         </section>
 
+        {/* The Runway */}
+        {song && runwayRows.length ? (
+          <section className="bg-white px-5 pb-5 text-[#111]">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">The Runway</div>
+            <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1]">
+              {runwayRows.slice(0, 5).map((row) => (
+                <div key={`${row.title}-${row.daysBefore}`} className="flex items-start justify-between gap-3 border-b-[0.5px] border-black/10 px-4 py-3 text-sm last:border-b-0">
+                  <div>
+                    <div className="font-medium text-[#111]">{row.title}</div>
+                    <div className="mt-1 text-xs leading-5 text-[#6d6860]">{row.detail}</div>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${runwayStatusClass(row.status)}`}>
+                    {row.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {/* Bottom CTAs */}
         {song ? (
           <div className="flex flex-wrap gap-3 bg-white px-5 pb-5 text-[#111]">
@@ -414,4 +436,40 @@ function statusClass(status: string) {
   if (status === "collecting" || status === "connected") return "bg-[#97c459]/25 text-[#3b6d11]";
   if (status === "registered_not_collecting" || status === "incomplete") return "bg-[#ef9f27]/20 text-[#854f0b]";
   return "bg-[#e24b4a]/15 text-[#a32d2d]";
+}
+
+function getRunwayRows(releaseDate: string) {
+  const target = new Date(`${releaseDate}T12:00:00`);
+
+  if (Number.isNaN(target.getTime())) {
+    return [];
+  }
+
+  const today = new Date();
+  const daysUntilRelease = Math.ceil((target.getTime() - today.getTime()) / 86400000);
+
+  return releaseRadarMilestones.map((milestone) => {
+    const checkpointDistance = daysUntilRelease - milestone.daysBefore;
+    let status: "Done" | "Due now" | "Upcoming" | "Missed" = "Upcoming";
+
+    if (checkpointDistance > 2) {
+      status = "Done";
+    } else if (checkpointDistance >= -1) {
+      status = "Due now";
+    } else {
+      status = "Upcoming";
+    }
+
+    return {
+      ...milestone,
+      status,
+    };
+  });
+}
+
+function runwayStatusClass(status: "Done" | "Due now" | "Upcoming" | "Missed") {
+  if (status === "Done") return "bg-[#eaf3de] text-[#3b6d11]";
+  if (status === "Due now") return "bg-[#faeeda] text-[#854f0b]";
+  if (status === "Missed") return "bg-[#fcebeb] text-[#a32d2d]";
+  return "bg-white text-[#6d6860]";
 }
