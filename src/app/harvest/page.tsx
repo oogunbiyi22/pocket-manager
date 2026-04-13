@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
   formatGapEstimate,
   formatMoney,
+  getNextRevenueAction,
   getRevenueGapSummary,
   getSongEstimatedGap,
   getSongReadinessScore,
@@ -44,10 +46,38 @@ function SmallRing({ score }: { score: number }) {
   );
 }
 
+function ForecastBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[11px] text-[#6b6b65]">{label}</span>
+        <span className="text-[13px] font-normal text-[#111]">{formatMoney(value)}</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-black/8">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function HarvestPage() {
   const { songs } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const incomeCategories = deriveIncomeCategories(songs);
+  const nextAction = getNextRevenueAction(songs);
+
+  // Biggest opportunity: song with highest gap
+  const topGapSong = songs.slice().sort((a, b) => getSongEstimatedGap(b) - getSongEstimatedGap(a))[0];
+  const topGap = topGapSong ? getSongEstimatedGap(topGapSong) : 0;
+
+  const totalOptimized = summary.totalSecured + summary.totalEstimatedGap;
 
   return (
     <AppShell title="Harvest" eyebrow="The business">
@@ -83,6 +113,39 @@ export default function HarvestPage() {
               <div className="mt-2 text-2xl font-light text-[#0d0d0b]">{formatMoney(cat.value)}</div>
             </Link>
           ))}
+        </section>
+
+        {/* Biggest opportunity callout */}
+        {topGapSong && topGap > 0 && (
+          <section className="border-y border-[#ef9f27]/30 bg-[#faeeda] px-5 py-4">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#854f0b]">Biggest opportunity</div>
+            <div className="mt-2 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[15px] font-medium text-[#854f0b]">&ldquo;{topGapSong.title}&rdquo;</div>
+                <div className="mt-1 text-sm text-[#854f0b]/70">
+                  {nextAction.action} via {nextAction.collectionBody} · {formatGapEstimate(topGap)} missing
+                </div>
+              </div>
+              <Link
+                href={`/projects/${topGapSong.id}`}
+                className="shrink-0 rounded-lg bg-[#854f0b] px-4 py-2 text-xs font-medium text-white"
+              >
+                Fix now →
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {/* Income forecast */}
+        <section className="border-b border-black/10 px-5 py-5">
+          <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Income forecast</div>
+          <div className="space-y-3">
+            <ForecastBar label="Secured this quarter" value={summary.totalSecured} max={totalOptimized} color="#97c459" />
+            <ForecastBar label="Fully optimized potential" value={totalOptimized} max={totalOptimized} color="#ef9f27" />
+          </div>
+          <p className="mt-3 text-xs text-[#9a9a8a]">
+            Closing all gaps adds {formatGapEstimate(summary.totalEstimatedGap)} ({summary.songsWithGaps} songs).
+          </p>
         </section>
 
         {/* Song-by-song breakdown */}
