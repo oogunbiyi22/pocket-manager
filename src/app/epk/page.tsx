@@ -32,19 +32,19 @@ export default function EpkPage() {
   }
 
   return (
-    <AppShell title="EPK Builder" eyebrow="Pro release asset">
-      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+    <AppShell title="EPK" eyebrow="Living page">
+      <main className="mx-auto max-w-5xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] text-[#111]">
+        <section className="bg-[#0a0a0a] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Electronic press kit</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Package the catalog for press, playlists, sync, and partners.</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            V5 includes EPK generation under advanced release tooling. This prototype builds the structured preview; share links and PDF export stay Pro backend work.
+          <h2 className="mt-3 text-[40px] font-light leading-none tracking-[-0.03em]">Package the catalog for the room you want in.</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
+            One living page for curators, labels, booking, sync, and partners. It pulls the catalog, readiness, and income proof into one professional surface.
           </p>
         </section>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="grid gap-5 p-5 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-4">
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+            <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Builder</div>
               <label className="mt-4 block text-sm text-[#514d47]">
                 <span className="mb-2 block">Artist bio</span>
@@ -64,7 +64,7 @@ export default function EpkPage() {
               </label>
             </div>
 
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+            <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Songs included</div>
               <div className="mt-3 space-y-2">
                 {songs.map((song) => (
@@ -84,21 +84,22 @@ export default function EpkPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border-[0.5px] border-black/15 bg-[#fafaf8] p-5">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">EPK preview</div>
-            <div className="mt-4 border-b-[0.5px] border-black/15 pb-4">
-              <h3 className="text-4xl font-normal tracking-[-0.03em] text-[#111]">{profile.artistName}</h3>
-              <p className="mt-3 text-sm leading-6 text-[#514d47]">{artistBio}</p>
-              <div className="mt-3 text-sm text-[#6b6b65]">{contact}</div>
+          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
+            <div className="bg-[#0a0a0a] p-5 text-white">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Public page preview</div>
+              <h3 className="mt-4 text-[40px] font-light leading-none tracking-[-0.03em] text-white">{profile.artistName}</h3>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">{artistBio}</p>
+              <div className="mt-4 text-sm text-white/45">{contact}</div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 border-b-[0.5px] border-black/10 p-5 sm:grid-cols-3">
               <EpkMetric label="Songs" value={`${selectedSongs.length || songs.length}`} />
               <EpkMetric label="Confirmed" value={formatMoney(summary.totalSecured)} />
               <EpkMetric label="Missing" value={formatGapEstimate(summary.totalEstimatedGap)} />
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="space-y-3 p-5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Catalog</div>
               {(selectedSongs.length ? selectedSongs : songs).map((song) => (
                 <Link
                   key={song.id}
@@ -117,14 +118,22 @@ export default function EpkPage() {
                     </span>
                   </div>
                   <div className="mt-3 text-sm leading-6 text-[#514d47]">
-                    Confirmed income: {formatMoney(getSongConfirmedIncome(song))}. Registration gaps and metadata status are tracked in Pocket Manager.
+                    Confirmed income: {formatMoney(getSongConfirmedIncome(song))}. Readiness and registration proof are ready before the pitch goes out.
                   </div>
                 </Link>
               ))}
             </div>
 
-            <div className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-              Shareable link, public hosted page, and PDF export are locked until the Pro EPK backend is implemented.
+            <div className="flex flex-wrap gap-3 border-t-[0.5px] border-black/10 p-5">
+              <button type="button" className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white">
+                Copy EPK link
+              </button>
+              <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
+                Build pitch
+              </Link>
+              <Link href="/signal" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
+                Back to Signal
+              </Link>
             </div>
           </div>
         </section>
