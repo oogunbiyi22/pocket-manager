@@ -247,7 +247,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawPlatforms = window.localStorage.getItem(PLATFORMS_STORAGE_KEY);
         if (rawPlatforms) {
           const parsed = JSON.parse(rawPlatforms) as PlatformConnection[];
-          setPlatformConnections(Array.isArray(parsed) && parsed.length ? parsed : seedPlatformConnections);
+          setPlatformConnections(Array.isArray(parsed) && parsed.length ? mergeSeedPlatforms(parsed) : seedPlatformConnections);
         }
       } catch {
         window.localStorage.removeItem(PLATFORMS_STORAGE_KEY);
@@ -1108,7 +1108,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           setEvents(Array.isArray(parsed.events) ? parsed.events : []);
           setMoneyEntries(Array.isArray(parsed.moneyEntries) ? parsed.moneyEntries : seedMoneyEntries);
           setSongs(Array.isArray(parsed.songs) ? parsed.songs : seedSongs);
-          setPlatformConnections(Array.isArray(parsed.platformConnections) ? parsed.platformConnections : seedPlatformConnections);
+          setPlatformConnections(Array.isArray(parsed.platformConnections) ? mergeSeedPlatforms(parsed.platformConnections) : seedPlatformConnections);
 
           return { ok: true, message: "Pocket data imported. Your active room is restored." };
         } catch {
@@ -1335,4 +1335,13 @@ function getDefaultProfile(): PocketProfile {
     managerMode: "Direct mode",
     onboarded: false,
   };
+}
+
+function mergeSeedPlatforms(platforms: PlatformConnection[]) {
+  const byId = new Map(platforms.map((platform) => [platform.id, platform]));
+
+  return [
+    ...platforms,
+    ...seedPlatformConnections.filter((platform) => !byId.has(platform.id)),
+  ];
 }

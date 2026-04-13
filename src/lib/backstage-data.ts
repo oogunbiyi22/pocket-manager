@@ -463,6 +463,7 @@ export const seedPlatformConnections: PlatformConnection[] = [
   { id: "mlc", name: "The MLC", group: "Publishing", status: "not_connected", method: "Manual verification", missingStep: "Connect mechanical path" },
   { id: "youtube", name: "YouTube", group: "Content ID", status: "not_connected", method: "OAuth", missingStep: "Claim master recordings" },
   { id: "spotify", name: "Spotify for Artists", group: "Analytics", status: "connected", method: "OAuth", missingStep: "Connected" },
+  { id: "apple_music", name: "Apple Music for Artists", group: "Analytics", status: "not_connected", method: "OAuth", missingStep: "Connect analytics" },
 ];
 
 export const royaltyRateReferences: Record<RevenueStreamType, RoyaltyRateReference> = {

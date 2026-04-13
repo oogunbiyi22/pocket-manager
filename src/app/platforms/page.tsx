@@ -89,6 +89,7 @@ function platformActionUrl(platformId: string) {
     mlc: "https://www.themlc.com/",
     youtube: "https://studio.youtube.com/",
     spotify: "https://artists.spotify.com/",
+    apple_music: "https://artists.apple.com/",
   };
 
   return urls[platformId] ?? "https://www.google.com/search?q=music+royalty+registration";
