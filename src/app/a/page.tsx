@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useEffect, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { TextStreamChatTransport } from "ai";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary } from "@/lib/backstage-data";
@@ -24,17 +26,49 @@ const modelStrategy = [
   },
 ];
 
+const QUICK_PROMPTS = [
+  "What is my biggest gap?",
+  "Walk me through it",
+  "Show the ISRC",
+  "What should I fix next?",
+];
+
 export default function APage() {
   const { songs, profile } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
-  const topSong = songs[0];
+
   const [draft, setDraft] = useState("");
-  const [sentPrompt, setSentPrompt] = useState("Yes, walk me through it.");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { messages, sendMessage, status } = useChat({
+    transport: new TextStreamChatTransport({
+      api: "/api/v1/manager/chat",
+      body: { artistName: profile.artistName ?? "Artist" },
+    }),
+  });
+
+  const isStreaming = status === "streaming" || status === "submitted";
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  function submit(text: string) {
+    const clean = text.trim();
+    if (!clean || isStreaming) return;
+    sendMessage({ text: clean });
+    setDraft("");
+  }
+
+  // Derive display messages: if no messages yet, show a context-aware greeting
+  const hasMessages = messages.length > 0;
+  const greeting = `Your biggest gap right now is ${nextAction.collectionBody}. ${songs[0] ? `"${songs[0].title}" is the record to fix first.` : "Your catalog has one clear fix first."} That is about ${formatGapEstimate(nextAction.estimatedValue)} sitting uncollected. Takes ${nextAction.estimatedTime}. Want me to walk you through it?`;
 
   return (
     <AppShell title="A" eyebrow="Manager">
       <main className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        {/* Chat panel */}
         <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#141412] text-white">
           <header className="flex items-center justify-between border-b-[0.5px] border-white/10 bg-[#0d0d0b] px-5 py-4">
             <div>
@@ -46,60 +80,97 @@ export default function APage() {
             </Link>
           </header>
 
-          <div className="min-h-[440px] px-5 py-5">
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
-            <div className="max-w-[85%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white/80">
-              Your biggest gap right now is {nextAction.collectionBody}. {topSong ? `${topSong.title} is the record to fix first.` : "Your catalog has one clear fix first."} That is about {formatGapEstimate(nextAction.estimatedValue)} sitting uncollected. Takes {nextAction.estimatedTime}. Want me to walk you through it?
-            </div>
+          <div className="flex max-h-[540px] min-h-[440px] flex-col overflow-y-auto px-5 py-5">
+            {/* Greeting (shown until first real message) */}
+            {!hasMessages && (
+              <>
+                <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
+                <div className="max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white/80">
+                  {greeting}
+                </div>
+              </>
+            )}
 
-            <div className="mt-4 flex justify-end">
-              <div className="max-w-[82%] rounded-xl rounded-br-sm bg-white px-4 py-3 text-sm leading-6 text-[#0d0d0b]">
-                {sentPrompt}
+            {/* Real messages */}
+            {messages.map((msg) => {
+              const isUser = msg.role === "user";
+              const textPart = msg.parts?.find((p) => p.type === "text");
+              const text = textPart ? (textPart as { type: "text"; text: string }).text : "";
+              if (!text) return null;
+              return (
+                <div key={msg.id} className={`mt-4 flex ${isUser ? "justify-end" : "flex-col"}`}>
+                  {!isUser && (
+                    <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
+                  )}
+                  <div
+                    className={
+                      isUser
+                        ? "max-w-[82%] rounded-xl rounded-br-sm bg-white px-4 py-3 text-sm leading-6 text-[#0d0d0b]"
+                        : "max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white/80"
+                    }
+                  >
+                    {text}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Streaming indicator */}
+            {isStreaming && (
+              <div className="mt-4 flex flex-col">
+                <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
+                <div className="flex gap-1 rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3">
+                  <span className="size-1.5 animate-bounce rounded-full bg-white/40 [animation-delay:0ms]" />
+                  <span className="size-1.5 animate-bounce rounded-full bg-white/40 [animation-delay:150ms]" />
+                  <span className="size-1.5 animate-bounce rounded-full bg-white/40 [animation-delay:300ms]" />
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mt-4 mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
-            <div className="max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white/80">
-              Step 1 — open the right registration path and keep this song’s ISRC ready. I already have the catalog context. Start with the action page, then mark it complete when the registration is submitted.
-            </div>
+            {/* Quick prompts (shown only when no messages yet) */}
+            {!hasMessages && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => submit(prompt)}
+                    className="rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-2 text-xs text-white/65"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            )}
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              {["What is my biggest gap?", "Walk me through it", "Show the ISRC", "What should I fix next?"].map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setSentPrompt(prompt)}
-                  className="rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-2 text-xs text-white/65"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+            <div ref={bottomRef} />
           </div>
 
           <form
             className="flex items-center gap-2 border-t-[0.5px] border-white/10 bg-[#0d0d0b] px-4 py-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const cleanDraft = draft.trim();
-              if (cleanDraft) {
-                setSentPrompt(cleanDraft);
-                setDraft("");
-              }
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit(draft);
             }}
           >
             <input
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(e) => setDraft(e.target.value)}
               placeholder="Ask A anything..."
-              className="h-10 flex-1 rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 text-sm text-white outline-none placeholder:text-white/30"
+              disabled={isStreaming}
+              className="h-10 flex-1 rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 text-sm text-white outline-none placeholder:text-white/30 disabled:opacity-50"
             />
-            <button type="submit" className="grid size-10 place-items-center rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] text-sm text-white/70">
+            <button
+              type="submit"
+              disabled={isStreaming || !draft.trim()}
+              className="grid size-10 place-items-center rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] text-sm text-white/70 disabled:opacity-40"
+            >
               →
             </button>
           </form>
         </section>
 
+        {/* Sidebar */}
         <aside className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
           <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-5 text-white">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Manager context</div>
