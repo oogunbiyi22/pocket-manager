@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { AppShell } from "@/components/app-shell";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { usePocket } from "@/components/pocket-provider";
 import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary, seedSongs } from "@/lib/backstage-data";
 
+// ─── Count-up ───────────────────────────────────────────────────────────────
 function GapCountUp({ target }: { target: number }) {
   const motionVal = useMotionValue(0);
   const formatted = useTransform(motionVal, (v) => {
@@ -17,10 +16,7 @@ function GapCountUp({ target }: { target: number }) {
   const [display, setDisplay] = useState("$0");
 
   useEffect(() => {
-    const controls = animate(motionVal, target, {
-      duration: 0.8,
-      ease: [0.16, 1, 0.3, 1],
-    });
+    const controls = animate(motionVal, target, { duration: 1.2, ease: [0.16, 1, 0.3, 1] });
     const unsub = formatted.on("change", setDisplay);
     return () => { controls.stop(); unsub(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,204 +25,373 @@ function GapCountUp({ target }: { target: number }) {
   return <>{display}</>;
 }
 
+// ─── Progress dots ──────────────────────────────────────────────────────────
+function ProgressDots({ total, current }: { total: number; current: number }) {
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className={`rounded-full transition-all duration-300 ${
+            i === current
+              ? "h-1.5 w-4 bg-white"
+              : i < current
+              ? "size-1.5 bg-white/50"
+              : "size-1.5 bg-white/15"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+const TOTAL_STEPS = 7;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { createSong, updateProfile, songs, profile } = usePocket();
-  const summary = getRevenueGapSummary(songs.length ? songs : seedSongs);
-  const nextAction = getNextRevenueAction(songs.length ? songs : seedSongs);
+  const useSeedData = !songs.length;
+  const summary = getRevenueGapSummary(useSeedData ? seedSongs : songs);
+  const nextAction = getNextRevenueAction(useSeedData ? seedSongs : songs);
+
   const [step, setStep] = useState(0);
-  const [songTitle, setSongTitle] = useState("");
-  const [distributor, setDistributor] = useState("DistroKid");
   const [artistName, setArtistName] = useState(profile.artistName ?? "");
   const [role, setRole] = useState(profile.role ?? "");
-  const hasSong = songTitle.trim().length > 1;
-  const steps = ["Splash", "Artist profile", "Add release", "Connect platform", "The Gap", "Trial"];
+  const [songTitle, setSongTitle] = useState("");
+  const [distributor, setDistributor] = useState("DistroKid");
+  const [pro, setPro] = useState("");
+  const [gapRevealed, setGapRevealed] = useState(false);
+
+  function next() { setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1)); }
 
   return (
-    <AppShell title="Onboarding" eyebrow={steps[step]}>
-      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <div className="mb-5 flex gap-2">
-          {steps.map((item, index) => (
-            <div key={item} className={`h-1 flex-1 rounded-full ${index <= step ? "bg-[#0a0a0a]" : "bg-black/10"}`} />
-          ))}
-        </div>
+    <div className="min-h-screen bg-[#0d0d0b] text-white">
+      {/* Progress */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4">
+        <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Pocket Manager</div>
+        <ProgressDots total={TOTAL_STEPS} current={step} />
+        {step > 0 ? (
+          <button type="button" onClick={() => setStep((s) => s - 1)} className="text-[11px] text-white/30">
+            ← Back
+          </button>
+        ) : (
+          <div className="w-10" />
+        )}
+      </div>
 
-        {step === 0 ? (
-          <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-6 text-white">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Pocket Manager</div>
-            <h2 className="mt-5 text-5xl font-light tracking-[-0.04em]">Your music. Your money. In control.</h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-white/60">
-              Add one release, connect one platform, and see the first Gap before you land in the app.
-            </p>
-            <button type="button" onClick={() => setStep(1)} className="mt-6 rounded-lg bg-white px-5 py-3 text-sm font-medium text-black">
-              Get started
-            </button>
-          </section>
-        ) : null}
+      <AnimatePresence mode="wait">
+        <motion.main
+          key={step}
+          className="mx-auto max-w-md px-5 pb-16 pt-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+        >
 
-        {step === 1 ? (
-          <section>
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-5 text-white">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Artist profile</div>
-              <h2 className="mt-3 text-4xl font-light tracking-[-0.03em]">Who are you as an artist?</h2>
+          {/* Step 0: Splash */}
+          {step === 0 && (
+            <div className="flex flex-col gap-8">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Your music. Your money.</div>
+                <h1 className="mt-4 text-[48px] font-light leading-[1.05] tracking-[-0.04em]">
+                  Close the Gap between what you earn and what you collect.
+                </h1>
+                <p className="mt-5 text-sm leading-6 text-white/45">
+                  Add one release, connect one platform, and see the first Gap in under two minutes.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={next}
+                className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] transition active:scale-[0.98]"
+              >
+                Get started
+              </button>
+              <button type="button" onClick={() => router.push("/home")} className="text-center text-sm text-white/30">
+                Already have an account →
+              </button>
             </div>
-            <div className="mt-5 grid gap-3">
-              <label className="block text-sm text-[#514d47]">
-                <span className="mb-2 block font-medium">Artist name</span>
-                <input
-                  value={artistName}
-                  onChange={(e) => setArtistName(e.target.value)}
-                  placeholder="Your artist or band name"
-                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-white px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-                />
-              </label>
-              <label className="block text-sm text-[#514d47]">
-                <span className="mb-2 block font-medium">Role / genre</span>
-                <input
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g. R&B artist, producer, singer-songwriter"
-                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-white px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-                />
-              </label>
+          )}
+
+          {/* Step 1: Artist profile */}
+          {step === 1 && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Artist profile</div>
+                <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">Who are you as an artist?</h2>
+              </div>
+              <div className="grid gap-3">
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-white/35">Artist name</span>
+                  <input
+                    value={artistName}
+                    onChange={(e) => setArtistName(e.target.value)}
+                    placeholder="Your artist or band name"
+                    className="h-12 w-full rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 text-white outline-none placeholder:text-white/25 focus:border-white/25"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.16em] text-white/35">Role</span>
+                  <input
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="e.g. R&B artist, producer, singer-songwriter"
+                    className="h-12 w-full rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 text-white outline-none placeholder:text-white/25 focus:border-white/25"
+                  />
+                </label>
+              </div>
               <button
                 type="button"
                 disabled={!artistName.trim()}
                 onClick={() => {
                   updateProfile({ artistName: artistName.trim(), role: role.trim() });
-                  setStep(2);
+                  next();
                 }}
-                className="rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white disabled:opacity-35"
+                className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] disabled:opacity-30 transition active:scale-[0.98]"
               >
                 Continue
               </button>
-              <button type="button" onClick={() => setStep(2)} className="text-sm text-[#6b6b65]">
+              <button type="button" onClick={next} className="text-center text-sm text-white/30">
                 Skip for now →
               </button>
             </div>
-          </section>
-        ) : null}
+          )}
 
-        {step === 2 ? (
-          <section>
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-5 text-white">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Step 1 of 3</div>
-              <h2 className="mt-3 text-4xl font-light tracking-[-0.03em]">Let&apos;s find your music.</h2>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {["Search by song name or ISRC", "Import from DistroKid / TuneCore / CD Baby", "Add manually"].map((item) => (
-                <button key={item} type="button" className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-4 text-left text-sm text-[#111]">
-                  {item}
-                </button>
-              ))}
-              <input
-                value={songTitle}
-                onChange={(event) => setSongTitle(event.target.value)}
-                placeholder="Song title"
-                className="rounded-lg border-[0.5px] border-black/15 bg-white px-4 py-3 text-[#111] outline-none"
-              />
+          {/* Step 2: Add release */}
+          {step === 2 && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Step 1 of 4</div>
+                <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">Add your first release.</h2>
+                <p className="mt-3 text-sm leading-6 text-white/45">One song is enough to show the Gap.</p>
+              </div>
+              <div className="grid gap-3">
+                {["Search by ISRC", "Import from distributor", "Add manually"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className="rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 py-3.5 text-left text-sm text-white/65"
+                  >
+                    {item}
+                  </button>
+                ))}
+                <input
+                  value={songTitle}
+                  onChange={(e) => setSongTitle(e.target.value)}
+                  placeholder="Song title"
+                  className="h-12 rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 text-white outline-none placeholder:text-white/25 focus:border-white/25"
+                />
+              </div>
               <button
                 type="button"
-                disabled={!hasSong}
+                disabled={songTitle.trim().length < 2}
                 onClick={() => {
-                  createSong({
-                    title: songTitle,
-                    isrc: "",
-                    releaseDate: "",
-                    distributor,
-                  });
-                  setStep(3);
+                  createSong({ title: songTitle, isrc: "", releaseDate: "", distributor });
+                  next();
                 }}
-                className="rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white disabled:opacity-35"
+                className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] disabled:opacity-30 transition active:scale-[0.98]"
               >
                 Continue
               </button>
             </div>
-          </section>
-        ) : null}
+          )}
 
-        {step === 3 ? (
-          <section>
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-5 text-white">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Step 2 of 3</div>
-              <h2 className="mt-3 text-4xl font-light tracking-[-0.03em]">Where are your songs distributed?</h2>
-              <p className="mt-3 text-sm leading-6 text-white/60">Without connecting, we estimate your gaps but cannot confirm them yet.</p>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {["DistroKid", "TuneCore", "CD Baby", "Not sure yet"].map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setDistributor(item)}
-                  className={`rounded-xl border-[0.5px] px-4 py-4 text-left text-sm ${
-                    distributor === item ? "border-black/30 bg-[#0a0a0a] text-white" : "border-black/15 bg-[#f8f6f1] text-[#111]"
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
-              <button type="button" onClick={() => setStep(4)} className="rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
-                Reveal The Gap
+          {/* Step 3: Connect distributor */}
+          {step === 3 && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Step 2 of 4</div>
+                <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">Where is it distributed?</h2>
+                <p className="mt-3 text-sm leading-6 text-white/45">
+                  Without connecting, we estimate your gaps but cannot confirm them yet.
+                </p>
+              </div>
+              <div className="grid gap-2">
+                {["DistroKid", "TuneCore", "CD Baby", "Other", "Not sure yet"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setDistributor(item)}
+                    className={`flex items-center justify-between rounded-xl border-[0.5px] px-4 py-4 text-left text-sm transition ${
+                      distributor === item
+                        ? "border-white/30 bg-white/10 text-white"
+                        : "border-white/10 bg-white/5 text-white/60"
+                    }`}
+                  >
+                    <span>{item}</span>
+                    {distributor === item && <span className="text-white/60">✓</span>}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={next}
+                className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] transition active:scale-[0.98]"
+              >
+                Continue
               </button>
             </div>
-          </section>
-        ) : null}
+          )}
 
-        {step === 4 ? (
-          <motion.section
-            className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-6 text-white"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Step 3 of 3 · The Gap</div>
-            <div className="mt-5 text-6xl font-light tracking-[-0.05em]">
-              <GapCountUp target={summary.totalEstimatedGap} />
-            </div>
-            <p className="mt-4 text-sm leading-6 text-white/60">
-              Estimated uncollected across {summary.songsWithGaps} songs and {summary.activeIncomeStreams} active income streams. Estimates are conservative and not guaranteed.
-            </p>
-            <div className="mt-5 rounded-lg border-[0.5px] border-white/15 p-4">
-              <div className="text-sm text-white">{nextAction.title}</div>
-              <div className="mt-2 text-xs text-white/55">
-                Gap impact: {formatGapEstimate(nextAction.estimatedValue)} · Time: {nextAction.estimatedTime}
+          {/* Step 4: PRO registration (new — 7th step) */}
+          {step === 4 && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Step 3 of 4</div>
+                <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">Are you registered with a PRO?</h2>
+                <p className="mt-3 text-sm leading-6 text-white/45">
+                  PROs collect performance royalties every time your song is played publicly. Missing this = missed money.
+                </p>
               </div>
+              <div className="grid gap-2">
+                {["ASCAP", "BMI", "SESAC", "Other PRO", "Not registered yet"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setPro(item)}
+                    className={`flex items-center justify-between rounded-xl border-[0.5px] px-4 py-4 text-left text-sm transition ${
+                      pro === item
+                        ? "border-white/30 bg-white/10 text-white"
+                        : "border-white/10 bg-white/5 text-white/60"
+                    }`}
+                  >
+                    <span>{item}</span>
+                    {pro === item && <span className="text-white/60">✓</span>}
+                  </button>
+                ))}
+              </div>
+              {pro === "Not registered yet" && (
+                <div className="rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda]/10 px-4 py-3 text-sm text-[#ef9f27]">
+                  Registration takes ~5 min and closes the biggest single gap most independent artists have.
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={next}
+                className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] transition active:scale-[0.98]"
+              >
+                {pro ? "Continue" : "Skip for now"}
+              </button>
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button type="button" onClick={() => setStep(5)} className="rounded-lg bg-white px-5 py-3 text-sm font-medium text-black">
+          )}
+
+          {/* Step 5: Gap Reveal */}
+          {step === 5 && (
+            <div className="flex flex-col gap-8">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Step 4 of 4 · The Gap</div>
+                <p className="mt-3 text-sm text-white/45">Estimated uncollected royalties across your catalog.</p>
+              </div>
+
+              <motion.div
+                className="relative overflow-hidden rounded-2xl border-[0.5px] border-white/10 bg-[#1e1e1b] p-6"
+                initial={{ scale: 0.96, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                onAnimationComplete={() => setGapRevealed(true)}
+              >
+                {/* Amber glow */}
+                <div className="pointer-events-none absolute inset-0 rounded-2xl" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(239,159,39,0.12) 0%, transparent 70%)" }} />
+
+                <div className="relative">
+                  <motion.div
+                    className="text-[64px] font-light leading-none tracking-[-0.05em] text-[#ef9f27]"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.15 }}
+                  >
+                    {gapRevealed ? <GapCountUp target={summary.totalEstimatedGap} /> : "$0"}
+                  </motion.div>
+                  <motion.p
+                    className="mt-3 text-sm leading-6 text-white/45"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    Estimated uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"} ·{" "}
+                    {summary.activeIncomeStreams} streams active
+                  </motion.p>
+
+                  {/* Next action */}
+                  <motion.div
+                    className="mt-5 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                  >
+                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">Biggest fix</div>
+                    <div className="mt-2 text-sm text-white">{nextAction.action} via {nextAction.collectionBody}</div>
+                    <div className="mt-1 text-xs text-white/40">
+                      {formatGapEstimate(nextAction.estimatedValue)} · {nextAction.estimatedTime}
+                    </div>
+                  </motion.div>
+
+                  <p className="mt-4 text-[11px] text-white/20">
+                    Conservative estimate. Not guaranteed income. For illustration purposes.
+                  </p>
+                </div>
+              </motion.div>
+
+              <button
+                type="button"
+                onClick={next}
+                className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] transition active:scale-[0.98]"
+              >
                 Start collecting →
               </button>
-              <Link href="/platforms" className="rounded-lg border-[0.5px] border-white/15 px-5 py-3 text-sm text-white">
-                See platform checklist
-              </Link>
             </div>
-            <div className="mt-5 rounded-lg border-[0.5px] border-white/15 p-4">
-              <div className="text-sm text-white">See exactly what you are owed</div>
-              <p className="mt-2 text-xs leading-5 text-white/55">
-                Free shows the gap. Pro unlocks exact numbers, full action queue, and the 7-day trial path.
-              </p>
-            </div>
-          </motion.section>
-        ) : null}
+          )}
 
-        {step === 5 ? (
-          <section className="rounded-xl border-[0.5px] border-black/15 bg-white p-5">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a92]">7-day trial</div>
-            <h2 className="mt-3 text-4xl font-light tracking-[-0.03em] text-[#111]">See exactly what you are owed.</h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-[#6b6b65]">
-              Free shows you the gaps. Pro unlocks exact dollar estimates, the full action queue, Release Radar, statements, split sheets, and exports.
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => router.push("/settings")} className="rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
-                Start 7-day Pro trial
-              </button>
-              <button type="button" onClick={() => router.push("/mobile")} className="rounded-lg border-[0.5px] border-black/15 px-5 py-3 text-sm font-medium text-[#111]">
-                Continue with Free
-              </button>
+          {/* Step 6: Trial CTA */}
+          {step === 6 && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">7-day trial</div>
+                <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">
+                  See exactly what you are owed.
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-white/45">
+                  Free shows you the gaps. Pro unlocks exact dollar estimates, the full action queue, Release Radar, statements, split sheets, and exports.
+                </p>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border-[0.5px] border-white/10">
+                {[
+                  "Exact dollar estimates per stream type",
+                  "Full action queue with step-by-step guides",
+                  "Release Radar with milestone tracking",
+                  "Statement import and royalty analysis",
+                  "Split sheet generation and signing",
+                ].map((feature, i) => (
+                  <div key={feature} className={`flex items-center gap-3 px-4 py-3 text-sm ${i < 4 ? "border-b border-white/[0.06]" : ""}`}>
+                    <span className="text-[#97c459]">✓</span>
+                    <span className="text-white/70">{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/settings")}
+                  className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] transition active:scale-[0.98]"
+                >
+                  Start 7-day Pro trial
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/home")}
+                  className="h-14 w-full rounded-2xl border-[0.5px] border-white/15 text-base text-white/70 transition active:scale-[0.98]"
+                >
+                  Continue with Free
+                </button>
+              </div>
             </div>
-          </section>
-        ) : null}
-      </main>
-    </AppShell>
+          )}
+
+        </motion.main>
+      </AnimatePresence>
+    </div>
   );
 }
