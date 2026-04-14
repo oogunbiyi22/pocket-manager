@@ -403,20 +403,69 @@ export default function ProjectDetailPage() {
 
         {/* The Runway */}
         {song && runwayRows.length ? (
-          <section className="bg-white px-5 pb-5 text-[#111]">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">The Runway</div>
-            <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1]">
-              {runwayRows.slice(0, 5).map((row) => (
-                <div key={`${row.title}-${row.daysBefore}`} className="flex items-start justify-between gap-3 border-b-[0.5px] border-black/10 px-4 py-3 text-sm last:border-b-0">
-                  <div>
-                    <div className="font-medium text-[#111]">{row.title}</div>
-                    <div className="mt-1 text-xs leading-5 text-[#6d6860]">{row.detail}</div>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${runwayStatusClass(row.status)}`}>
-                    {row.status}
-                  </span>
+          <section className="bg-[#141412] px-5 pb-5 text-white">
+            <div className="flex items-center justify-between py-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">The Runway</div>
+              {song.releaseDate && song.releaseDate !== "Release date needed" ? (
+                <div className="text-[11px] text-white/35">
+                  {(() => {
+                    const days = Math.ceil((new Date(`${song.releaseDate}T12:00:00`).getTime() - Date.now()) / 86400000);
+                    return days > 0 ? `${days}d to release` : days === 0 ? "Release day" : `${Math.abs(days)}d post-release`;
+                  })()}
                 </div>
-              ))}
+              ) : null}
+            </div>
+
+            {/* Visual progress bar */}
+            <div className="relative mx-1 mb-5 h-[4px] rounded-full bg-[#1e1e1b]">
+              {(() => {
+                const total = runwayRows.length;
+                const lastDoneIdx = runwayRows.reduce((acc, row, i) => (row.status === "Done" ? i : acc), -1);
+                const fillPct = total > 1 && lastDoneIdx >= 0 ? (lastDoneIdx / (total - 1)) * 100 : 0;
+                return (
+                  <>
+                    <div className="h-full rounded-full bg-[#3b6d11] transition-all duration-700" style={{ width: `${fillPct}%` }} />
+                    {runwayRows.map((row, i) => {
+                      const left = total > 1 ? (i / (total - 1)) * 100 : 0;
+                      const isDone = row.status === "Done";
+                      const isDue = row.status === "Due now";
+                      return (
+                        <div
+                          key={row.title}
+                          className={`absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+                            isDone ? "bg-[#3b6d11]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
+                          }`}
+                          style={{ left: `${left}%` }}
+                        />
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Checkpoints */}
+            <div className="space-y-0">
+              {runwayRows.map((row) => {
+                const isDone = row.status === "Done";
+                const isDue = row.status === "Due now";
+                return (
+                  <div key={`${row.title}-${row.daysBefore}`} className="flex items-start gap-3 border-b-[0.5px] border-white/[0.05] py-3 last:border-b-0">
+                    <div className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full text-[9px] ${
+                      isDone ? "bg-[#eaf3de] text-[#3b6d11]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
+                    }`}>
+                      {isDone ? "✓" : "○"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-[13px] ${isDue ? "font-medium text-white" : isDone ? "text-white/40" : "text-white/70"}`}>{row.title}</div>
+                      <div className="mt-0.5 text-[11px] leading-5 text-white/30">{row.detail}</div>
+                    </div>
+                    {isDue && (
+                      <span className="shrink-0 rounded-lg bg-[#ef9f27] px-2 py-1 text-[10px] font-medium text-black">Now</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
         ) : null}

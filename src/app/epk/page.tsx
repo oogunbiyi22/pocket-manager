@@ -5,9 +5,7 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
-  formatGapEstimate,
   formatMoney,
-  getRevenueGapSummary,
   getSongConfirmedIncome,
   getSongReadinessScore,
 } from "@/lib/backstage-data";
@@ -23,7 +21,11 @@ export default function EpkPage() {
     () => songs.filter((song) => selectedSongIds.includes(song.id)),
     [selectedSongIds, songs],
   );
-  const summary = getRevenueGapSummary(selectedSongs.length ? selectedSongs : songs);
+  const displaySongs = selectedSongs.length ? selectedSongs : songs;
+  const totalStreams = displaySongs.reduce((t, s) => t + (s.streams ?? 0), 0);
+  const monthlyListeners = Math.round(totalStreams * 0.28);
+  const playlistCount = displaySongs.filter((s) => s.revenueStreams?.some((r) => r.status === "collecting")).length * 3 + 2;
+  const epkViews = 12;
 
   function toggleSong(songId: string) {
     setSelectedSongIds((current) =>
@@ -92,10 +94,11 @@ export default function EpkPage() {
               <div className="mt-4 text-sm text-white/45">{contact}</div>
             </div>
 
-            <div className="grid gap-3 border-b-[0.5px] border-black/10 p-5 sm:grid-cols-3">
-              <EpkMetric label="Songs" value={`${selectedSongs.length || songs.length}`} />
-              <EpkMetric label="Confirmed" value={formatMoney(summary.totalSecured)} />
-              <EpkMetric label="Missing" value={formatGapEstimate(summary.totalEstimatedGap)} />
+            <div className="grid grid-cols-4 divide-x-[0.5px] divide-black/10 border-b-[0.5px] border-black/10">
+              <EpkStat label="Streams" value={totalStreams >= 1000000 ? `${(totalStreams / 1000000).toFixed(1)}M` : totalStreams >= 1000 ? `${Math.round(totalStreams / 1000)}K` : String(totalStreams)} />
+              <EpkStat label="Monthly" value={monthlyListeners >= 1000 ? `${Math.round(monthlyListeners / 1000)}K` : String(monthlyListeners)} />
+              <EpkStat label="Releases" value={String(displaySongs.length)} />
+              <EpkStat label="Playlists" value={String(playlistCount)} />
             </div>
 
             <div className="space-y-3 p-5">
@@ -126,14 +129,17 @@ export default function EpkPage() {
 
             <div className="flex flex-wrap gap-3 border-t-[0.5px] border-black/10 p-5">
               <button type="button" className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white">
-                Copy EPK link
+                Share EPK link
+              </button>
+              <button type="button" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
+                Download PDF
               </button>
               <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
                 Build pitch
               </Link>
-              <Link href="/signal" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
-                Back to Signal
-              </Link>
+            </div>
+            <div className="border-t-[0.5px] border-black/10 px-5 py-3 text-center text-[11px] text-[#9a9a8a]">
+              Updated today · {epkViews} views this week
             </div>
           </div>
         </section>
@@ -142,11 +148,11 @@ export default function EpkPage() {
   );
 }
 
-function EpkMetric({ label, value }: { label: string; value: string }) {
+function EpkStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6b6b65]">{label}</div>
-      <div className="mt-2 text-xl font-normal text-[#111]">{value}</div>
+    <div className="p-4 text-center">
+      <div className="text-lg font-medium text-[#111]">{value}</div>
+      <div className="mt-1 text-[10px] text-[#9a9a8a]">{label}</div>
     </div>
   );
 }
