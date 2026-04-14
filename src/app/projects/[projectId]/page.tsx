@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChangeEvent, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -48,6 +48,7 @@ function LargeReadinessRing({ score }: { score: number }) {
 
 export default function ProjectDetailPage() {
   const params = useParams<{ projectId: string }>();
+  const router = useRouter();
   const { addSongCollaborator, completeRevenueAction, projects, songs, updateSongMetadata } = usePocket();
   const projectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
   const song = songs.find((item) => item.id === projectId);
@@ -90,7 +91,10 @@ export default function ProjectDetailPage() {
     ].join("\n");
   }, [song, splitTotal]);
 
-  if (!song && !fallbackProject) notFound();
+  if (!song && !fallbackProject) {
+    router.replace("/projects");
+    return null;
+  }
 
   const title = song?.title ?? fallbackProject?.name ?? "Song";
   const readinessScore = song ? getSongReadinessScore(song) : 0;
