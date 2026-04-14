@@ -104,20 +104,20 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
             onClick={onClose}
           />
 
-          {/* Sheet */}
+          {/* Sheet — frosted glass per V7 spec */}
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 overflow-hidden rounded-t-[24px] bg-[#141412] text-white"
+            className="fixed inset-x-0 bottom-0 z-50 overflow-hidden rounded-t-[24px] backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)] bg-[rgba(20,20,18,0.92)] text-white"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 320, damping: 30, mass: 0.9 }}
+            transition={{ type: "spring", stiffness: 180, damping: 22 }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             onDragEnd={(_, info) => { if (info.offset.y > 60) onClose(); }}
           >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-white/20" />
+            {/* Handle — 36×4px per spec */}
+            <div className="flex justify-center pt-[10px] pb-1">
+              <div className="h-1 w-9 rounded-full bg-white/20" />
             </div>
 
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
