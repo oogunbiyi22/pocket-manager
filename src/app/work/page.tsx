@@ -12,33 +12,6 @@ import {
   type SongCatalogItem,
 } from "@/lib/backstage-data";
 
-const workAreas = [
-  {
-    href: "/projects",
-    title: "Songs",
-    body: "Open the catalog and step into each song's Room.",
-  },
-  {
-    href: "/albums",
-    title: "EPs and albums",
-    body: "Group tracks into a release package with combined readiness.",
-  },
-  {
-    href: "/radar",
-    title: "The Runway",
-    body: "Check the release countdown and the next checkpoint.",
-  },
-  {
-    href: "/vault",
-    title: "The Vault",
-    body: "Keep files, statements, contracts, and creative memory organized.",
-  },
-  {
-    href: "/guild",
-    title: "The Guild",
-    body: "Find collaborators and turn accepted connections into shared Rooms.",
-  },
-];
 
 export default function WorkPage() {
   const { songs } = usePocket();
@@ -90,19 +63,72 @@ export default function WorkPage() {
           )}
         </section>
 
-        <section className="border-b border-black/10 px-5 py-5">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Work surfaces</div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {workAreas.map((area) => (
+        {/* The Vault preview */}
+        <section className="border-b border-black/10 bg-white px-5 py-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">The Vault</div>
+            <Link href="/vault" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
+              Open →
+            </Link>
+          </div>
+          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0]">
+            {songs.slice(0, 3).flatMap((song) => [
+              { key: `${song.id}-master`, name: `${song.title} — master WAV`, type: "Master", songTitle: song.title },
+              { key: `${song.id}-split`, name: `${song.title} — split sheet`, type: "Split", songTitle: song.title },
+            ]).slice(0, 4).map((file, i, arr) => (
               <Link
-                key={area.href}
-                href={area.href}
-                className="rounded-xl border-[0.5px] border-black/15 bg-white p-4 transition hover:border-black/35"
+                key={file.key}
+                href="/vault"
+                className={`flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-black/[0.03] ${i < arr.length - 1 ? "border-b-[0.5px] border-black/10" : ""}`}
               >
-                <div className="text-[14px] font-medium text-[#111]">{area.title}</div>
-                <p className="mt-2 text-sm leading-6 text-[#6b6b65]">{area.body}</p>
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#0d0d0b]/[0.06] text-[10px] font-medium uppercase text-[#6b6b65]">
+                  {file.type === "Master" ? "M" : "S"}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[#111]">{file.name}</span>
+                <span className="shrink-0 text-[11px] text-[#9a9a8a]">{file.type}</span>
               </Link>
             ))}
+          </div>
+          <p className="mt-2 text-[11px] text-[#9a9a8a]">
+            Masters, contracts, split sheets, and artwork live here.
+          </p>
+        </section>
+
+        {/* Guild entry card */}
+        <section className="border-b border-black/10 px-5 py-5">
+          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] px-5 py-5 text-white">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">The Guild</div>
+            <h3 className="mt-2 text-[22px] font-light tracking-[-0.02em] text-white">
+              Your network makes the work move.
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-white/45">
+              6 matches waiting · producers, songwriters, vocalists, featured artists
+            </p>
+            <div className="mt-4 flex -space-x-2">
+              {[
+                { initials: "NK", bg: "#cecbf6", fg: "#3c3489" },
+                { initials: "RM", bg: "#9fe1cb", fg: "#085041" },
+                { initials: "AJ", bg: "#f4c0d1", fg: "#72243e" },
+                { initials: "LM", bg: "#cecbf6", fg: "#3c3489" },
+              ].map((avatar) => (
+                <span
+                  key={avatar.initials}
+                  style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+                  className="grid size-8 place-items-center rounded-full border-2 border-[#0d0d0b] text-[10px] font-semibold"
+                >
+                  {avatar.initials}
+                </span>
+              ))}
+              <span className="grid size-8 place-items-center rounded-full border-2 border-[#0d0d0b] bg-white/10 text-[10px] text-white/55">
+                +2
+              </span>
+            </div>
+            <Link
+              href="/guild"
+              className="mt-4 inline-flex rounded-lg border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/20"
+            >
+              Enter The Guild →
+            </Link>
           </div>
         </section>
 
