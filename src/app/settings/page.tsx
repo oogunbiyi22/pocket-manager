@@ -56,9 +56,15 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const trialStarted = searchParams.get("trial") === "started";
-  const { platformConnections, profile, signedIn, signOut, songs } = usePocket();
+  const upgraded = searchParams.get("upgraded");
+  const { platformConnections, profile, signedIn, signOut, songs, updateProfile } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+
+  // Mark plan upgrade from Stripe redirect
+  if (upgraded && profile.plan !== upgraded) {
+    updateProfile({ plan: upgraded as "pro" | "elite" });
+  }
   const connected = platformConnections.filter((platform) => platform.status === "connected").length;
   const incomplete = platformConnections.filter((platform) => platform.status !== "connected").length;
   const gapsClosed = songs.flatMap((song) => song.revenueStreams).filter((stream) => stream.status === "collecting").length;
@@ -71,12 +77,20 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan: planId,
-          successUrl: `${window.location.origin}/settings?trial=started`,
+          email: profile.email ?? undefined,
+          successUrl: `${window.location.origin}/settings?upgraded=${planId}&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${window.location.origin}/settings`,
         }),
       });
-      const data = await res.json() as { url?: string };
-      if (data.url) router.push(data.url);
+      const data = await res.json() as { url?: string; mock?: boolean };
+      if (data.url) {
+        if (data.mock) {
+          // Dev mode — simulate success without Stripe
+          router.push(`/settings?upgraded=${planId}`);
+        } else {
+          window.location.href = data.url;
+        }
+      }
     } catch {
       // noop — user stays on page
     } finally {

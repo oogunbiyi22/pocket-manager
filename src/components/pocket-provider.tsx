@@ -118,6 +118,9 @@ type ManagerComposerInput = {
 
 type PocketProfile = ProfileInput & {
   onboarded: boolean;
+  email?: string;
+  plan?: "free" | "pro" | "elite";
+  stripeCustomerId?: string;
 };
 
 type PocketSnapshot = {
@@ -267,6 +270,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         setSignedIn(true);
         setProfile((current) => ({
           ...current,
+          email: session.user.email ?? current.email,
           artistName: current.artistName || session.user.user_metadata?.artist_name || session.user.email?.split("@")[0] || current.artistName,
         }));
       }
