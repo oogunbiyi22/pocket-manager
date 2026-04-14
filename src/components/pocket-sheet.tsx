@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePocket } from "@/components/pocket-provider";
 
@@ -39,6 +39,99 @@ function saveItems(items: PocketItem[]) {
   try {
     window.localStorage.setItem(CAPTURE_STORAGE_KEY, JSON.stringify(items));
   } catch { /* noop */ }
+}
+
+// ─── Voice recorder ─────────────────────────────────────────────────────────
+function VoiceRecorder({ onRecord }: { onRecord: (description: string) => void }) {
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [done, setDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function startRecording() {
+    setRecording(true);
+    setDone(false);
+    setSeconds(0);
+    timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+  }
+
+  function stopRecording() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setRecording(false);
+    setDone(true);
+    onRecord(`Voice memo · ${seconds}s`);
+  }
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  const bars = Array.from({ length: 16 });
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-4">
+      {/* Waveform */}
+      <div className="flex h-10 items-end gap-[3px]">
+        {bars.map((_, i) => (
+          <motion.div
+            key={i}
+            className="w-1.5 rounded-full bg-white/40"
+            animate={recording ? {
+              height: [6, 20 + Math.random() * 20, 8, 30 + Math.random() * 10, 6],
+            } : { height: 6 }}
+            transition={recording ? {
+              duration: 0.5,
+              repeat: Infinity,
+              delay: i * 0.04,
+              ease: "easeInOut",
+            } : { duration: 0.2 }}
+          />
+        ))}
+      </div>
+
+      {/* Timer */}
+      <div className="text-[22px] font-light tabular-nums text-white/70">
+        {done
+          ? `${seconds}s recorded`
+          : recording
+            ? `${seconds}s`
+            : "Ready to record"}
+      </div>
+
+      {/* Hold button */}
+      {!done && (
+        <button
+          type="button"
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onTouchStart={startRecording}
+          onTouchEnd={stopRecording}
+          className={`grid size-16 select-none place-items-center rounded-full text-2xl transition-all ${
+            recording
+              ? "scale-110 bg-[#e24b4a] ring-4 ring-[#e24b4a]/30"
+              : "bg-white/15 hover:bg-white/25"
+          }`}
+          aria-label={recording ? "Release to stop" : "Hold to record"}
+        >
+          {recording ? "■" : "●"}
+        </button>
+      )}
+
+      {!done && (
+        <div className="text-[11px] text-white/30">
+          {recording ? "Release to stop" : "Hold to record"}
+        </div>
+      )}
+
+      {done && (
+        <button
+          type="button"
+          onClick={() => { setDone(false); setSeconds(0); }}
+          className="text-xs text-white/30 underline"
+        >
+          Record again
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -151,19 +244,25 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
                   ))}
                 </div>
 
-                {/* Text area */}
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder={
-                    type === "Link"
-                      ? "Paste link or reference"
-                      : type === "File"
-                      ? "Describe the file you need to attach"
-                      : "Type a note or idea..."
-                  }
-                  className="min-h-24 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/30"
-                />
+                {/* Input area — voice recorder or textarea */}
+                {type === "Voice memo" ? (
+                  <div className="rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4">
+                    <VoiceRecorder onRecord={(desc) => setBody(desc)} />
+                  </div>
+                ) : (
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder={
+                      type === "Link"
+                        ? "Paste link or reference"
+                        : type === "File"
+                        ? "Describe the file you need to attach"
+                        : "Type a note or idea..."
+                    }
+                    className="min-h-24 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/30"
+                  />
+                )}
 
                 {/* Route chips */}
                 <div>
