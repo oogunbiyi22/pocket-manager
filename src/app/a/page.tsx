@@ -34,7 +34,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function APage() {
-  const { songs, profile } = usePocket();
+  const { songs, profile, platformConnections } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
 
@@ -44,7 +44,11 @@ export default function APage() {
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({
       api: "/api/v1/manager/chat",
-      body: { artistName: profile.artistName ?? "Artist" },
+      body: {
+        artistName: profile.artistName ?? "Artist",
+        songs,
+        platforms: platformConnections,
+      },
     }),
   });
 

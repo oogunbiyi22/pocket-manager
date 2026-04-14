@@ -5,103 +5,176 @@ import { usePocket } from "@/components/pocket-provider";
 import {
   formatGapEstimate,
   formatMoney,
+  getCatalogReadinessScore,
   getNextRevenueAction,
+  getReadinessLevel,
   getRevenueGapSummary,
   seedSongs,
 } from "@/lib/backstage-data";
+
+const FEATURES = [
+  { label: "Gap Engine", body: "Finds uncollected royalties across every stream type — streaming, PRO, SoundExchange, MLC, YouTube." },
+  { label: "Next Action Engine", body: "Prioritizes by dollar value, ease, and platform urgency. One clear move at a time." },
+  { label: "Release Radar", body: "Pre-release countdown with milestone checkpoints — art, metadata, outreach, platform delivery." },
+  { label: "Pocket capture", body: "One tap to log ideas, tasks, links, and voice memos. Route to a song or the Vault." },
+  { label: "A — AI manager", body: "Context-aware chat wired to your catalog. Knows the songs, the gaps, the next action." },
+  { label: "Signal", body: "Pitch tracker, EPK, sync briefs, and Promo Studio — all sourced from real catalog metadata." },
+];
 
 export default function Home() {
   const { platformConnections, songs } = usePocket();
   const catalog = songs.length ? songs : seedSongs;
   const summary = getRevenueGapSummary(catalog);
   const nextAction = getNextRevenueAction(catalog);
-  const missingPlatforms = platformConnections.filter((platform) => platform.status !== "connected").length;
+  const catalogReadiness = getCatalogReadinessScore(catalog);
+  const readinessLevel = getReadinessLevel(catalogReadiness);
+  const missingPlatforms = platformConnections.filter((p) => p.status !== "connected").length;
 
   return (
-    <div className="min-h-screen bg-[#f4f1eb] text-[#111]">
-      <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-8 sm:px-8 lg:px-10">
-        <header className="flex items-center justify-between border-b-[0.5px] border-black/15 pb-5">
-          <Link href="/" className="text-base font-normal tracking-tight text-[#111]">
-            Pocket Manager
-          </Link>
-          <div className="flex gap-3 text-sm">
-            <Link href="/settings" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-[#514d47]">
-              Profile
-            </Link>
-            <Link href="/mobile" className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-white">
+    <div className="min-h-screen bg-[#0d0d0b] text-white">
+
+      {/* Nav */}
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[rgba(13,13,11,0.88)] px-5 py-4 backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Pocket</div>
+            <div className="text-base font-normal tracking-tight text-white">Manager</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/home" className="hidden rounded-lg border border-white/10 px-4 py-2 text-sm text-white/55 transition hover:border-white/25 sm:block">
               Open app
             </Link>
+            <Link href="/onboarding" className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-[#0d0d0b] transition hover:bg-white/90">
+              Find my gap →
+            </Link>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:py-24">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <div className="mb-4 inline-flex rounded-full border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#854f0b]">
+            <div className="mb-5 inline-flex rounded-full border border-[#ef9f27]/40 bg-[#ef9f27]/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#ef9f27]">
               Creator revenue intelligence
             </div>
-            <h1 className="max-w-4xl text-5xl font-normal tracking-[-0.05em] text-[#111] sm:text-6xl lg:text-7xl">
-              It finds the money you are missing, manages the operation, and creates the content that moves it.
+            <h1 className="text-[48px] font-light leading-[1.05] tracking-[-0.04em] sm:text-[64px] lg:text-[72px]">
+              Close the Gap between what you earn and what you collect.
             </h1>
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-[#514d47]">
-              Pocket Manager sits above music platforms, checks your catalog, spots missing revenue paths, and gives independent creators major-label infrastructure in their pocket.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/45">
+              Pocket Manager finds missing royalties across every stream type, tells you exactly what to fix, and gives independent creators the same infrastructure as a major-label artist.
             </p>
-
             <div className="mt-10 flex flex-wrap gap-4">
-              <Link href="/mobile" className="rounded-lg bg-[#0a0a0a] px-6 py-4 font-medium text-white transition hover:bg-black/80">
-                Open phone app beta
+              <Link href="/home" className="rounded-xl bg-white px-6 py-4 text-base font-medium text-[#0d0d0b] transition hover:bg-white/90 active:scale-[0.98]">
+                Open phone app
               </Link>
-              <Link href="/onboarding" className="rounded-lg border-[0.5px] border-black/15 px-6 py-4 font-medium text-[#111] transition hover:bg-white">
+              <Link href="/onboarding" className="rounded-xl border border-white/15 px-6 py-4 text-base text-white/70 transition hover:border-white/30 active:scale-[0.98]">
                 Find my first gap
               </Link>
             </div>
+          </div>
 
-            <div className="mt-10 grid gap-3 sm:grid-cols-3">
+          {/* Live account card */}
+          <div className="overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-[#141412]">
+            {/* Command surface */}
+            <div className="bg-[#1e1e1b] px-5 py-5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Total secured</div>
+              <div className="mt-2 text-[40px] font-light leading-none tracking-[-0.04em] text-white">
+                {formatMoney(summary.totalSecured)}
+              </div>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-[#97c459] transition-all duration-700"
+                  style={{ width: `${catalogReadiness}%` }}
+                />
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-[11px] text-white/30">
+                <span>{catalogReadiness}% ready</span>
+                <span>{readinessLevel}</span>
+              </div>
+            </div>
+
+            {/* Gap strip */}
+            {summary.totalEstimatedGap > 0 && (
+              <div className="border-y border-[#ef9f27]/20 bg-[#ef9f27]/10 px-5 py-3">
+                <span className="text-sm text-[#ef9f27]">
+                  ● The Gap · {formatGapEstimate(summary.totalEstimatedGap)} uncollected
+                </span>
+              </div>
+            )}
+
+            {/* Next action */}
+            <div className="px-5 py-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">Next action</div>
+              <div className="mt-2 text-[15px] text-white">{nextAction.action} via {nextAction.collectionBody}</div>
+              <div className="mt-1 text-xs text-white/35">
+                {formatGapEstimate(nextAction.estimatedValue)} · {nextAction.estimatedTime}
+              </div>
+              <Link
+                href={`/projects/${nextAction.songId}`}
+                className="mt-3 block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-medium text-[#0d0d0b] transition hover:bg-white/90"
+              >
+                Start now
+              </Link>
+            </div>
+
+            {/* Stats strip */}
+            <div className="grid grid-cols-3 border-t border-white/[0.06]">
               {[
-                ["Song catalog", "Add releases by ISRC, import, or manual entry."],
-                ["Revenue gap engine", "See what is collected, missing, and estimated."],
-                ["Next action", "Handle one highest-value fix at a time."],
-              ].map(([label, copy]) => (
-                <div key={label} className="rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6d6860]">{label}</div>
-                  <div className="mt-2 text-sm leading-6 text-[#514d47]">{copy}</div>
+                { label: "Songs", value: summary.totalSongs },
+                { label: "Streams", value: summary.activeIncomeStreams },
+                { label: "Missing", value: missingPlatforms },
+              ].map((stat) => (
+                <div key={stat.label} className="px-4 py-3 text-center">
+                  <div className="text-[22px] font-light text-white">{stat.value}</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5">
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Total secured</div>
-              <div className="mt-3 text-5xl font-normal tracking-[-0.04em]">{formatMoney(summary.totalSecured)}</div>
-              <div className="mt-3 text-sm text-white/55">{summary.activeIncomeStreams} active income streams this quarter</div>
-            </div>
-
-            <div className="mt-4 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27] px-4 py-3 text-[#854f0b]">
-              {summary.songsWithGaps} songs not fully registered · {formatGapEstimate(summary.totalEstimatedGap)} uncollected
-            </div>
-
-            <div className="mt-4 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next action</div>
-              <div className="mt-3 text-xl font-normal leading-7 text-[#111]">{nextAction.title}</div>
-              <div className="mt-3 text-sm text-[#514d47]">
-                Recovery: {formatGapEstimate(nextAction.estimatedValue)} · Time: {nextAction.estimatedTime}
-              </div>
-              <Link href={`/projects/${nextAction.songId}`} className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
-                Start
-              </Link>
-            </div>
-
-            <div className="mt-4 grid gap-3 text-sm">
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3">
-                {summary.totalSongs} songs in catalog
-              </div>
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3">
-                {missingPlatforms} platform paths need attention
-              </div>
-            </div>
+      {/* Feature grid */}
+      <section className="border-t border-white/[0.06] px-5 py-16">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">What it does</div>
+            <h2 className="mt-3 text-[36px] font-light tracking-[-0.03em]">Major-label infrastructure. Independent price.</h2>
           </div>
-        </section>
-      </main>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div key={f.label} className="rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] p-5">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">{f.label}</div>
+                <p className="mt-3 text-sm leading-6 text-white/55">{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="border-t border-white/[0.06] px-5 py-16">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-[36px] font-light tracking-[-0.03em]">Start with one song.</h2>
+          <p className="mt-4 text-sm leading-6 text-white/45">
+            Add a release, connect one platform, see the first Gap. Takes two minutes. No card needed.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link href="/onboarding" className="rounded-xl bg-white px-8 py-4 text-base font-medium text-[#0d0d0b] transition hover:bg-white/90">
+              Find my gap →
+            </Link>
+            <Link href="/home" className="rounded-xl border border-white/15 px-8 py-4 text-base text-white/70 transition hover:border-white/30">
+              Open app
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/[0.06] px-5 py-6 text-center text-[11px] text-white/20">
+        Pocket Manager · Creator revenue intelligence · Independent artists only
+      </footer>
     </div>
   );
 }
