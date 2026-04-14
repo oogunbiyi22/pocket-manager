@@ -906,6 +906,30 @@ export function getSongEstimatedGap(song: SongCatalogItem) {
   return computeSongGap(song);
 }
 
+// ─── Readiness Score Service ────────────────────────────────────────────────
+export type ReadinessLevel = "Needs work" | "Building" | "Ready" | "Optimized";
+
+export function getReadinessLevel(score: number): ReadinessLevel {
+  if (score >= 90) return "Optimized";
+  if (score >= 70) return "Ready";
+  if (score >= 40) return "Building";
+  return "Needs work";
+}
+
+/**
+ * Catalog-wide readiness score: average of all songs, weighted by stream count.
+ * Songs with more streams carry more weight so high-traffic tracks dominate the signal.
+ */
+export function getCatalogReadinessScore(songs: SongCatalogItem[]): number {
+  if (!songs.length) return 0;
+  const totalStreams = songs.reduce((t, s) => t + s.streams, 0) || songs.length;
+  const weightedSum = songs.reduce((t, s) => {
+    const weight = totalStreams > 0 ? s.streams / totalStreams : 1 / songs.length;
+    return t + getSongReadinessScore(s) * weight;
+  }, 0);
+  return Math.round(weightedSum);
+}
+
 export function getSongConfirmedIncome(song: SongCatalogItem) {
   return song.revenueStreams.reduce((total, stream) => total + stream.actualAmount, 0);
 }

@@ -8,7 +8,9 @@ import { usePocket } from "@/components/pocket-provider";
 import {
   formatMoney,
   formatGapEstimate,
+  getCatalogReadinessScore,
   getNextRevenueAction,
+  getReadinessLevel,
   getRevenueGapSummary,
   getSongGapScore,
   getSongReadinessScore,
@@ -80,6 +82,8 @@ function getTodayKey() {
 export default function MobilePage() {
   const { completeRevenueAction, songs, profile } = usePocket();
   const summary = getRevenueGapSummary(songs);
+  const catalogReadiness = getCatalogReadinessScore(songs);
+  const readinessLevel = getReadinessLevel(catalogReadiness);
   const [clearedActions, setClearedActions] = useState<string[]>([]);
 
   // Daily brief: show once per day, persist dismiss in localStorage
@@ -154,25 +158,46 @@ export default function MobilePage() {
         {/* Command surface — total secured */}
         <section className="bg-[#0d0d0b] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Total secured</div>
-          <div className="mt-3 text-[48px] font-light leading-none tracking-[-0.04em]">
+          <div className="mt-3 text-[40px] font-light leading-none tracking-[-0.04em]">
             $<CountUp target={summary.totalSecured} />
           </div>
           <div className="mt-3 text-sm text-white/45">
             This quarter · {summary.activeIncomeStreams} stream{summary.activeIncomeStreams === 1 ? "" : "s"} active
           </div>
+          <div className="mt-1 text-xs text-white/25">
+            This week: ${Math.round(summary.totalSecured * 0.08).toLocaleString()}
+          </div>
+          {/* Catalog readiness bar */}
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${catalogReadiness}%`,
+                    backgroundColor: catalogReadiness >= 70 ? "#97c459" : catalogReadiness >= 40 ? "#ef9f27" : "#e24b4a",
+                  }}
+                />
+              </div>
+            </div>
+            <span className="shrink-0 text-[11px] text-white/35">
+              {catalogReadiness}% · {readinessLevel}
+            </span>
+          </div>
         </section>
 
         {/* Gap strip */}
         {summary.totalEstimatedGap > 0 ? (
-          <div className="flex items-center justify-between gap-3 border-y border-[#ef9f27]/40 bg-[#faeeda] px-5 py-3">
+          <Link
+            href="/harvest"
+            className="flex items-center justify-between gap-3 bg-[#faeeda] px-5 py-3 border-t border-t-[rgba(239,159,39,0.3)] border-b border-b-[#ef9f27]/20"
+          >
             <span className="text-sm font-medium text-[#854f0b]">
-              The Gap · {formatGapEstimate(summary.totalEstimatedGap)} uncollected across{" "}
+              ● The Gap · {formatGapEstimate(summary.totalEstimatedGap)} uncollected across{" "}
               {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}
             </span>
-            <Link href="/harvest" className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#854f0b]">
-              Fix →
-            </Link>
-          </div>
+            <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.1em] text-[#854f0b]">Fix →</span>
+          </Link>
         ) : (
           <div className="flex items-center gap-3 border-y border-[#97c459]/30 bg-[#eaf3de] px-5 py-3">
             <span className="text-sm text-[#3b6d11]">No gaps detected — catalog looks clean.</span>
@@ -183,10 +208,10 @@ export default function MobilePage() {
         {briefVisible && (
           <motion.section
             className="px-5 pt-5"
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             onDragEnd={(_, info) => { if (info.offset.y < -40) dismissBrief(); }}
@@ -265,7 +290,7 @@ export default function MobilePage() {
         {/* Song list with readiness rings */}
         <section className="px-5 pb-6">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">
-            Active Rooms
+            Your work
           </div>
           <div className="space-y-2">
             {songs.slice(0, 5).map((song) => {
