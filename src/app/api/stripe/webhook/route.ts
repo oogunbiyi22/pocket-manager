@@ -15,7 +15,17 @@ export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!stripeSecret) {
+    console.error("[webhook] STRIPE_SECRET_KEY not configured");
     return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
+  }
+
+  // Webhook signature is REQUIRED in production — reject unsigned requests
+  if (!webhookSecret) {
+    console.error("[webhook] STRIPE_WEBHOOK_SECRET not configured — rejecting request for security");
+    return NextResponse.json(
+      { error: "Webhook secret not configured. Set STRIPE_WEBHOOK_SECRET in environment." },
+      { status: 500 },
+    );
   }
 
   const stripe = new Stripe(stripeSecret, { apiVersion: "2026-03-25.dahlia" });
@@ -25,12 +35,11 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = webhookSecret
-      ? stripe.webhooks.constructEvent(body, sig, webhookSecret)
-      : (JSON.parse(body) as Stripe.Event);
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Webhook error";
-    return NextResponse.json({ error: message }, { status: 400 });
+    const message = err instanceof Error ? err.message : "Webhook signature verification failed";
+    console.error("[webhook] Signature error:", message);
+    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
   }
 
   const supabase = getAdminSupabase();
@@ -40,29 +49,38 @@ export async function POST(req: NextRequest) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const customerEmail = session.customer_email ?? session.customer_details?.email;
-        const plan = (session.subscription
-          ? ((await stripe.subscriptions.retrieve(session.subscription as string)).metadata.plan ?? "pro")
-          : "pro") as string;
+
+        // Determine plan from subscription metadata
+        let plan = "pro";
+        if (session.subscription) {
+          try {
+            const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+            plan = sub.metadata.plan ?? "pro";
+          } catch {
+            // Default to pro if we can't retrieve subscription
+          }
+        }
 
         if (customerEmail && supabase) {
-          // Look up user by email via profiles table join
           const { data: profile } = await supabase
             .from("profiles")
             .select("id")
             .eq("email", customerEmail)
             .maybeSingle();
 
-          const userId = profile?.id;
-          if (userId) {
+          if (profile?.id) {
             await supabase
               .from("profiles")
               .update({
                 plan,
                 stripe_customer_id: session.customer as string,
+                updated_at: new Date().toISOString(),
               })
-              .eq("id", userId);
+              .eq("id", profile.id);
           }
         }
+
+        console.info(`[webhook] checkout.session.completed — ${customerEmail} → ${plan}`);
         break;
       }
 
@@ -76,9 +94,11 @@ export async function POST(req: NextRequest) {
         if (supabase) {
           await supabase
             .from("profiles")
-            .update({ plan: activePlan })
+            .update({ plan: activePlan, updated_at: new Date().toISOString() })
             .eq("stripe_customer_id", customerId);
         }
+
+        console.info(`[webhook] subscription.updated — ${customerId} → ${activePlan}`);
         break;
       }
 
@@ -89,23 +109,24 @@ export async function POST(req: NextRequest) {
         if (supabase) {
           await supabase
             .from("profiles")
-            .update({ plan: "free" })
+            .update({ plan: "free", updated_at: new Date().toISOString() })
             .eq("stripe_customer_id", customerId);
         }
+
+        console.info(`[webhook] subscription.deleted — ${customerId} → free`);
         break;
       }
 
       default:
-        // Unhandled event — acknowledge so Stripe stops retrying
+        // Acknowledge unhandled events so Stripe stops retrying
         break;
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Handler error";
-    console.error(`Webhook handler error [${event.type}]:`, message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Log but don't expose internal details
+    console.error(`[webhook] Handler error [${event.type}]:`, message);
+    return NextResponse.json({ error: "Processing error" }, { status: 500 });
   }
 }
-
-// App Router reads raw body via req.text() — no bodyParser config needed

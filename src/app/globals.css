@@ -1,6 +1,8 @@
 @import "../../node_modules/tailwindcss/index.css";
 
-:root {
+/* ── Design tokens — light (default) ────────────────────────────────────── */
+:root,
+[data-theme="light"] {
   --bg-base: #f2f0eb;
   --bg-dark: #0d0d0b;
   --text-primary: #0d0d0b;
@@ -8,6 +10,21 @@
   --amber: #ef9f27;
   --green: #97c459;
   --red: #e24b4a;
+  --card-bg: rgba(255, 255, 255, 0.72);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+}
+
+/* ── Dark mode tokens ────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-base: #0d0d0b;
+  --bg-dark: #f2f0eb;
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --amber: #ef9f27;
+  --green: #97c459;
+  --red: #e24b4a;
+  --card-bg: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -29,6 +46,36 @@ body {
   font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(ellipse at 15% 15%, rgba(239, 159, 39, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(151, 196, 89, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 80%);
+}
+
+/* Dark mode glass adjustments */
+[data-theme="dark"] .glass {
+  background: rgba(255, 255, 255, 0.07);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .glass-subtle {
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .card-shadow {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 ::selection {

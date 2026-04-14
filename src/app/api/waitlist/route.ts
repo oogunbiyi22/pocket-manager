@@ -1,7 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
-// Client created inside handler so missing env vars don't crash at build time
+const WaitlistSchema = z.object({
+  email: z.string().email("Valid email required.").max(320),
+  artistName: z.string().max(120).optional(),
+  source: z.string().max(64).optional(),
+});
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -10,13 +17,32 @@ function getSupabase() {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json() as { email?: string; artistName?: string; source?: string };
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  // Rate limiting — 2 per minute per IP
+  const ip = getClientIp(req.headers);
+  const rl = checkRateLimit(`waitlist:${ip}`, RATE_LIMITS.waitlist.limit, RATE_LIMITS.waitlist.windowMs);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.message },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSeconds) },
+      },
+    );
+  }
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ error: "Valid email required." }, { status: 400 });
+  try {
+    const rawBody = await req.json();
+    const parsed = WaitlistSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid request." },
+        { status: 400 },
+      );
     }
+
+    const { email, artistName, source } = parsed.data;
+    const cleanEmail = email.toLowerCase().trim();
 
     const supabase = getSupabase();
     if (!supabase) {
@@ -24,20 +50,19 @@ export async function POST(req: NextRequest) {
     }
 
     const { error } = await supabase.from("waitlist").insert({
-      email,
-      artist_name: typeof body.artistName === "string" ? body.artistName.trim() : null,
-      source: typeof body.source === "string" ? body.source : "landing",
+      email: cleanEmail,
+      artist_name: artistName?.trim() ?? null,
+      source: source ?? "landing",
     });
 
     // Duplicate email is fine — just acknowledge
-    if (error && !error.message.includes("duplicate")) {
-      console.error("Waitlist insert error:", error.message);
+    if (error && !error.message.includes("duplicate") && !error.code?.includes("23505")) {
+      console.error("[waitlist] Insert error:", error.message);
       return NextResponse.json({ error: "Could not save. Try again." }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

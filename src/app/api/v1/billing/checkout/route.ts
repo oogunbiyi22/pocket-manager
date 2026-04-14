@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 const PLANS = {
   pro: {
@@ -31,6 +33,13 @@ const PLANS = {
   },
 };
 
+const CheckoutSchema = z.object({
+  plan: z.enum(["pro", "elite"]).default("pro"),
+  email: z.string().email().max(320).optional(),
+  successUrl: z.string().url().max(500).optional(),
+  cancelUrl: z.string().url().max(500).optional(),
+});
+
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) return null;
   return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-03-25.dahlia" });
@@ -41,24 +50,43 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json() as {
-      plan?: string;
-      email?: string;
-      successUrl?: string;
-      cancelUrl?: string;
-    };
+  // Rate limiting — 3 checkout attempts per minute per IP
+  const ip = getClientIp(req.headers);
+  const rl = checkRateLimit(`billing:${ip}`, RATE_LIMITS.billing.limit, RATE_LIMITS.billing.windowMs);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.message },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } },
+    );
+  }
 
-    const planKey = body.plan === "elite" ? "elite" : "pro";
+  try {
+    const rawBody = await req.json();
+    const parsed = CheckoutSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+        { status: 400 },
+      );
+    }
+
+    const { plan: planKey, email } = parsed.data;
     const plan = PLANS[planKey];
-    const origin = req.headers.get("origin") ?? "https://pocketmanager.app";
-    const successUrl = body.successUrl ?? `${origin}/settings?upgraded=${planKey}`;
-    const cancelUrl = body.cancelUrl ?? `${origin}/settings`;
+
+    // Determine safe origin — only allow our own domain
+    const origin = req.headers.get("origin") ?? "https://pocketmanager.online";
+    const allowedOrigins = ["https://pocketmanager.online", "http://localhost:3000", "https://pocketmanager.vercel.app"];
+    const safeOrigin = allowedOrigins.includes(origin) ? origin : "https://pocketmanager.online";
+
+    const successUrl = parsed.data.successUrl ?? `${safeOrigin}/settings?upgraded=${planKey}`;
+    const cancelUrl = parsed.data.cancelUrl ?? `${safeOrigin}/settings`;
 
     const stripe = getStripe();
 
-    // No secret key yet — return mock for dev/staging
     if (!stripe) {
+      // Dev/staging — return mock for local development only
+      console.warn("[billing] Stripe not configured — returning mock URL");
       return NextResponse.json({ url: successUrl, mock: true, plan: plan.name });
     }
 
@@ -66,13 +94,13 @@ export async function POST(req: NextRequest) {
       ? process.env.STRIPE_ELITE_PRICE_ID
       : process.env.STRIPE_PRO_PRICE_ID;
 
-    // Price IDs not set yet — use dynamic pricing as fallback
     let lineItems: Stripe.Checkout.SessionCreateParams["line_items"];
 
     if (priceId) {
       lineItems = [{ price: priceId, quantity: 1 }];
     } else {
       // Dynamic pricing — no pre-created product needed
+      // This works fine for launch; add price IDs later for better analytics
       lineItems = [{
         price_data: {
           currency: "usd",
@@ -99,17 +127,16 @@ export async function POST(req: NextRequest) {
       cancel_url: cancelUrl,
     };
 
-    // Pre-fill email if provided
-    if (body.email) {
-      sessionParams.customer_email = body.email;
+    if (email) {
+      sessionParams.customer_email = email;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
     return NextResponse.json({ url: session.url });
 
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Billing error";
-    console.error("Stripe checkout error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Never expose Stripe error details to client
+    console.error("[billing] Checkout error:", err instanceof Error ? err.message : "Unknown");
+    return NextResponse.json({ error: "Billing unavailable. Please try again." }, { status: 500 });
   }
 }

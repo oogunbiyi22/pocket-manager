@@ -4,6 +4,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGroq } from "@ai-sdk/groq";
 import { NextRequest } from "next/server";
+import { z } from "zod";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import {
   seedSongs,
   seedPlatformConnections,
@@ -20,10 +22,24 @@ import {
   type PlatformConnection,
 } from "@/lib/backstage-data";
 
+// ─── Input validation schema ────────────────────────────────────────────────
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().max(4000),
+});
+
+const ChatRequestSchema = z.object({
+  messages: z.array(MessageSchema).max(50).optional(),
+  artistName: z.string().max(120).optional(),
+  songs: z.array(z.unknown()).max(200).optional(),
+  platforms: z.array(z.unknown()).max(50).optional(),
+  plan: z.enum(["free", "pro", "elite"]).optional(),
+});
+
+// ─── Model selection ────────────────────────────────────────────────────────
 function getModel(plan?: string): LanguageModel {
-  // Pro users get Claude Sonnet if ANTHROPIC_API_KEY is set
-  if (plan === "pro" && process.env.ANTHROPIC_API_KEY) {
-    return createAnthropic()("claude-sonnet-4-6") as unknown as LanguageModel;
+  if ((plan === "pro" || plan === "elite") && process.env.ANTHROPIC_API_KEY) {
+    return createAnthropic()("claude-haiku-4-5-20251001") as unknown as LanguageModel;
   }
 
   const provider = process.env.AI_PROVIDER ?? "groq";
@@ -31,7 +47,7 @@ function getModel(plan?: string): LanguageModel {
 
   switch (provider) {
     case "groq":
-      return createGroq({ apiKey: process.env.GROQ_API_KEY })( modelId) as unknown as LanguageModel;
+      return createGroq({ apiKey: process.env.GROQ_API_KEY })(modelId) as unknown as LanguageModel;
     case "openai":
       return createOpenAI()(modelId) as unknown as LanguageModel;
     case "google":
@@ -39,7 +55,6 @@ function getModel(plan?: string): LanguageModel {
     case "anthropic":
       return createAnthropic()(modelId) as unknown as LanguageModel;
     default:
-      // If Groq key is set, prefer it (free tier)
       if (process.env.GROQ_API_KEY) {
         return createGroq({ apiKey: process.env.GROQ_API_KEY })("llama-3.1-8b-instant") as unknown as LanguageModel;
       }
@@ -47,6 +62,7 @@ function getModel(plan?: string): LanguageModel {
   }
 }
 
+// ─── System prompt ──────────────────────────────────────────────────────────
 function buildSystemPrompt(
   artistName: string,
   songs: SongCatalogItem[],
@@ -109,32 +125,55 @@ BEHAVIOR RULES:
 - When asked what to do next: give the #1 action from the queue above.`;
 }
 
+// ─── Route handler ──────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json() as {
-      messages?: unknown[];
-      artistName?: string;
-      songs?: SongCatalogItem[];
-      platforms?: PlatformConnection[];
-      plan?: string;
-    };
+  // Rate limiting — 10 requests per minute per IP
+  const ip = getClientIp(req.headers);
+  const rl = checkRateLimit(`chat:${ip}`, RATE_LIMITS.chat.limit, RATE_LIMITS.chat.windowMs);
+  if (!rl.ok) {
+    return new Response(
+      JSON.stringify({ error: rl.message }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(rl.retryAfterSeconds),
+        },
+      },
+    );
+  }
 
-    const messages = Array.isArray(body.messages) ? body.messages : [];
-    const artistName = (typeof body.artistName === "string" ? body.artistName : null) ?? "Artist";
-    const plan = typeof body.plan === "string" ? body.plan : "free";
+  try {
+    const rawBody = await req.json();
+    const parsed = ChatRequestSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    const { messages: rawMessages, artistName, plan } = parsed.data;
+
+    const messages = Array.isArray(rawMessages) ? rawMessages : [];
+    const safeArtistName = artistName ?? "Artist";
+
+    // Sanitize artist name — strip HTML/script tags
+    const cleanArtistName = safeArtistName.replace(/<[^>]*>/g, "").slice(0, 120);
 
     // Use live data from client if provided, fall back to seed data
-    const songs = Array.isArray(body.songs) && body.songs.length > 0
-      ? body.songs as SongCatalogItem[]
+    const songs = Array.isArray(parsed.data.songs) && parsed.data.songs.length > 0
+      ? parsed.data.songs as SongCatalogItem[]
       : seedSongs;
-    const platforms = Array.isArray(body.platforms) && body.platforms.length > 0
-      ? body.platforms as PlatformConnection[]
+    const platforms = Array.isArray(parsed.data.platforms) && parsed.data.platforms.length > 0
+      ? parsed.data.platforms as PlatformConnection[]
       : seedPlatformConnections;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = streamText({
       model: getModel(plan),
-      system: buildSystemPrompt(artistName, songs, platforms),
+      system: buildSystemPrompt(cleanArtistName, songs, platforms),
       messages: messages as any,
       maxOutputTokens: 400,
       temperature: 0.35,
@@ -142,10 +181,11 @@ export async function POST(req: NextRequest) {
 
     return result.toTextStreamResponse();
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    // Never expose internal error details
+    console.error("[chat] Handler error:", err instanceof Error ? err.message : "Unknown");
+    return new Response(
+      JSON.stringify({ error: "Request failed. Please try again." }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
   }
 }

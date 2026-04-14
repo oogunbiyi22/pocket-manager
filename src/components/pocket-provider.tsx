@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { getSupabase } from "@/lib/supabase";
@@ -261,10 +262,82 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Catalog sync — load from Supabase on sign-in, debounce-push on changes
+  const [supabaseToken, setSupabaseToken] = useState<string | null>(null);
+
+  // Load catalog from Supabase and merge with local songs (server wins on conflict)
+  async function loadCatalogFromServer(token: string, localSongs: SongCatalogItem[]) {
+    try {
+      const res = await fetch("/api/v1/catalog", {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const json = await res.json() as { songs?: unknown[] };
+      if (!Array.isArray(json.songs) || json.songs.length === 0) return;
+      const serverSongs = json.songs as SongCatalogItem[];
+      // Merge: server songs take precedence, append any local-only songs
+      const serverIds = new Set(serverSongs.map((s) => s.id));
+      const localOnly = localSongs.filter((s) => !serverIds.has(s.id));
+      setSongs([...serverSongs, ...localOnly]);
+    } catch {
+      // Non-fatal — continue with local data
+    }
+  }
+
+  async function pushCatalogToServer(token: string, currentSongs: SongCatalogItem[]) {
+    try {
+      await fetch("/api/v1/catalog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ songs: currentSongs }),
+      });
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  // Debounced push whenever songs change and user is authenticated
+  const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!hydrated || !supabaseToken) return;
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    pushTimerRef.current = setTimeout(() => {
+      void pushCatalogToServer(supabaseToken, songs);
+    }, 2000);
+    return () => {
+      if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [songs, supabaseToken, hydrated]);
+
   // Supabase auth listener — keeps signedIn in sync with real session
   useEffect(() => {
     const client = getSupabase();
     if (!client) return; // env vars not set — skip, localStorage auth still works
+
+    // Sync profile to Supabase after authentication
+    async function syncProfileToServer(token: string, currentProfile: PocketProfile) {
+      try {
+        await fetch("/api/v1/profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            artistName: currentProfile.artistName,
+            role: currentProfile.role,
+            vibe: currentProfile.vibe,
+            onboarded: currentProfile.onboarded,
+          }),
+        });
+      } catch {
+        // Non-fatal — local data is still intact
+      }
+    }
 
     // Check existing session on mount
     void (async () => {
@@ -272,17 +345,45 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       const session = data?.session;
       if (session?.user) {
         setSignedIn(true);
-        setProfile((current) => ({
-          ...current,
-          email: (session.user.email as string | undefined) ?? current.email,
-          artistName: current.artistName || (session.user.user_metadata?.artist_name as string | undefined) || session.user.email?.split("@")[0] || current.artistName,
-        }));
+        setSupabaseToken(session.access_token);
+        setProfile((current) => {
+          const updated = {
+            ...current,
+            email: (session.user.email as string | undefined) ?? current.email,
+            artistName: current.artistName || (session.user.user_metadata?.artist_name as string | undefined) || session.user.email?.split("@")[0] || current.artistName,
+          };
+          void syncProfileToServer(session.access_token, updated);
+          return updated;
+        });
+        // Load catalog from server and merge
+        setSongs((current) => {
+          void loadCatalogFromServer(session.access_token, current);
+          return current;
+        });
       }
     })();
-    // Listen for changes
+
+    // Listen for auth state changes
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: { subscription } } = client.auth.onAuthStateChange((_event: any, session: any) => {
       setSignedIn(Boolean(session?.user));
+      if (session?.user && session.access_token) {
+        setSupabaseToken(session.access_token as string);
+        setProfile((current) => {
+          const updated = {
+            ...current,
+            email: (session.user.email as string | undefined) ?? current.email,
+          };
+          void syncProfileToServer(session.access_token as string, updated);
+          return updated;
+        });
+        setSongs((current) => {
+          void loadCatalogFromServer(session.access_token as string, current);
+          return current;
+        });
+      } else {
+        setSupabaseToken(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);

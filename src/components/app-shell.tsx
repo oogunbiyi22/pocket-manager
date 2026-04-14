@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
-import { motion } from "framer-motion";
 import { PocketSheet } from "@/components/pocket-sheet";
-import { AChatOverlay } from "@/components/a-chat-overlay";
+import { AChatOverlay, DraggableAButton } from "@/components/a-chat-overlay";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoWordmark } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-provider";
 
 // ─── SVG Icons ─────────────────────────────────────────────────────────────
 function IconHome({ active }: { active: boolean }) {
@@ -151,10 +151,11 @@ export function AppShell({
 
           {/* Auth-aware right action */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            <ThemeToggle className="text-[var(--text-muted)] border border-[var(--border-subtle)]" />
             {signedIn ? (
               <Link
                 href="/settings"
-                className="grid size-8 place-items-center rounded-full bg-[#0d0d0b] text-xs font-medium text-white transition hover:opacity-80"
+                className="grid size-8 place-items-center rounded-full bg-[var(--bg-dark)] text-xs font-medium text-[var(--bg-base)] transition hover:opacity-80"
                 aria-label="Profile"
               >
                 {profile.artistName?.[0]?.toUpperCase() ?? "A"}
@@ -162,7 +163,7 @@ export function AppShell({
             ) : (
               <Link
                 href="/sign-in"
-                className="rounded-lg border border-black/[0.12] bg-white px-4 py-2 text-xs text-[#6b6b65] transition hover:bg-[#f5f4f0]"
+                className="rounded-lg border border-[var(--border-subtle)] glass px-4 py-2 text-xs text-[var(--text-muted)] transition hover:opacity-80"
               >
                 Sign in
               </Link>
@@ -220,18 +221,8 @@ export function AppShell({
         +
       </button>
 
-      {/* ── Floating A avatar ────────────────────────────────────── */}
-      <motion.button
-        type="button"
-        onClick={() => setAOpen(true)}
-        className="fixed bottom-[76px] right-4 z-50 relative grid size-12 place-items-center rounded-full backdrop-blur-md bg-[rgba(13,13,11,0.92)] text-[15px] font-medium text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] md:bottom-6"
-        animate={{ scale: [1, 1.03, 1] }}
-        transition={{ duration: 3.5, ease: "easeInOut", repeat: Infinity }}
-        aria-label="Open A"
-      >
-        A
-        <span className="absolute right-0 top-0 size-2.5 rounded-full bg-[#ef9f27] ring-2 ring-[#f5f4f0]" />
-      </motion.button>
+      {/* ── Draggable A avatar ───────────────────────────────────── */}
+      <DraggableAButton onOpen={() => setAOpen(true)} />
 
       {/* ── Pocket sheet ────────────────────────────────────────── */}
       <PocketSheet open={pocketOpen} onClose={() => setPocketOpen(false)} />

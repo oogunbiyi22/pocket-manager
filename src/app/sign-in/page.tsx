@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { LogoWordmark } from "@/components/logo";
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? "/home";
+  const defaultMode = searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"sign-in" | "sign-up" | "forgot">("sign-in");
+  const [mode, setMode] = useState<"sign-in" | "sign-up" | "forgot">(defaultMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
@@ -68,7 +71,7 @@ export default function SignInPage() {
       return;
     }
 
-    router.push("/mobile");
+    router.push(redirectTo.startsWith("/") ? redirectTo : "/home");
   }
 
   async function socialAuth(provider: "google") {
@@ -258,5 +261,13 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="size-6 rounded-full border-2 border-black/20 border-t-black/60 animate-spin" /></div>}>
+      <SignInContent />
+    </Suspense>
   );
 }
