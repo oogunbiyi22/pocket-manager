@@ -75,10 +75,10 @@ export default function SignalPage() {
 
   return (
     <AppShell title="Signal" eyebrow="Get heard">
-      <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f0efe8] text-[#111]">
+      <main className="mx-auto max-w-4xl space-y-4 text-[#111]">
 
         {/* Command surface */}
-        <section className="bg-[#0d0d0b] px-5 py-6 text-white">
+        <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Signal</div>
           <div className="mt-3 flex items-end gap-6">
             <div>
@@ -100,7 +100,7 @@ export default function SignalPage() {
         </section>
 
         {/* Quick pitch CTA */}
-        <section className="border-b border-black/10 bg-white px-5 py-4">
+        <section className="rounded-[24px] glass card-shadow px-5 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="text-[15px] font-medium text-[#111]">
@@ -118,7 +118,7 @@ export default function SignalPage() {
         </section>
 
         {/* Pitch tracker */}
-        <section className="border-b border-black/10 px-5 py-5">
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Pitch tracker</div>
             <Link href="/pitch-kits" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
@@ -148,7 +148,7 @@ export default function SignalPage() {
             {filtered.map((pitch) => (
               <div
                 key={pitch.id}
-                className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white"
+                className="overflow-hidden rounded-[14px] glass-subtle"
               >
                 <div className="flex items-start gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
@@ -189,7 +189,7 @@ export default function SignalPage() {
         </section>
 
         {/* Sync briefs */}
-        <section className="border-b border-black/10 px-5 py-5">
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Sync briefs</div>
             <Link href="/sync" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
@@ -238,7 +238,7 @@ export default function SignalPage() {
         </section>
 
         {/* EPK card */}
-        <section className="border-b border-black/10 px-5 py-5">
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">EPK</div>
           <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
             <div className="bg-[#0d0d0b] px-5 py-5 text-white">
@@ -268,14 +268,14 @@ export default function SignalPage() {
         </section>
 
         {/* Signal tools */}
-        <section className="px-5 py-5">
+        <section className="py-0">
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               { href: "/pitch-kits", title: "Pitch kit builder", body: "Turn metadata into a focused pitch for any target." },
               { href: "/studio", title: "Promo Studio", body: "Draft release assets for social, email, and curator pitches." },
             ].map((area) => (
               <Link key={area.href} href={area.href}
-                className="rounded-xl border-[0.5px] border-black/15 bg-white p-4 transition hover:border-black/35">
+                className="rounded-[20px] glass card-shadow p-5 press">
                 <div className="text-[14px] font-medium text-[#111]">{area.title}</div>
                 <p className="mt-1.5 text-sm leading-6 text-[#6b6b65]">{area.body}</p>
               </Link>

@@ -104,8 +104,8 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Profile" eyebrow="Operations">
-      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-5 text-white">
+      <main className="mx-auto max-w-3xl space-y-4 text-[#111]">
+        <section className="rounded-[24px] glass-dark card-shadow-dark p-6 text-white">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Artist profile</div>
@@ -121,13 +121,13 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-3">
+        <section className="grid gap-3 sm:grid-cols-3">
           <ProfileMetric label="Songs tracked" value={`${summary.totalSongs}/3`} />
           <ProfileMetric label="Platforms ready" value={`${connected}/${platformConnections.length}`} />
           <ProfileMetric label="Gaps closed" value={`${gapsClosed}`} />
         </section>
 
-        <section className="mt-5 grid gap-3">
+        <section className="grid gap-3">
           <ProfileLink
             href="/platforms"
             title="Platform connections"
@@ -150,22 +150,22 @@ export default function SettingsPage() {
 
         {/* Trial started banner */}
         {trialStarted && (
-          <div className="mt-5 rounded-xl border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-4 py-3 text-sm text-[#3b6d11]">
+          <div className="rounded-[16px] border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-4 py-3 text-sm text-[#3b6d11]">
             Pro trial started. Full access unlocked for 7 days.
           </div>
         )}
 
         {/* Pricing tiers */}
-        <section className="mt-5">
+        <section className="space-y-3">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Subscription</div>
           <div className="grid gap-3 sm:grid-cols-3">
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
-                className={`overflow-hidden rounded-xl border-[0.5px] ${
+                className={`overflow-hidden rounded-[20px] ${
                   plan.highlight
-                    ? "border-[#0d0d0b] bg-[#0d0d0b] text-white"
-                    : "border-black/15 bg-[#f5f4f0] text-[#111]"
+                    ? "glass-dark card-shadow-dark text-white"
+                    : "glass card-shadow text-[#111]"
                 }`}
               >
                 <div className="px-4 py-4">
@@ -211,7 +211,7 @@ export default function SettingsPage() {
         </section>
 
         {signedIn ? (
-          <button type="button" onClick={signOut} className="mt-5 rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+          <button type="button" onClick={signOut} className="rounded-xl glass card-shadow px-5 py-2.5 text-sm text-[var(--text-muted)] press">
             Sign out
           </button>
         ) : null}
@@ -222,16 +222,16 @@ export default function SettingsPage() {
 
 function ProfileMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-4 py-4">
-      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6d6860]">{label}</div>
-      <div className="mt-2 text-2xl font-normal text-[#111]">{value}</div>
+    <div className="rounded-[18px] glass card-shadow px-5 py-4">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">{label}</div>
+      <div className="mt-2 text-2xl font-normal text-[var(--text-primary)]">{value}</div>
     </div>
   );
 }
 
 function ProfileLink({ href, title, detail, body }: { href: string; title: string; detail: string; body: string }) {
   return (
-    <Link href={href} className="rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] p-4 transition hover:border-black/35">
+    <Link href={href} className="rounded-[20px] glass card-shadow p-5 press block">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-[15px] font-medium text-[#111]">{title}</div>

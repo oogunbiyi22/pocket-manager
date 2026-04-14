@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { PocketSheet } from "@/components/pocket-sheet";
 import { AChatOverlay } from "@/components/a-chat-overlay";
 import { usePocket } from "@/components/pocket-provider";
+import { LogoWordmark } from "@/components/logo";
 
 // ─── SVG Icons ─────────────────────────────────────────────────────────────
 function IconHome({ active }: { active: boolean }) {
@@ -118,14 +119,13 @@ export function AppShell({
   const { signedIn, profile } = usePocket();
 
   return (
-    <div className="min-h-screen bg-[#f5f4f0] text-[#0d0d0b]">
+    <div className="min-h-screen text-[var(--text-primary)]">
 
       {/* ── Frosted nav bar ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-black/[0.06] backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)] bg-[rgba(245,244,240,0.72)] px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-black/[0.05] glass px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-4">
-          <Link href="/home" className="shrink-0">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a92]">Pocket</div>
-            <div className="text-base font-normal tracking-tight text-[#0d0d0b]">Manager</div>
+          <Link href="/home" className="shrink-0 press">
+            <LogoWordmark size={28} />
           </Link>
 
           {/* Desktop nav */}
@@ -188,7 +188,7 @@ export function AppShell({
 
       {/* ── Frosted mobile tab bar ──────────────────────────────── */}
       <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
-        <nav className="mx-3 mb-3 grid grid-cols-5 rounded-2xl border border-black/[0.06] backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)] bg-[rgba(245,244,240,0.88)] px-1 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
+        <nav className="mx-3 mb-3 grid grid-cols-5 rounded-2xl glass px-1 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
           {NAV_ITEMS.map((item) => {
             const isActive = activeNav === item.label;
             return (
@@ -253,7 +253,7 @@ export function Panel({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)]">
+    <section className="rounded-2xl glass p-6">
       <div className="mb-5">
         <h2 className="text-lg font-normal tracking-tight text-[#0d0d0b]">{title}</h2>
         {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6b6b65]">{description}</p> : null}

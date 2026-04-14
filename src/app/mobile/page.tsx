@@ -138,10 +138,10 @@ export default function MobilePage() {
   }
 
   return (
-    <AppShell title="Pocket Manager" eyebrow="The situation">
-      <main className="mx-auto max-w-md overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] text-[#111]">
+    <AppShell title="" eyebrow="">
+      <main className="mx-auto max-w-md space-y-4 text-[#111]">
         {/* Top row */}
-        <header className="flex items-center justify-between bg-[#f5f4f0] px-5 py-4">
+        <header className="flex items-center justify-between px-1 pt-2">
           <div>
             <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#5d5a54]">Pocket Manager</div>
             <div className="text-[15px] text-[#111]">The Situation</div>
@@ -156,21 +156,18 @@ export default function MobilePage() {
         </header>
 
         {/* Command surface — total secured */}
-        <section className="bg-[#0d0d0b] px-5 py-6 text-white">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Total secured</div>
-          <div className="mt-3 text-[40px] font-light leading-none tracking-[-0.04em]">
+        <section className="overflow-hidden rounded-[24px] glass-dark px-5 py-6 text-white card-shadow-dark">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">Total secured</div>
+          <div className="mt-3 text-[44px] font-light leading-none tracking-[-0.04em]">
             $<CountUp target={summary.totalSecured} />
           </div>
           <div className="mt-3 text-sm text-white/45">
             This quarter · {summary.activeIncomeStreams} stream{summary.activeIncomeStreams === 1 ? "" : "s"} active
           </div>
-          <div className="mt-1 text-xs text-white/25">
-            This week: ${Math.round(summary.totalSecured * 0.08).toLocaleString()}
-          </div>
           {/* Catalog readiness bar */}
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-5 flex items-center gap-3">
             <div className="flex-1">
-              <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
@@ -180,8 +177,8 @@ export default function MobilePage() {
                 />
               </div>
             </div>
-            <span className="shrink-0 text-[11px] text-white/35">
-              {catalogReadiness}% · {readinessLevel}
+            <span className="shrink-0 text-[11px] text-white/40">
+              {catalogReadiness}% ready
             </span>
           </div>
         </section>
@@ -190,24 +187,25 @@ export default function MobilePage() {
         {summary.totalEstimatedGap > 0 ? (
           <Link
             href="/harvest"
-            className="flex items-center justify-between gap-3 bg-[#faeeda] px-5 py-3 border-t border-t-[rgba(239,159,39,0.3)] border-b border-b-[#ef9f27]/20"
+            className="flex items-center justify-between gap-3 rounded-[18px] bg-[#faeeda] px-5 py-4 press card-shadow"
           >
-            <span className="text-sm font-medium text-[#854f0b]">
-              ● The Gap · {formatGapEstimate(summary.totalEstimatedGap)} uncollected across{" "}
-              {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}
-            </span>
-            <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.1em] text-[#854f0b]">Fix →</span>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#854f0b]/60">The Gap</div>
+              <span className="text-sm font-medium text-[#854f0b]">
+                {formatGapEstimate(summary.totalEstimatedGap)} uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}
+              </span>
+            </div>
+            <span className="shrink-0 rounded-full bg-[#854f0b] px-3 py-1 text-[11px] font-semibold text-white">Fix →</span>
           </Link>
         ) : (
-          <div className="flex items-center gap-3 border-y border-[#97c459]/30 bg-[#eaf3de] px-5 py-3">
-            <span className="text-sm text-[#3b6d11]">No gaps detected — catalog looks clean.</span>
+          <div className="flex items-center gap-3 rounded-[18px] bg-[#eaf3de] px-5 py-4 card-shadow">
+            <span className="text-sm text-[#3b6d11]">No gaps — catalog is clean.</span>
           </div>
         )}
 
         {/* A daily brief */}
         {briefVisible && (
           <motion.section
-            className="px-5 pt-5"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -216,11 +214,11 @@ export default function MobilePage() {
             dragConstraints={{ top: 0, bottom: 0 }}
             onDragEnd={(_, info) => { if (info.offset.y < -40) dismissBrief(); }}
           >
-            <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-[#141412]">
-              <div className="flex items-start justify-between gap-3 px-4 py-4">
+            <div className="overflow-hidden rounded-[20px] glass-dark card-shadow-dark">
+              <div className="flex items-start justify-between gap-3 px-5 py-4">
                 <div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/35">A · Today</div>
-                  <p className="mt-2 text-sm leading-6 text-white/80">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">A · Today</div>
+                  <p className="mt-2 text-sm leading-7 text-white/75">
                     {summary.songsWithGaps > 0
                       ? `${summary.songsWithGaps} song${summary.songsWithGaps === 1 ? "" : "s"} with open gaps. Biggest move: ${nextAction.title} — ${formatGapEstimate(nextAction.estimatedValue)} uncollected.`
                       : "Catalog fully optimized. No open gaps today."}
@@ -229,14 +227,14 @@ export default function MobilePage() {
                 <button
                   type="button"
                   onClick={dismissBrief}
-                  className="shrink-0 text-lg font-light text-white/30"
+                  className="shrink-0 text-xl font-thin text-white/30 hover:text-white/60 transition"
                   aria-label="Dismiss daily brief"
                 >
                   ×
                 </button>
               </div>
-              <div className="border-t border-white/10 px-4 py-3">
-                <Link href="/a" className="text-xs font-medium text-white/45">
+              <div className="border-t border-white/[0.08] px-5 py-3">
+                <Link href="/a" className="text-xs font-medium text-white/40 hover:text-white/60 transition">
                   Ask A →
                 </Link>
               </div>
@@ -245,52 +243,57 @@ export default function MobilePage() {
         )}
 
         {/* Next action card */}
-        <section className="px-5 py-5">
-          <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next action</div>
-            <div className="mt-1 text-[11px] text-[#9a9a8a]">{nextAction.songTitle}</div>
-            <div className="mt-2 text-[17px] font-normal leading-6 text-[#111]">
-              {nextAction.action} via {nextAction.collectionBody}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {nextAction.estimatedValue > 0 ? (
-                <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[#854f0b]">
-                  {formatGapEstimate(nextAction.estimatedValue)}
-                </span>
-              ) : null}
-              <span className="rounded-full bg-black/[0.06] px-3 py-1 text-[#34312d]">
-                {nextAction.estimatedTime}
+        <section className="rounded-[20px] glass p-5 card-shadow">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Next action</div>
+          <div className="mt-0.5 text-[11px] text-[#9a9a8a]">{nextAction.songTitle}</div>
+          <div className="mt-3 text-[18px] font-normal leading-7 text-[var(--text-primary)]">
+            {nextAction.action} via {nextAction.collectionBody}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            {nextAction.estimatedValue > 0 ? (
+              <span className="rounded-full bg-[#faeeda] px-3 py-1 font-medium text-[#854f0b]">
+                {formatGapEstimate(nextAction.estimatedValue)}
               </span>
-            </div>
-            <Link
-              href={`/projects/${nextAction.songId}`}
-              className="mt-4 block rounded-lg bg-[#0a0a0a] px-4 py-3 text-center text-sm font-medium text-white transition duration-200 ease-out hover:bg-[#242424]"
+            ) : null}
+            <span className="rounded-full bg-black/[0.06] px-3 py-1 text-[#34312d]">
+              {nextAction.estimatedTime}
+            </span>
+          </div>
+          <Link
+            href={`/projects/${nextAction.songId}`}
+            className="mt-5 block rounded-xl bg-[var(--bg-dark)] px-4 py-3.5 text-center text-sm font-medium text-white press"
+          >
+            Start now
+          </Link>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={clearCurrentAction}
+              className="rounded-xl border-[0.5px] border-black/[0.1] px-3 py-2.5 text-xs text-[var(--text-muted)] press"
             >
-              Start now
-            </Link>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={clearCurrentAction}
-                className="rounded-lg border-[0.5px] border-black/15 px-3 py-2 text-xs text-[#5d5a54]"
-              >
-                Skip for now
-              </button>
-              <button
-                type="button"
-                onClick={completeCurrentAction}
-                className="rounded-lg border-[0.5px] border-black/15 px-3 py-2 text-xs text-[#5d5a54]"
-              >
-                Mark done
-              </button>
-            </div>
+              Skip
+            </button>
+            <button
+              type="button"
+              onClick={completeCurrentAction}
+              className="rounded-xl border-[0.5px] border-black/[0.1] px-3 py-2.5 text-xs text-[var(--text-muted)] press"
+            >
+              Mark done
+            </button>
           </div>
         </section>
 
         {/* Song list with readiness rings */}
-        <section className="px-5 pb-6">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">
-            Your work
+        <section className="rounded-[20px] glass p-5 card-shadow">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              Your catalog
+            </div>
+            {songs.length > 5 && (
+              <Link href="/work" className="text-[11px] font-medium text-[var(--amber)]">
+                {songs.length} songs →
+              </Link>
+            )}
           </div>
           <div className="space-y-2">
             {songs.slice(0, 5).map((song) => {
@@ -301,11 +304,11 @@ export default function MobilePage() {
                 <Link
                   key={song.id}
                   href={`/projects/${song.id}`}
-                  className="flex items-center gap-3 rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3 transition duration-200 ease-out hover:border-black/35"
+                  className="flex items-center gap-3 rounded-[14px] glass-subtle px-4 py-3 press"
                 >
                   <ReadinessRing score={readiness} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[15px] font-normal text-[#111]">{song.title}</div>
+                    <div className="truncate text-[15px] font-normal text-[var(--text-primary)]">{song.title}</div>
                     <div className="mt-0.5 text-[11px] text-[#9a9a8a]">{song.isrc}</div>
                   </div>
                   <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${badge.className}`}>
@@ -319,18 +322,18 @@ export default function MobilePage() {
           {songs.length === 0 ? (
             <Link
               href="/projects/new"
-              className="mt-2 flex flex-col items-center gap-2 rounded-xl border-[0.5px] border-dashed border-black/15 px-4 py-6 text-center transition hover:border-black/30"
+              className="mt-3 flex flex-col items-center gap-2 rounded-[14px] border-[0.5px] border-dashed border-black/15 px-4 py-6 text-center press"
             >
               <span className="text-2xl">🎵</span>
-              <span className="text-sm font-medium text-[#111]">Add your first song</span>
+              <span className="text-sm font-medium text-[var(--text-primary)]">Add your first song</span>
               <span className="text-xs text-[#9a9a8a]">Start tracking gaps and registration</span>
             </Link>
           ) : (
             <Link
               href="/work"
-              className="mt-4 block rounded-xl border-[0.5px] border-dashed border-black/15 px-4 py-3 text-center text-sm text-[#9a9a8a] transition hover:border-black/30"
+              className="mt-3 block rounded-[14px] border-[0.5px] border-dashed border-black/15 px-4 py-3 text-center text-sm text-[#9a9a8a] press"
             >
-              {songs.length > 5 ? `View all ${songs.length} songs →` : "View full catalog →"}
+              View full catalog →
             </Link>
           )}
         </section>

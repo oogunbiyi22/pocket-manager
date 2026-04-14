@@ -115,10 +115,10 @@ export default function HarvestPage() {
 
   return (
     <AppShell title="Harvest" eyebrow="The business">
-      <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white text-[#111]">
+      <main className="mx-auto max-w-4xl space-y-4 text-[#111]">
 
         {/* Command surface */}
-        <section className="bg-[#0d0d0b] px-5 py-6 text-white">
+        <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Harvest</div>
           <div className="mt-3 text-[40px] font-light leading-none tracking-[-0.04em]">
             {formatMoney(summary.totalSecured)}
@@ -144,10 +144,10 @@ export default function HarvestPage() {
         </section>
 
         {/* 2×2 income grid */}
-        <section className="grid grid-cols-2 gap-px border-y border-black/10 bg-black/10">
+        <section className="grid grid-cols-2 gap-3">
           {incomeCategories.map((cat) => (
             <Link key={cat.label} href="/financial"
-              className="bg-[#f5f4f0] px-5 py-4 transition hover:bg-[#eeede8]">
+              className="rounded-[20px] glass card-shadow px-5 py-4 press">
               <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9a9a8a]">{cat.label}</div>
               <div className="mt-2 text-[24px] font-light text-[#0d0d0b]">{formatMoney(cat.value)}</div>
             </Link>
@@ -156,7 +156,7 @@ export default function HarvestPage() {
 
         {/* Gap queue — top 5 actions inline */}
         {visibleQueue.length > 0 && (
-          <section className="border-b border-black/10 px-5 py-5">
+          <section className="rounded-[24px] glass card-shadow px-5 py-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Gap queue</div>
               <Link href="/actions" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
@@ -167,8 +167,8 @@ export default function HarvestPage() {
               {visibleQueue.map((item, i) => (
                 <div
                   key={item.id}
-                  className={`overflow-hidden rounded-xl border-[0.5px] transition ${
-                    i === 0 ? "border-[#ef9f27]/40 bg-[#faeeda]" : "border-black/15 bg-[#f5f4f0]"
+                  className={`overflow-hidden rounded-[14px] transition ${
+                    i === 0 ? "bg-[#faeeda]" : "glass-subtle"
                   }`}
                 >
                   <div className="flex items-start gap-3 px-4 py-3">
@@ -215,9 +215,9 @@ export default function HarvestPage() {
 
         {/* Gap breakdown by stream type */}
         {gapByType.length > 0 && (
-          <section className="border-b border-black/10 px-5 py-5">
+          <section className="rounded-[24px] glass card-shadow px-5 py-5">
             <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Gap by type</div>
-            <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0]">
+            <div className="overflow-hidden rounded-[14px] glass-subtle">
               {gapByType.map((row, i) => (
                 <div
                   key={row.type}
@@ -236,7 +236,7 @@ export default function HarvestPage() {
         )}
 
         {/* Income forecast */}
-        <section className="border-b border-black/10 px-5 py-5">
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Income forecast</div>
           <div className="space-y-3">
             <ForecastBar label="Secured this quarter" value={summary.totalSecured} max={totalOptimized} color="#97c459" />
@@ -248,8 +248,8 @@ export default function HarvestPage() {
         </section>
 
         {/* Song-by-song breakdown */}
-        <section className="border-b border-black/10 px-5 py-5">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">By song</div>
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">By song</div>
           <div className="space-y-2">
             {songs.slice(0, 6).map((song) => {
               const readiness = getSongReadinessScore(song);
@@ -258,7 +258,7 @@ export default function HarvestPage() {
               const optimized = gap === 0;
               return (
                 <Link key={song.id} href={`/projects/${song.id}`}
-                  className="flex items-center gap-3 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-4 py-3 transition hover:border-black/35">
+                  className="flex items-center gap-3 rounded-[14px] glass-subtle px-4 py-3 press">
                   <SmallRing score={readiness} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] font-normal text-[#111]">{song.title}</div>
@@ -276,7 +276,7 @@ export default function HarvestPage() {
         </section>
 
         {/* Quick nav */}
-        <section className="grid gap-3 px-5 py-5 sm:grid-cols-2">
+        <section className="grid gap-3 sm:grid-cols-2">
           {[
             { href: "/financial", title: "Financial summary", body: "Current-quarter income by song and path." },
             { href: "/actions", title: "Full Gap queue", body: "Every prioritized action with step-by-step guides." },
@@ -286,7 +286,7 @@ export default function HarvestPage() {
             { href: "/valuation", title: "Catalog valuation", body: "What drives your catalog's asset value." },
           ].map((area) => (
             <Link key={area.href} href={area.href}
-              className="rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] p-4 transition hover:border-black/35">
+              className="rounded-[20px] glass card-shadow p-5 press">
               <div className="text-[14px] font-medium text-[#111]">{area.title}</div>
               <p className="mt-1.5 text-sm leading-6 text-[#6b6b65]">{area.body}</p>
             </Link>

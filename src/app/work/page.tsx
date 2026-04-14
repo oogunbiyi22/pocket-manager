@@ -20,8 +20,8 @@ export default function WorkPage() {
 
   return (
     <AppShell title="Work" eyebrow="My catalog">
-      <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] text-[#111]">
-        <section className="bg-[#0d0d0b] px-5 py-6 text-white">
+      <main className="mx-auto max-w-4xl space-y-4 text-[#111]">
+        <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">My catalog</div>
           <h2 className="mt-3 text-[40px] font-light leading-none tracking-[-0.03em]">Every song gets a Room.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
@@ -41,8 +41,8 @@ export default function WorkPage() {
           ) : null}
         </section>
 
-        <section className="border-b border-black/10 bg-white px-5 py-5">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Active Rooms</div>
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Active Rooms</div>
           {songs.length === 0 ? (
             <div className="rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-6 text-center">
               <div className="text-[15px] font-normal text-[#111]">No songs yet.</div>
@@ -64,7 +64,7 @@ export default function WorkPage() {
         </section>
 
         {/* The Vault preview */}
-        <section className="border-b border-black/10 bg-white px-5 py-5">
+        <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">The Vault</div>
             <Link href="/vault" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
@@ -95,8 +95,8 @@ export default function WorkPage() {
         </section>
 
         {/* Guild entry card */}
-        <section className="border-b border-black/10 px-5 py-5">
-          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] px-5 py-5 text-white">
+        <section className="px-0 py-0">
+          <div className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-5 text-white">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">The Guild</div>
             <h3 className="mt-2 text-[22px] font-light tracking-[-0.02em] text-white">
               Your network makes the work move.
@@ -132,7 +132,7 @@ export default function WorkPage() {
           </div>
         </section>
 
-        <section className="grid gap-3 px-5 py-5 sm:grid-cols-3">
+        <section className="grid gap-3 sm:grid-cols-3">
           <WorkMetric label="Catalog Gap" value={formatGapEstimate(summary.totalEstimatedGap)} tone="warning" />
           <WorkMetric label="Rooms open" value={`${summary.totalSongs}`} tone="neutral" />
           <WorkMetric label="Income paths" value={`${summary.activeIncomeStreams}`} tone="complete" />
@@ -151,7 +151,7 @@ function RoomRow({ song }: { song: SongCatalogItem }) {
   return (
     <Link
       href={`/projects/${song.id}`}
-      className="flex items-center gap-3 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-4 py-3 transition hover:border-black/35"
+      className="flex items-center gap-3 rounded-[14px] glass-subtle px-4 py-3 press"
     >
       <ReadinessRing score={readiness} />
       <div className="min-w-0 flex-1">
@@ -204,10 +204,10 @@ function WorkMetric({ label, value, tone }: { label: string; value: string; tone
       ? "bg-[#faeeda] text-[#854f0b]"
       : tone === "complete"
         ? "bg-[#eaf3de] text-[#3b6d11]"
-        : "bg-white text-[#111]";
+        : "glass text-[#111]";
 
   return (
-    <div className={`rounded-xl border-[0.5px] border-black/15 p-4 ${toneClass}`}>
+    <div className={`rounded-[18px] card-shadow p-5 ${toneClass}`}>
       <div className="text-[10px] font-medium uppercase tracking-[0.18em] opacity-70">{label}</div>
       <div className="mt-2 text-[28px] font-normal leading-none">{value}</div>
     </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePocket } from "@/components/pocket-provider";
+import { LogoMark } from "@/components/logo";
 import {
   formatGapEstimate,
   formatMoney,
@@ -90,9 +91,12 @@ export default function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[rgba(13,13,11,0.88)] px-5 py-4 backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Pocket</div>
-            <div className="text-base font-normal tracking-tight text-white">Manager</div>
+          <div className="flex items-center gap-2.5">
+            <LogoMark size={32} />
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Pocket</div>
+              <div className="-mt-0.5 text-[16px] font-normal tracking-[-0.02em] leading-none text-white">Manager</div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/home" className="hidden rounded-lg border border-white/10 px-4 py-2 text-sm text-white/55 transition hover:border-white/25 sm:block">
@@ -129,9 +133,9 @@ export default function Home() {
           </div>
 
           {/* Live account card */}
-          <div className="overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-[#141412]">
+          <div className="overflow-hidden rounded-[28px] glass-dark card-shadow-dark">
             {/* Command surface */}
-            <div className="bg-[#1e1e1b] px-5 py-5">
+            <div className="bg-[rgba(255,255,255,0.04)] px-5 py-6">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Total secured</div>
               <div className="mt-2 text-[40px] font-light leading-none tracking-[-0.04em] text-white">
                 {formatMoney(summary.totalSecured)}
@@ -198,9 +202,9 @@ export default function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
-              <div key={f.label} className="rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] p-5">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">{f.label}</div>
-                <p className="mt-3 text-sm leading-6 text-white/55">{f.body}</p>
+              <div key={f.label} className="rounded-2xl glass-dark p-5">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">{f.label}</div>
+                <p className="mt-3 text-sm leading-7 text-white/60">{f.body}</p>
               </div>
             ))}
           </div>

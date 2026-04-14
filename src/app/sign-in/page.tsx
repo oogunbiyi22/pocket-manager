@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
+import { LogoWordmark } from "@/components/logo";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -92,8 +93,8 @@ export default function SignInPage() {
   if (sent) {
     const isForgot = mode === "forgot";
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f4f1eb] px-4">
-        <div className="w-full max-w-md overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white p-8 text-center">
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-md overflow-hidden rounded-[28px] glass card-shadow p-8 text-center">
           <div className="text-3xl">{isForgot ? "🔑" : "✉️"}</div>
           <h2 className="mt-4 text-xl font-medium text-[#111]">Check your email</h2>
           <p className="mt-2 text-sm leading-6 text-[#6b6b65]">
@@ -117,15 +118,14 @@ export default function SignInPage() {
   const isForgot = mode === "forgot";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f4f1eb] px-4">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="mb-8 text-center">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Pocket</div>
-          <div className="mt-1 text-2xl font-normal tracking-tight text-[#111]">Manager</div>
+        <div className="mb-8 flex justify-center">
+          <LogoWordmark size={36} />
         </div>
 
-        <div className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white text-[#111]">
+        <div className="overflow-hidden rounded-[28px] glass card-shadow text-[var(--text-primary)]">
           {/* Header */}
           <div className="bg-[#0d0d0b] px-6 py-6 text-white">
             <h1 className="text-2xl font-light tracking-tight">
