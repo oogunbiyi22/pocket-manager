@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChangeEvent, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import {
@@ -69,6 +70,7 @@ export default function ProjectDetailPage() {
     ownershipPercentage: "0",
   });
   const [splitSheetCopied, setSplitSheetCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const splitTotal = song?.collaborators.reduce((total, collaborator) => total + collaborator.ownershipPercentage, 0) ?? 0;
   const unsignedSplits = song?.collaborators.filter((collaborator) => !collaborator.signed).length ?? 0;
   const splitSheetText = useMemo(() => {
@@ -137,11 +139,11 @@ export default function ProjectDetailPage() {
 
         {/* Cover art header */}
         <section className="bg-[#1e1e1b] px-5 py-5">
-          <div className="flex items-end gap-4">
+          <div className="flex items-start gap-4">
             <div className="grid size-20 shrink-0 place-items-center rounded-xl border-[0.5px] border-white/10 bg-[#33332f] text-[11px] uppercase tracking-[0.16em] text-white/25">
               Art
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">The Room</div>
               <h2 className="mt-2 truncate text-3xl font-light tracking-[-0.03em] text-white">{title}</h2>
               <p className="mt-2 text-sm text-white/35">
@@ -150,6 +152,16 @@ export default function ProjectDetailPage() {
                   : "Add ISRC and platform registrations next."}
               </p>
             </div>
+            {song && (
+              <button
+                type="button"
+                onClick={() => setShareOpen(true)}
+                className="shrink-0 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/55 transition hover:border-white/30 hover:text-white/80 active:scale-95"
+                aria-label="Share"
+              >
+                Share →
+              </button>
+            )}
           </div>
         </section>
 
@@ -442,6 +454,102 @@ export default function ProjectDetailPage() {
           </div>
         ) : null}
       </main>
+
+      {/* Share sheet */}
+      <AnimatePresence>
+        {shareOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setShareOpen(false)}
+            />
+            <motion.div
+              className="fixed inset-x-0 bottom-0 z-50 overflow-hidden rounded-t-[24px] bg-[rgba(20,20,18,0.92)] text-white backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)]"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 180, damping: 22 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              onDragEnd={(_, info) => { if (info.offset.y > 60) setShareOpen(false); }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-[10px] pb-1">
+                <div className="h-1 w-9 rounded-full bg-white/20" />
+              </div>
+
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div>
+                  <div className="text-[15px] font-medium">Share</div>
+                  <div className="text-xs text-white/35">{title}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShareOpen(false)}
+                  className="text-2xl font-light text-white/30"
+                  aria-label="Close share sheet"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid gap-3 p-5">
+                {/* Option 1: Share EPK link */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(`${window.location.origin}/epk/${projectId}`);
+                    setShareOpen(false);
+                  }}
+                  className="flex items-center gap-4 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-4 text-left transition active:scale-[0.98]"
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 text-lg">⊞</span>
+                  <div>
+                    <div className="text-[15px] font-normal text-white">Share EPK link</div>
+                    <div className="mt-0.5 text-xs text-white/40">Copy shareable link for this song</div>
+                  </div>
+                  <span className="ml-auto text-xs text-white/25">Copy →</span>
+                </button>
+
+                {/* Option 2: Generate promo asset */}
+                <Link
+                  href="/signal"
+                  onClick={() => setShareOpen(false)}
+                  className="flex items-center gap-4 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-4 transition active:scale-[0.98]"
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 text-lg">◈</span>
+                  <div>
+                    <div className="text-[15px] font-normal text-white">Generate promo asset</div>
+                    <div className="mt-0.5 text-xs text-white/40">Create art, caption, or pitch card in Signal</div>
+                  </div>
+                  <span className="ml-auto text-xs text-white/25">→</span>
+                </Link>
+
+                {/* Option 3: Invite collaborator */}
+                <Link
+                  href="/guild"
+                  onClick={() => setShareOpen(false)}
+                  className="flex items-center gap-4 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-4 transition active:scale-[0.98]"
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 text-lg">○</span>
+                  <div>
+                    <div className="text-[15px] font-normal text-white">Invite collaborator</div>
+                    <div className="mt-0.5 text-xs text-white/40">Add someone to this song via Guild</div>
+                  </div>
+                  <span className="ml-auto text-xs text-white/25">→</span>
+                </Link>
+              </div>
+
+              {/* Safe area spacing */}
+              <div className="h-6" />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </AppShell>
   );
 }
