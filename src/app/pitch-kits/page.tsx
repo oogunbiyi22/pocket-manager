@@ -11,6 +11,7 @@ export default function PitchKitsPage() {
   const [songId, setSongId] = useState(songs[0]?.id ?? "");
   const [recipient, setRecipient] = useState("Playlist curator");
   const [contact, setContact] = useState("booking@pocketmanager.app");
+  const [copied, setCopied] = useState(false);
   const song = songs.find((item) => item.id === songId) ?? songs[0];
   const pitchText = useMemo(() => {
     if (!song) {
@@ -101,11 +102,25 @@ export default function PitchKitsPage() {
               {pitchText}
             </pre>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/epk" className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(pitchText);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
+              >
+                {copied ? "Copied" : "Copy pitch"}
+              </button>
+              <a
+                href={`mailto:${contact}?subject=${encodeURIComponent(`${profile.artistName} - ${song?.title ?? "New release"}`)}&body=${encodeURIComponent(pitchText)}`}
+                className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]"
+              >
+                Send via email →
+              </a>
+              <Link href="/epk" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#514d47]">
                 Open EPK
-              </Link>
-              <Link href={song ? `/projects/${song.id}` : "/projects"} className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
-                Open song
               </Link>
             </div>
           </div>

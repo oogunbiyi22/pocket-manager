@@ -14,6 +14,7 @@ import {
   getSongEstimatedGap,
   getSongReadinessChecklist,
   getSongReadinessScore,
+  getWhatAmIMissing,
   releaseRadarMilestones,
 } from "@/lib/backstage-data";
 import { usePocket } from "@/components/pocket-provider";
@@ -98,6 +99,7 @@ export default function ProjectDetailPage() {
   const metadataIntelligence = song ? getMetadataIntelligence(song) : null;
   const blockingCount = readinessChecklist.filter((item) => !item.done).length;
   const runwayRows = song ? getRunwayRows(song.releaseDate) : [];
+  const missingItems = fallbackProject ? getWhatAmIMissing(fallbackProject) : [];
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []).map((file) => file.name);
@@ -406,6 +408,27 @@ export default function ProjectDetailPage() {
             </div>
           </section>
         ) : null}
+
+        {/* What am I missing? */}
+        {missingItems.length > 0 && (
+          <section className="bg-white px-5 pb-5 text-[#111]">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">What am I missing?</div>
+            <div className="overflow-hidden rounded-xl border-[0.5px] border-[#e24b4a]/30 bg-[#fcebeb]">
+              {missingItems.map((item, i) => (
+                <div
+                  key={item}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm ${i < missingItems.length - 1 ? "border-b-[0.5px] border-[#e24b4a]/15" : ""}`}
+                >
+                  <span className="size-1.5 shrink-0 rounded-full bg-[#e24b4a]" />
+                  <span className="text-[#a32d2d]">{item}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-[#9a9a8a]">
+              Fix these before pitching or releasing.
+            </p>
+          </section>
+        )}
 
         {/* Bottom CTAs */}
         {song ? (
