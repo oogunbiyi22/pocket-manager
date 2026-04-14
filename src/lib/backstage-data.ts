@@ -1101,9 +1101,11 @@ export function getRevenueActionQueue(songs: SongCatalogItem[] = seedSongs) {
   return songs
     .flatMap((song) =>
       song.revenueStreams
-        .filter((stream) => stream.estimatedGap > 0 || stream.status === "not_registered" || stream.status === "incomplete")
+        .filter((stream) => stream.status !== "collecting" && stream.streamType !== "sync")
         .map((stream) => {
           const guidance = getRevenueActionGuidance(stream);
+          const estimatedValue = computeStreamGap(song, stream);
+          const priority = computeActionPriority(song, stream);
 
           return {
             id: `${song.id}-${stream.streamType}-${stream.collectionBody}`,
@@ -1113,9 +1115,9 @@ export function getRevenueActionQueue(songs: SongCatalogItem[] = seedSongs) {
             songTitle: song.title,
             streamType: stream.streamType,
             collectionBody: stream.collectionBody,
-            estimatedValue: stream.estimatedGap,
+            estimatedValue,
             estimatedTime: guidance.estimatedTime,
-            priority: getRevenueStreamPriority(stream.streamType) + stream.estimatedGap,
+            priority,
             reason: stream.reason,
             why: guidance.why,
             steps: guidance.steps,
@@ -1250,18 +1252,48 @@ function parseDateOnly(value: string) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function getRevenueStreamPriority(streamType: RevenueStreamType) {
-  const priority: Record<RevenueStreamType, number> = {
-    digital_performance: 1000,
-    performance_royalty: 900,
-    streaming: 850,
-    youtube: 700,
-    neighboring_rights: 650,
-    mechanical: 600,
-    sync: 500,
-  };
+// ─── Next Action Engine ────────────────────────────────────────────────────
+// Stream type base priority — registration urgency ordering
+const STREAM_TYPE_BASE: Record<RevenueStreamType, number> = {
+  digital_performance: 1000, // SoundExchange — fastest registration, highest closure rate
+  performance_royalty: 900,  // PRO — writer side, high probability of return
+  streaming: 850,            // Distributor — base income path must be verified
+  mechanical: 750,           // MLC — often overlooked, recurring value
+  youtube: 700,              // Content ID — ongoing UGC protection
+  neighboring_rights: 600,   // Territory-dependent, lower addressability for US-only
+  sync: 400,                 // Alert only, not a per-stream calculation
+};
 
-  return priority[streamType];
+// Status multiplier: not_registered has more urgency than partial states
+const STATUS_BONUS: Record<RevenueStreamStatus, number> = {
+  not_registered: 300,
+  incomplete: 150,
+  registered_not_collecting: 100,
+  unknown: 50,
+  collecting: 0,
+};
+
+/**
+ * Priority score for the Next Action Engine.
+ * Formula: dollar gap (weighted) + stream type base + status urgency + song readiness signal.
+ * Higher score = surface this action first.
+ */
+function computeActionPriority(song: SongCatalogItem, stream: RevenueStream): number {
+  const dollarGap = computeStreamGap(song, stream);
+  const readiness = getSongReadinessScore(song);
+  // Boost songs that are close to full readiness — closing their last gaps has compound value
+  const readinessBonus = readiness >= 70 ? 200 : readiness >= 40 ? 100 : 0;
+
+  return (
+    dollarGap * 8 +
+    STREAM_TYPE_BASE[stream.streamType] +
+    STATUS_BONUS[stream.status] +
+    readinessBonus
+  );
+}
+
+function getRevenueStreamPriority(streamType: RevenueStreamType) {
+  return STREAM_TYPE_BASE[streamType];
 }
 
 export function formatMoney(amount: number) {
