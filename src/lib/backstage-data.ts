@@ -838,6 +838,49 @@ export function getCreatorMoneyInsight(entries: CreatorMoneyEntry[]) {
   return "Log one income or expense today so Pocket can start giving money guidance.";
 }
 
+// ─── Gap Engine ────────────────────────────────────────────────────────────
+// Royalty rate constants (conservative floor, US market, independent creator)
+export const ROYALTY_RATE_CONSTANTS: Record<RevenueStreamType, number> = {
+  // Streaming: $0.003/stream — DistroKid/TuneCore payout floor, US Spotify premium mix
+  streaming: 0.003,
+  // Digital performance: $0.0008/non-interactive play — SoundExchange conservative
+  digital_performance: 0.0008,
+  // Performance royalty: $0.0002/stream equivalent — BMI/ASCAP writer backend estimate
+  performance_royalty: 0.0002,
+  // Mechanical: $0.00225/stream equivalent — MLC statutory low (~9.1¢ per unit, digital fraction)
+  mechanical: 0.00225,
+  // YouTube Content ID: $0.001/view equivalent — monetized view conservative floor
+  youtube: 0.001,
+  // Neighboring rights: $0.00025/play — SCAPR member territory estimate
+  neighboring_rights: 0.00025,
+  // Sync: not a per-stream rate — displayed as alert only
+  sync: 0,
+};
+
+/**
+ * Compute the estimated gap for a single revenue stream using rate constants.
+ * - "collecting" → gap is 0 (stream is active)
+ * - "not_registered" → full rate × stream count
+ * - "registered_not_collecting" or "incomplete" → 50% of full rate (partial gap)
+ * Uses stream.estimatedGap as override when it is > 0 (seed data or manual override).
+ */
+export function computeStreamGap(song: SongCatalogItem, stream: RevenueStream): number {
+  if (stream.status === "collecting") return 0;
+  if (stream.estimatedGap > 0) return stream.estimatedGap;
+  if (stream.streamType === "sync") return 0;
+  const rate = ROYALTY_RATE_CONSTANTS[stream.streamType];
+  const rawGap = song.streams * rate;
+  const multiplier = stream.status === "not_registered" ? 1 : 0.5;
+  return Math.floor(rawGap * multiplier);
+}
+
+/**
+ * Compute the total estimated gap for a song using rate constants.
+ */
+export function computeSongGap(song: SongCatalogItem): number {
+  return song.revenueStreams.reduce((total, stream) => total + computeStreamGap(song, stream), 0);
+}
+
 export function getRevenueGapSummary(songs: SongCatalogItem[] = seedSongs) {
   const totalSecured = songs.reduce(
     (total, song) => total + song.revenueStreams.reduce((songTotal, stream) => songTotal + stream.actualAmount, 0),
@@ -860,7 +903,7 @@ export function getRevenueGapSummary(songs: SongCatalogItem[] = seedSongs) {
 }
 
 export function getSongEstimatedGap(song: SongCatalogItem) {
-  return song.revenueStreams.reduce((total, stream) => total + stream.estimatedGap, 0);
+  return computeSongGap(song);
 }
 
 export function getSongConfirmedIncome(song: SongCatalogItem) {
