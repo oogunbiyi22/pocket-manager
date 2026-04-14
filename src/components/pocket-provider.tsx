@@ -263,20 +263,25 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
   // Supabase auth listener — keeps signedIn in sync with real session
   useEffect(() => {
-    const supabase = getSupabase();
+    const client = getSupabase();
+    if (!client) return; // env vars not set — skip, localStorage auth still works
+
     // Check existing session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void (async () => {
+      const { data } = await client.auth.getSession();
+      const session = data?.session;
       if (session?.user) {
         setSignedIn(true);
         setProfile((current) => ({
           ...current,
-          email: session.user.email ?? current.email,
-          artistName: current.artistName || session.user.user_metadata?.artist_name || session.user.email?.split("@")[0] || current.artistName,
+          email: (session.user.email as string | undefined) ?? current.email,
+          artistName: current.artistName || (session.user.user_metadata?.artist_name as string | undefined) || session.user.email?.split("@")[0] || current.artistName,
         }));
       }
-    });
+    })();
     // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event: any, session: any) => {
       setSignedIn(Boolean(session?.user));
     });
     return () => subscription.unsubscribe();
