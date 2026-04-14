@@ -4,6 +4,30 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import type { SongCatalogItem } from "@/lib/backstage-data";
+
+function generateHashtags(song: SongCatalogItem | undefined): string[] {
+  const tags: string[] = [];
+  if (song?.genre) tags.push(`#${song.genre.replace(/\s+/g, "")}`);
+  if (song?.mood) tags.push(`#${song.mood.replace(/\s+/g, "")}`);
+  if (song?.title) tags.push(`#${song.title.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "")}`);
+  tags.push("#NewMusic", "#IndependentArtist", "#StreamingNow");
+  if (song?.genre?.toLowerCase().includes("r&b")) tags.push("#RnB", "#SoulMusic");
+  if (song?.mood?.toLowerCase().includes("night")) tags.push("#LateNight", "#NightVibes");
+  return [...new Set(tags)].slice(0, 8);
+}
+
+function generateRollout(releaseDate: string): { week: string; content: string; status: "Done" | "Due" | "Upcoming" }[] {
+  const today = new Date();
+  const release = new Date(`${releaseDate}T12:00:00`);
+  const daysUntil = Math.ceil((release.getTime() - today.getTime()) / 86400000);
+  return [
+    { week: "Week −2", content: "Teaser clip + pre-save link goes live", status: daysUntil > 14 ? "Upcoming" : daysUntil > 7 ? "Due" : "Done" },
+    { week: "Week −1", content: "Behind-the-scenes story + caption set", status: daysUntil > 7 ? "Upcoming" : daysUntil > 0 ? "Due" : "Done" },
+    { week: "Release", content: "Announcement post + playlist pitches", status: daysUntil > 0 ? "Upcoming" : daysUntil >= -3 ? "Due" : "Done" },
+    { week: "Week +1", content: "Fan reaction prompt + lyric card", status: daysUntil >= -7 ? "Upcoming" : "Done" },
+  ];
+}
 
 const contentTypes = ["Release Announcement", "Lyric Card", "Milestone", "Behind the Scenes", "EP Trailer", "Custom"] as const;
 const formats = ["Reels 9:16", "Feed 1:1", "Story 9:16", "YouTube 16:9"] as const;
@@ -16,8 +40,12 @@ export default function StudioPage() {
   const [format, setFormat] = useState<(typeof formats)[number]>("Reels 9:16");
   const [variantIndex, setVariantIndex] = useState(0);
   const [caption, setCaption] = useState("");
+  const [copied, setCopied] = useState(false);
   const activeSong = songs.find((song) => song.id === songId) ?? songs[0];
   const variant = variants[variantIndex];
+  const hashtags = useMemo(() => generateHashtags(activeSong), [activeSong]);
+  const rollout = useMemo(() => generateRollout(activeSong?.releaseDate ?? ""), [activeSong]);
+
   const captionDrafts = useMemo(() => {
     const title = activeSong?.title ?? "the new record";
     const mood = activeSong?.mood ?? "late-night";
@@ -137,20 +165,68 @@ export default function StudioPage() {
                 ))}
               </div>
 
+              {/* Hashtags */}
+              <div className="mt-5">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Hashtags</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {hashtags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-[#f5f4f0] px-3 py-1 text-[11px] text-[#514d47]">{tag}</span>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-5 flex flex-wrap gap-3">
-                <button type="button" className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white">
-                  Download
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const text = caption
+                      ? `${caption}\n\n${hashtags.join(" ")}`
+                      : captionDrafts[0] + "\n\n" + hashtags.join(" ");
+                    await navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1800);
+                  }}
+                  className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white"
+                >
+                  {copied ? "Copied ✓" : "Copy caption + tags"}
                 </button>
                 <button type="button" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
                   Schedule
                 </button>
                 <Link href="/signal" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
-                  Back to Signal
+                  Signal →
                 </Link>
               </div>
             </div>
           </div>
         </section>
+
+        {/* 4-week rollout schedule */}
+        {activeSong && (
+          <section className="border-t border-black/10 px-5 py-5">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">
+              Release rollout · {activeSong.title}
+            </div>
+            <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
+              {rollout.map((row, i) => (
+                <div
+                  key={row.week}
+                  className={`flex items-center gap-4 px-4 py-3 text-sm ${i < rollout.length - 1 ? "border-b-[0.5px] border-black/10" : ""}`}
+                >
+                  <span className="w-20 shrink-0 text-[11px] font-medium text-[#9a9a8a]">{row.week}</span>
+                  <span className="flex-1 text-[#111]">{row.content}</span>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium ${
+                    row.status === "Done" ? "bg-[#eaf3de] text-[#3b6d11]" :
+                    row.status === "Due" ? "bg-[#faeeda] text-[#854f0b]" :
+                    "bg-white text-[#9a9a8a] border border-black/10"
+                  }`}>
+                    {row.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </AppShell>
   );
