@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
-// Server-side client uses the anon key + Supabase's RLS policy for public insert
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+// Client created inside handler so missing env vars don't crash at build time
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +16,11 @@ export async function POST(req: NextRequest) {
 
     if (!email || !email.includes("@")) {
       return NextResponse.json({ error: "Valid email required." }, { status: 400 });
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
     }
 
     const { error } = await supabase.from("waitlist").insert({

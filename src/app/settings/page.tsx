@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
@@ -54,9 +54,13 @@ const PLANS = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const trialStarted = searchParams.get("trial") === "started";
-  const upgraded = searchParams.get("upgraded");
+  const [upgraded, setUpgraded] = useState<string | null>(null);
+  const [trialStarted, setTrialStarted] = useState(false);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setTrialStarted(p.get("trial") === "started");
+    setUpgraded(p.get("upgraded"));
+  }, []);
   const { platformConnections, profile, signedIn, signOut, songs, updateProfile } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
