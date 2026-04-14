@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { getSupabase } from "@/lib/supabase";
 import {
   CreatorMoneyEntry,
   MoneyEntryType,
@@ -255,6 +256,26 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
       setHydrated(true);
     });
+  }, []);
+
+  // Supabase auth listener — keeps signedIn in sync with real session
+  useEffect(() => {
+    const supabase = getSupabase();
+    // Check existing session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSignedIn(true);
+        setProfile((current) => ({
+          ...current,
+          artistName: current.artistName || session.user.user_metadata?.artist_name || session.user.email?.split("@")[0] || current.artistName,
+        }));
+      }
+    });
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session?.user));
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -1060,6 +1081,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       },
       signOut() {
         setSignedIn(false);
+        getSupabase().auth.signOut();
       },
       completeOnboarding(input) {
         setProfile({

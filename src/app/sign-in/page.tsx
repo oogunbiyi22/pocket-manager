@@ -3,33 +3,85 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { usePocket } from "@/components/pocket-provider";
+import { getSupabase } from "@/lib/supabase";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { signIn } = usePocket();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !password.trim()) return;
     setLoading(true);
-    // Simulate async auth — in production wire to real auth provider
-    setTimeout(() => {
-      signIn(email.trim());
-      router.push("/onboarding");
-    }, 600);
+    setError("");
+
+    const supabase = getSupabase();
+
+    if (mode === "sign-up") {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+      });
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+      setSent(true);
+      setLoading(false);
+      return;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
+    }
+
+    router.push("/mobile");
   }
 
-  function socialAuth(provider: "apple" | "google") {
+  async function socialAuth(provider: "google") {
     setLoading(true);
-    setTimeout(() => {
-      signIn(`${provider}@pocketmanager.app`);
-      router.push("/onboarding");
-    }, 600);
+    setError("");
+    const supabase = getSupabase();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/mobile` },
+    });
+    if (oauthError) {
+      setError(oauthError.message);
+      setLoading(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f4f1eb] px-4">
+        <div className="w-full max-w-md overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white p-8 text-center">
+          <div className="text-3xl">✉️</div>
+          <h2 className="mt-4 text-xl font-medium text-[#111]">Check your email</h2>
+          <p className="mt-2 text-sm leading-6 text-[#6b6b65]">
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+          </p>
+          <button type="button" onClick={() => { setSent(false); setMode("sign-in"); }}
+            className="mt-6 text-sm text-[#111] underline underline-offset-2">
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -55,19 +107,8 @@ export default function SignInPage() {
           </div>
 
           <div className="p-6">
-            {/* Social auth */}
+            {/* Google auth */}
             <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={() => socialAuth("apple")}
-                disabled={loading}
-                className="flex h-11 items-center justify-center gap-2.5 rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] text-sm font-medium text-white transition hover:bg-black disabled:opacity-50"
-              >
-                <svg viewBox="0 0 24 24" className="size-4 fill-white">
-                  <path d="M16.462 0c.133 1.263-.368 2.507-1.067 3.395-.712.903-1.881 1.602-3.018 1.524-.158-1.23.42-2.51 1.099-3.326C14.197.67 15.452.009 16.462 0zM21 16.685c-.518 1.131-1.13 2.178-2.024 3.242-.773.93-1.712 2.073-3.02 2.073-1.248 0-1.711-.814-3.22-.814-1.545 0-2.074.84-3.33.84-1.262 0-2.15-1.063-3.021-2.063C4.545 17.653 3 13.913 3 10.324 3 4.996 6.35 2.2 9.648 2.2c1.444 0 2.741.948 3.677.948.882 0 2.265-1.012 3.93-1.012.647 0 2.96.183 4.505 2.271-.113.073-2.7 1.566-2.7 4.783 0 3.75 3.327 5.05 3.34 5.09-.016.048-.519 1.82-1.4 3.405z" />
-                </svg>
-                Continue with Apple
-              </button>
               <button
                 type="button"
                 onClick={() => socialAuth("google")}
@@ -110,15 +151,22 @@ export default function SignInPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  minLength={6}
+                  required
                   className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
                 />
               </label>
+
+              {error && (
+                <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-[13px] text-[#a32d2d]">{error}</p>
+              )}
+
               <button
                 type="submit"
-                disabled={loading || !email.trim()}
+                disabled={loading || !email.trim() || !password.trim()}
                 className="mt-1 h-11 rounded-xl bg-[#0a0a0a] text-sm font-medium text-white transition hover:bg-black disabled:opacity-40"
               >
-                {loading ? "Signing in…" : mode === "sign-in" ? "Sign in" : "Create account"}
+                {loading ? "One sec…" : mode === "sign-in" ? "Sign in" : "Create account"}
               </button>
             </form>
 
@@ -127,14 +175,16 @@ export default function SignInPage() {
               {mode === "sign-in" ? (
                 <>
                   No account?{" "}
-                  <button type="button" onClick={() => setMode("sign-up")} className="font-medium text-[#111] underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => { setMode("sign-up"); setError(""); }}
+                    className="font-medium text-[#111] underline-offset-2 hover:underline">
                     Sign up free
                   </button>
                 </>
               ) : (
                 <>
                   Already have an account?{" "}
-                  <button type="button" onClick={() => setMode("sign-in")} className="font-medium text-[#111] underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => { setMode("sign-in"); setError(""); }}
+                    className="font-medium text-[#111] underline-offset-2 hover:underline">
                     Sign in
                   </button>
                 </>

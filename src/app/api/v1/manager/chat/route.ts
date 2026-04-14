@@ -2,6 +2,7 @@ import { streamText, type LanguageModel } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
 import { NextRequest } from "next/server";
 import {
   seedSongs,
@@ -19,17 +20,29 @@ import {
   type PlatformConnection,
 } from "@/lib/backstage-data";
 
-function getModel(): LanguageModel {
-  const provider = process.env.AI_PROVIDER ?? "anthropic";
-  const modelId = process.env.AI_MODEL ?? "claude-haiku-4-5-20251001";
+function getModel(plan?: string): LanguageModel {
+  // Pro users get Claude Sonnet if ANTHROPIC_API_KEY is set
+  if (plan === "pro" && process.env.ANTHROPIC_API_KEY) {
+    return createAnthropic()("claude-sonnet-4-6") as unknown as LanguageModel;
+  }
+
+  const provider = process.env.AI_PROVIDER ?? "groq";
+  const modelId = process.env.AI_MODEL ?? "llama-3.1-8b-instant";
 
   switch (provider) {
+    case "groq":
+      return createGroq({ apiKey: process.env.GROQ_API_KEY })( modelId) as unknown as LanguageModel;
     case "openai":
       return createOpenAI()(modelId) as unknown as LanguageModel;
     case "google":
       return createGoogleGenerativeAI()(modelId) as unknown as LanguageModel;
     case "anthropic":
+      return createAnthropic()(modelId) as unknown as LanguageModel;
     default:
+      // If Groq key is set, prefer it (free tier)
+      if (process.env.GROQ_API_KEY) {
+        return createGroq({ apiKey: process.env.GROQ_API_KEY })("llama-3.1-8b-instant") as unknown as LanguageModel;
+      }
       return createAnthropic()(modelId) as unknown as LanguageModel;
   }
 }
@@ -103,10 +116,12 @@ export async function POST(req: NextRequest) {
       artistName?: string;
       songs?: SongCatalogItem[];
       platforms?: PlatformConnection[];
+      plan?: string;
     };
 
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const artistName = (typeof body.artistName === "string" ? body.artistName : null) ?? "Artist";
+    const plan = typeof body.plan === "string" ? body.plan : "free";
 
     // Use live data from client if provided, fall back to seed data
     const songs = Array.isArray(body.songs) && body.songs.length > 0
@@ -118,7 +133,7 @@ export async function POST(req: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = streamText({
-      model: getModel(),
+      model: getModel(plan),
       system: buildSystemPrompt(artistName, songs, platforms),
       messages: messages as any,
       maxOutputTokens: 400,

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePocket } from "@/components/pocket-provider";
 import {
   formatGapEstimate,
@@ -20,6 +21,59 @@ const FEATURES = [
   { label: "A — AI manager", body: "Context-aware chat wired to your catalog. Knows the songs, the gaps, the next action." },
   { label: "Signal", body: "Pitch tracker, EPK, sync briefs, and Promo Studio — all sourced from real catalog metadata." },
 ];
+
+function WaitlistForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), source: "landing" }),
+      });
+      setStatus(res.ok ? "done" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <div className="rounded-2xl border border-[#ef9f27]/30 bg-[#ef9f27]/10 px-6 py-5 text-center">
+        <div className="text-[15px] font-medium text-[#ef9f27]">You're on the list.</div>
+        <p className="mt-1 text-sm text-white/45">We'll reach out before launch. Tell one artist you trust.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="flex w-full max-w-md flex-col gap-3 sm:flex-row">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        required
+        className="h-12 flex-1 rounded-xl border border-white/15 bg-white/5 px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/35"
+      />
+      <button
+        type="submit"
+        disabled={status === "loading" || !email.trim()}
+        className="h-12 rounded-xl bg-white px-6 text-sm font-medium text-[#0d0d0b] transition hover:bg-white/90 disabled:opacity-50 active:scale-[0.98]"
+      >
+        {status === "loading" ? "Saving…" : "Get early access"}
+      </button>
+      {status === "error" && (
+        <p className="w-full text-center text-xs text-[#e24b4a]">Something went wrong — try again.</p>
+      )}
+    </form>
+  );
+}
 
 export default function Home() {
   const { platformConnections, songs } = usePocket();
@@ -153,19 +207,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="border-t border-white/[0.06] px-5 py-16">
+      {/* Waitlist CTA */}
+      <section className="border-t border-white/[0.06] px-5 py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-[36px] font-light tracking-[-0.03em]">Start with one song.</h2>
-          <p className="mt-4 text-sm leading-6 text-white/45">
-            Add a release, connect one platform, see the first Gap. Takes two minutes. No card needed.
+          <div className="mb-4 inline-flex rounded-full border border-[#ef9f27]/40 bg-[#ef9f27]/10 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-[#ef9f27]">
+            Early access — limited spots
+          </div>
+          <h2 className="text-[40px] font-light tracking-[-0.03em]">Join before launch.</h2>
+          <p className="mt-4 text-sm leading-7 text-white/45">
+            First 100 artists get founding member pricing — locked forever. We&apos;re building the tool we wish existed. Get in early.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link href="/onboarding" className="rounded-xl bg-white px-8 py-4 text-base font-medium text-[#0d0d0b] transition hover:bg-white/90">
-              Find my gap →
-            </Link>
-            <Link href="/home" className="rounded-xl border border-white/15 px-8 py-4 text-base text-white/70 transition hover:border-white/30">
-              Open app
+          <div className="mt-8 flex justify-center">
+            <WaitlistForm />
+          </div>
+          <p className="mt-4 text-xs text-white/25">No card. No spam. Just early access when we open the doors.</p>
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <Link href="/onboarding" className="rounded-xl border border-white/15 px-6 py-3 text-sm text-white/55 transition hover:border-white/30 hover:text-white/70">
+              Try the app now →
             </Link>
           </div>
         </div>
