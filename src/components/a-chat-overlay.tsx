@@ -9,6 +9,8 @@ import {
   formatGapEstimate,
   getNextRevenueAction,
   getRevenueGapSummary,
+  getCatalogReadinessScore,
+  getReadinessLevel,
 } from "@/lib/backstage-data";
 
 const QUICK_PROMPTS = [
@@ -19,9 +21,11 @@ const QUICK_PROMPTS = [
 ];
 
 export function AChatOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { songs, profile } = usePocket();
+  const { songs, profile, platformConnections } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
+  const catalogReadiness = getCatalogReadinessScore(songs);
+  const readinessLevel = getReadinessLevel(catalogReadiness);
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +33,11 @@ export function AChatOverlay({ open, onClose }: { open: boolean; onClose: () => 
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({
       api: "/api/v1/manager/chat",
-      body: { artistName: profile.artistName ?? "Artist" },
+      body: {
+        artistName: profile.artistName ?? "Artist",
+        songs,
+        platforms: platformConnections,
+      },
     }),
   });
 
@@ -103,7 +111,7 @@ export function AChatOverlay({ open, onClose }: { open: boolean; onClose: () => 
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-xs text-white/30">
-                  {formatGapEstimate(summary.totalEstimatedGap)} gap · {songs.length} songs
+                  {formatGapEstimate(summary.totalEstimatedGap)} gap · {catalogReadiness}% ready · {readinessLevel}
                 </div>
                 <button
                   type="button"
