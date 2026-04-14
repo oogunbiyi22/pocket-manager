@@ -316,12 +316,23 @@ export default function MobilePage() {
             })}
           </div>
 
-          <Link
-            href="/work"
-            className="mt-4 block rounded-xl border-[0.5px] border-dashed border-black/15 px-4 py-3 text-center text-sm text-[#9a9a8a] transition hover:border-black/30"
-          >
-            View full catalog →
-          </Link>
+          {songs.length === 0 ? (
+            <Link
+              href="/projects/new"
+              className="mt-2 flex flex-col items-center gap-2 rounded-xl border-[0.5px] border-dashed border-black/15 px-4 py-6 text-center transition hover:border-black/30"
+            >
+              <span className="text-2xl">🎵</span>
+              <span className="text-sm font-medium text-[#111]">Add your first song</span>
+              <span className="text-xs text-[#9a9a8a]">Start tracking gaps and registration</span>
+            </Link>
+          ) : (
+            <Link
+              href="/work"
+              className="mt-4 block rounded-xl border-[0.5px] border-dashed border-black/15 px-4 py-3 text-center text-sm text-[#9a9a8a] transition hover:border-black/30"
+            >
+              {songs.length > 5 ? `View all ${songs.length} songs →` : "View full catalog →"}
+            </Link>
+          )}
         </section>
       </main>
     </AppShell>

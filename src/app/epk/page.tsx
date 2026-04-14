@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -26,6 +26,27 @@ export default function EpkPage() {
   const monthlyListeners = Math.round(totalStreams * 0.28);
   const playlistCount = displaySongs.filter((s) => s.revenueStreams?.some((r) => r.status === "collecting")).length * 3 + 2;
   const epkViews = 12;
+  const [shareCopied, setShareCopied] = useState(false);
+  const [printReady, setPrintReady] = useState(false);
+
+  const handleShareEpk = useCallback(() => {
+    const url = typeof window !== "undefined" ? `${window.location.origin}/epk` : "https://pocketmanager.online/epk";
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }).catch(() => {
+      // fallback — show url in prompt
+      window.prompt("Copy this EPK link:", url);
+    });
+  }, []);
+
+  const handleDownloadPdf = useCallback(() => {
+    setPrintReady(true);
+    setTimeout(() => {
+      window.print();
+      setPrintReady(false);
+    }, 150);
+  }, []);
 
   function toggleSong(songId: string) {
     setSelectedSongIds((current) =>
@@ -128,11 +149,20 @@ export default function EpkPage() {
             </div>
 
             <div className="flex flex-wrap gap-3 border-t-[0.5px] border-black/10 p-5">
-              <button type="button" className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white">
-                Share EPK link
+              <button
+                type="button"
+                onClick={handleShareEpk}
+                className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white transition active:scale-95"
+              >
+                {shareCopied ? "Link copied ✓" : "Share EPK link"}
               </button>
-              <button type="button" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
-                Download PDF
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={printReady}
+                className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111] transition hover:bg-[#f5f4f0] active:scale-95 disabled:opacity-50"
+              >
+                {printReady ? "Preparing…" : "Download PDF"}
               </button>
               <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
                 Build pitch

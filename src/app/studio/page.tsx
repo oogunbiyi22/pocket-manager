@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import type { SongCatalogItem } from "@/lib/backstage-data";
@@ -41,6 +41,8 @@ export default function StudioPage() {
   const [variantIndex, setVariantIndex] = useState(0);
   const [caption, setCaption] = useState("");
   const [copied, setCopied] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleCopied, setScheduleCopied] = useState(false);
   const activeSong = songs.find((song) => song.id === songId) ?? songs[0];
   const variant = variants[variantIndex];
   const hashtags = useMemo(() => generateHashtags(activeSong), [activeSong]);
@@ -56,6 +58,15 @@ export default function StudioPage() {
       `${title} is built for the people who stay with the record after midnight. Streaming everywhere.`,
     ];
   }, [activeSong]);
+
+  const handleScheduleCopy = useCallback(async () => {
+    const text = caption
+      ? `${caption}\n\n${hashtags.join(" ")}`
+      : (captionDrafts[0] ?? "") + "\n\n" + hashtags.join(" ");
+    await navigator.clipboard.writeText(text);
+    setScheduleCopied(true);
+    setTimeout(() => setScheduleCopied(false), 2000);
+  }, [caption, captionDrafts, hashtags]);
 
   return (
     <AppShell title="Promo Studio" eyebrow="Signal">
@@ -190,7 +201,11 @@ export default function StudioPage() {
                 >
                   {copied ? "Copied ✓" : "Copy caption + tags"}
                 </button>
-                <button type="button" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
+                <button
+                  type="button"
+                  onClick={() => setScheduleOpen(true)}
+                  className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111] transition hover:bg-[#f5f4f0] active:scale-95"
+                >
                   Schedule
                 </button>
                 <Link href="/signal" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
@@ -228,6 +243,76 @@ export default function StudioPage() {
           </section>
         )}
       </main>
+
+      {/* Schedule modal */}
+      {scheduleOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center"
+          onClick={() => setScheduleOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm overflow-hidden rounded-t-[24px] bg-white p-6 shadow-2xl sm:rounded-[24px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Schedule post</div>
+                <div className="mt-1 text-lg font-normal text-[#111]">Pick your platform</div>
+              </div>
+              <button type="button" onClick={() => setScheduleOpen(false)} className="text-xl text-[#9a9a8a]">×</button>
+            </div>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleScheduleCopy}
+                className="flex w-full items-center gap-3 rounded-xl border-[0.5px] border-black/15 px-4 py-3 text-left transition hover:bg-[#f5f4f0] active:scale-[0.98]"
+              >
+                <span className="text-lg">📋</span>
+                <div>
+                  <div className="text-sm font-medium text-[#111]">{scheduleCopied ? "Copied ✓" : "Copy caption + tags"}</div>
+                  <div className="text-xs text-[#9a9a8a]">Paste into any scheduler</div>
+                </div>
+              </button>
+              <a
+                href="https://buffer.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center gap-3 rounded-xl border-[0.5px] border-black/15 px-4 py-3 text-left transition hover:bg-[#f5f4f0] active:scale-[0.98]"
+              >
+                <span className="text-lg">🔵</span>
+                <div>
+                  <div className="text-sm font-medium text-[#111]">Buffer</div>
+                  <div className="text-xs text-[#9a9a8a]">Schedule across all platforms</div>
+                </div>
+              </a>
+              <a
+                href="https://later.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center gap-3 rounded-xl border-[0.5px] border-black/15 px-4 py-3 text-left transition hover:bg-[#f5f4f0] active:scale-[0.98]"
+              >
+                <span className="text-lg">🟣</span>
+                <div>
+                  <div className="text-sm font-medium text-[#111]">Later</div>
+                  <div className="text-xs text-[#9a9a8a]">Visual calendar for Instagram &amp; TikTok</div>
+                </div>
+              </a>
+              <a
+                href="https://www.hootsuite.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center gap-3 rounded-xl border-[0.5px] border-black/15 px-4 py-3 text-left transition hover:bg-[#f5f4f0] active:scale-[0.98]"
+              >
+                <span className="text-lg">🦉</span>
+                <div>
+                  <div className="text-sm font-medium text-[#111]">Hootsuite</div>
+                  <div className="text-xs text-[#9a9a8a]">Multi-account management</div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -36,3 +36,21 @@ body {
 a {
   text-decoration: none;
 }
+
+/* ── Print styles (EPK PDF) ─────────────────────────────── */
+@media print {
+  header.sticky,
+  nav,
+  .fixed,
+  button[aria-label="Open Pocket"],
+  button[aria-label="Open A"] {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}
