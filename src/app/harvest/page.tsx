@@ -1,34 +1,61 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
   formatGapEstimate,
   formatMoney,
+  getCatalogReadinessScore,
   getNextRevenueAction,
+  getReadinessLevel,
+  getRevenueActionQueue,
   getRevenueGapSummary,
   getSongEstimatedGap,
   getSongReadinessScore,
+  type RevenueStreamType,
   type SongCatalogItem,
 } from "@/lib/backstage-data";
 
+// ─── Stream type labels ────────────────────────────────────────────────────
+const STREAM_LABELS: Record<RevenueStreamType, string> = {
+  streaming: "Streaming",
+  digital_performance: "Digital Perf.",
+  performance_royalty: "Performance",
+  mechanical: "Mechanical",
+  youtube: "Content ID",
+  neighboring_rights: "Neighboring",
+  sync: "Sync",
+};
+
 function deriveIncomeCategories(songs: SongCatalogItem[]) {
   const streams = songs.flatMap((s) => s.revenueStreams);
-  const sum = (types: string[]) =>
-    streams
-      .filter((s) => types.includes(s.streamType))
-      .reduce((t, s) => t + s.actualAmount, 0);
-
+  const sum = (types: RevenueStreamType[]) =>
+    streams.filter((s) => types.includes(s.streamType)).reduce((t, s) => t + s.actualAmount, 0);
   return [
     { label: "Streaming", value: sum(["streaming", "youtube"]) },
     { label: "Performance", value: sum(["digital_performance", "performance_royalty", "neighboring_rights"]) },
-    { label: "Sync", value: sum(["sync"]) },
     { label: "Mechanical", value: sum(["mechanical"]) },
+    { label: "Sync", value: sum(["sync"]) },
   ];
 }
 
+function deriveGapByType(songs: SongCatalogItem[]) {
+  const streams = songs.flatMap((s) => s.revenueStreams);
+  const types: RevenueStreamType[] = ["digital_performance", "performance_royalty", "mechanical", "youtube", "neighboring_rights"];
+  return types
+    .map((t) => ({
+      type: t,
+      label: STREAM_LABELS[t],
+      gap: streams.filter((s) => s.streamType === t).reduce((acc, s) => acc + s.estimatedGap, 0),
+    }))
+    .filter((x) => x.gap > 0)
+    .sort((a, b) => b.gap - a.gap);
+}
+
+// ─── Components ────────────────────────────────────────────────────────────
 function SmallRing({ score }: { score: number }) {
   const r = 16;
   const circ = 2 * Math.PI * r;
@@ -55,83 +82,155 @@ function ForecastBar({ label, value, max, color }: { label: string; value: numbe
         <span className="text-[13px] font-normal text-[#111]">{formatMoney(value)}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-black/8">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        />
+        <motion.div className="h-full rounded-full" style={{ backgroundColor: color }}
+          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
       </div>
     </div>
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────
 export default function HarvestPage() {
-  const { songs } = usePocket();
+  const { completeRevenueAction, songs } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const incomeCategories = deriveIncomeCategories(songs);
+  const gapByType = deriveGapByType(songs);
   const nextAction = getNextRevenueAction(songs);
+  const queue = getRevenueActionQueue(songs).slice(0, 5);
+  const catalogReadiness = getCatalogReadinessScore(songs);
+  const readinessLevel = getReadinessLevel(catalogReadiness);
+  const [doneIds, setDoneIds] = useState<string[]>([]);
 
-  // Biggest opportunity: song with highest gap
   const topGapSong = songs.slice().sort((a, b) => getSongEstimatedGap(b) - getSongEstimatedGap(a))[0];
   const topGap = topGapSong ? getSongEstimatedGap(topGapSong) : 0;
-
   const totalOptimized = summary.totalSecured + summary.totalEstimatedGap;
+
+  function markDone(id: string, songId: string, streamType: RevenueStreamType, collectionBody: string) {
+    completeRevenueAction(songId, streamType, collectionBody);
+    setDoneIds((prev) => [...prev, id]);
+  }
+
+  const visibleQueue = queue.filter((item) => !doneIds.includes(item.id));
 
   return (
     <AppShell title="Harvest" eyebrow="The business">
       <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white text-[#111]">
 
-        {/* Command header */}
+        {/* Command surface */}
         <section className="bg-[#0d0d0b] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Harvest</div>
-          <div className="mt-3 text-[48px] font-light leading-none tracking-[-0.04em]">
+          <div className="mt-3 text-[40px] font-light leading-none tracking-[-0.04em]">
             {formatMoney(summary.totalSecured)}
           </div>
+          <div className="mt-2 text-sm text-white/35">
+            This quarter · {summary.activeIncomeStreams} stream{summary.activeIncomeStreams === 1 ? "" : "s"} active
+          </div>
+
           {summary.totalEstimatedGap > 0 ? (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#ef9f27]/40 bg-[#faeeda] px-3 py-2">
-              <span className="text-sm font-medium text-[#854f0b]">
-                The Gap · {formatGapEstimate(summary.totalEstimatedGap)} uncollected
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border-[0.5px] border-[#ef9f27]/30 bg-[#ef9f27]/10 px-4 py-3">
+              <span className="text-sm text-[#ef9f27]">
+                ● The Gap · {formatGapEstimate(summary.totalEstimatedGap)} uncollected across {summary.songsWithGaps} songs
               </span>
-              <Link href="/actions" className="text-[11px] text-[#854f0b]">Fix →</Link>
+              <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.1em] text-[#ef9f27]">
+                {catalogReadiness}% · {readinessLevel}
+              </span>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-white/45">No gaps — catalog fully optimized.</p>
+            <div className="mt-4 rounded-xl border-[0.5px] border-[#97c459]/30 bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
+              Catalog fully optimized · no open gaps
+            </div>
           )}
         </section>
 
-        {/* 2x2 income grid */}
-        <section className="grid grid-cols-2 gap-px bg-black/10 border-y border-black/10">
+        {/* 2×2 income grid */}
+        <section className="grid grid-cols-2 gap-px border-y border-black/10 bg-black/10">
           {incomeCategories.map((cat) => (
-            <Link
-              key={cat.label}
-              href="/financial"
-              className="bg-[#f5f4f0] px-5 py-4 transition hover:bg-[#eeede8]"
-            >
+            <Link key={cat.label} href="/financial"
+              className="bg-[#f5f4f0] px-5 py-4 transition hover:bg-[#eeede8]">
               <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9a9a8a]">{cat.label}</div>
-              <div className="mt-2 text-2xl font-light text-[#0d0d0b]">{formatMoney(cat.value)}</div>
+              <div className="mt-2 text-[24px] font-light text-[#0d0d0b]">{formatMoney(cat.value)}</div>
             </Link>
           ))}
         </section>
 
-        {/* Biggest opportunity callout */}
-        {topGapSong && topGap > 0 && (
-          <section className="border-y border-[#ef9f27]/30 bg-[#faeeda] px-5 py-4">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#854f0b]">Biggest opportunity</div>
-            <div className="mt-2 flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[15px] font-medium text-[#854f0b]">&ldquo;{topGapSong.title}&rdquo;</div>
-                <div className="mt-1 text-sm text-[#854f0b]/70">
-                  {nextAction.action} via {nextAction.collectionBody} · {formatGapEstimate(topGap)} missing
-                </div>
-              </div>
-              <Link
-                href={`/projects/${topGapSong.id}`}
-                className="shrink-0 rounded-lg bg-[#854f0b] px-4 py-2 text-xs font-medium text-white"
-              >
-                Fix now →
+        {/* Gap queue — top 5 actions inline */}
+        {visibleQueue.length > 0 && (
+          <section className="border-b border-black/10 px-5 py-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Gap queue</div>
+              <Link href="/actions" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
+                Full queue →
               </Link>
+            </div>
+            <div className="space-y-2">
+              {visibleQueue.map((item, i) => (
+                <div
+                  key={item.id}
+                  className={`overflow-hidden rounded-xl border-[0.5px] transition ${
+                    i === 0 ? "border-[#ef9f27]/40 bg-[#faeeda]" : "border-black/15 bg-[#f5f4f0]"
+                  }`}
+                >
+                  <div className="flex items-start gap-3 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        {i === 0 && (
+                          <span className="rounded-full bg-[#ef9f27] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white">
+                            #1
+                          </span>
+                        )}
+                        <span className="text-[11px] text-[#9a9a8a]">{item.songTitle}</span>
+                      </div>
+                      <div className="mt-1 text-[15px] font-normal text-[#111]">
+                        {item.action} via {item.collectionBody}
+                      </div>
+                      <div className="mt-1 text-[11px] text-[#6b6b65]">{item.estimatedTime}</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[15px] font-normal text-[#854f0b]">
+                        {formatGapEstimate(item.estimatedValue)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 border-t border-black/[0.06] px-4 py-2.5">
+                    <Link
+                      href={`/projects/${item.songId}`}
+                      className="rounded-lg bg-[#0a0a0a] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#242424]"
+                    >
+                      Start
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => markDone(item.id, item.songId, item.streamType as RevenueStreamType, item.collectionBody)}
+                      className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-xs text-[#6b6b65] transition hover:bg-black/[0.04]"
+                    >
+                      Mark done
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Gap breakdown by stream type */}
+        {gapByType.length > 0 && (
+          <section className="border-b border-black/10 px-5 py-5">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Gap by type</div>
+            <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0]">
+              {gapByType.map((row, i) => (
+                <div
+                  key={row.type}
+                  className={`flex items-center justify-between gap-3 px-4 py-3 text-sm ${
+                    i < gapByType.length - 1 ? "border-b-[0.5px] border-black/10" : ""
+                  }`}
+                >
+                  <span className="text-[#111]">{row.label}</span>
+                  <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#854f0b]">
+                    {formatGapEstimate(row.gap)}
+                  </span>
+                </div>
+              ))}
             </div>
           </section>
         )}
@@ -144,12 +243,12 @@ export default function HarvestPage() {
             <ForecastBar label="Fully optimized potential" value={totalOptimized} max={totalOptimized} color="#ef9f27" />
           </div>
           <p className="mt-3 text-xs text-[#9a9a8a]">
-            Closing all gaps adds {formatGapEstimate(summary.totalEstimatedGap)} ({summary.songsWithGaps} songs).
+            Closing all gaps adds {formatGapEstimate(summary.totalEstimatedGap)} across {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}.
           </p>
         </section>
 
         {/* Song-by-song breakdown */}
-        <section className="px-5 py-5">
+        <section className="border-b border-black/10 px-5 py-5">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">By song</div>
           <div className="space-y-2">
             {songs.slice(0, 6).map((song) => {
@@ -157,19 +256,14 @@ export default function HarvestPage() {
               const gap = getSongEstimatedGap(song);
               const collected = song.revenueStreams.reduce((t, s) => t + s.actualAmount, 0);
               const optimized = gap === 0;
-
               return (
-                <Link
-                  key={song.id}
-                  href={`/projects/${song.id}`}
-                  className="flex items-center gap-3 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-4 py-3 transition hover:border-black/35"
-                >
+                <Link key={song.id} href={`/projects/${song.id}`}
+                  className="flex items-center gap-3 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] px-4 py-3 transition hover:border-black/35">
                   <SmallRing score={readiness} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] font-normal text-[#111]">{song.title}</div>
                     <div className="mt-0.5 text-[11px] text-[#6b6b65]">
-                      {formatMoney(collected)} collected
-                      {!optimized ? ` · ${formatGapEstimate(gap)} missing` : ""}
+                      {formatMoney(collected)} collected{!optimized ? ` · ${formatGapEstimate(gap)} missing` : ""}
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${optimized ? "bg-[#eaf3de] text-[#3b6d11]" : "bg-[#fcebeb] text-[#a32d2d]"}`}>
@@ -182,20 +276,17 @@ export default function HarvestPage() {
         </section>
 
         {/* Quick nav */}
-        <section className="grid gap-3 border-t border-black/10 px-5 py-5 sm:grid-cols-2">
+        <section className="grid gap-3 px-5 py-5 sm:grid-cols-2">
           {[
-            { href: "/financial", title: "Financial summary", body: "Current-quarter income by song and collection path." },
-            { href: "/actions", title: "The Gap queue", body: "The prioritized work that closes missing money." },
-            { href: "/statements", title: "Royalty statements", body: "Upload and review distributor or royalty-body statements." },
-            { href: "/contracts", title: "Contracts", body: "Scan deals for risk, plain-English flags, and attorney questions." },
-            { href: "/forecast", title: "Income forecast", body: "Compare current setup against fully optimized registration." },
-            { href: "/valuation", title: "Catalog valuation", body: "See what most affects the catalog's asset value." },
+            { href: "/financial", title: "Financial summary", body: "Current-quarter income by song and path." },
+            { href: "/actions", title: "Full Gap queue", body: "Every prioritized action with step-by-step guides." },
+            { href: "/statements", title: "Royalty statements", body: "Import and review statements from any platform." },
+            { href: "/contracts", title: "Contracts", body: "Plain-English flags and attorney questions." },
+            { href: "/forecast", title: "Income forecast", body: "Current vs. fully optimized projection." },
+            { href: "/valuation", title: "Catalog valuation", body: "What drives your catalog's asset value." },
           ].map((area) => (
-            <Link
-              key={area.href}
-              href={area.href}
-              className="rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] p-4 transition hover:border-black/35"
-            >
+            <Link key={area.href} href={area.href}
+              className="rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] p-4 transition hover:border-black/35">
               <div className="text-[14px] font-medium text-[#111]">{area.title}</div>
               <p className="mt-1.5 text-sm leading-6 text-[#6b6b65]">{area.body}</p>
             </Link>
