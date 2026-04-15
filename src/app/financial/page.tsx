@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { MoneyHealth } from "@/components/money-health";
 import { formatGapEstimate, formatMoney, getSongConfirmedIncome, getSongEstimatedGap } from "@/lib/backstage-data";
 
 export default function FinancialPage() {
@@ -48,7 +49,12 @@ export default function FinancialPage() {
 
   return (
     <AppShell title="Financial Summary" eyebrow="Current quarter">
-      <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
+      <main className="mx-auto max-w-4xl space-y-6">
+
+        {/* Money Health — fix your money action center */}
+        <MoneyHealth />
+
+        <div className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Current quarter</div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -129,9 +135,7 @@ export default function FinancialPage() {
           </Link>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-          PDF export is a Pro feature in V5. The current prototype shows the Free current-quarter view and keeps exact historical export gated.
-        </section>
+        </div>
       </main>
     </AppShell>
   );

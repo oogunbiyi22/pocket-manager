@@ -19,6 +19,25 @@ import {
   releaseRadarMilestones,
 } from "@/lib/backstage-data";
 import { usePocket } from "@/components/pocket-provider";
+import { ActionModal } from "@/components/action-modal";
+import { getPlatform } from "@/lib/platform-registry";
+
+// Map collection body names → platform registry IDs for the ActionModal
+const COLLECTION_BODY_TO_PLATFORM: Record<string, string> = {
+  "ASCAP": "ascap",
+  "BMI": "bmi",
+  "SESAC": "sesac",
+  "SoundExchange": "soundexchange",
+  "The MLC": "mlc",
+  "TuneCore": "tunecore",
+  "DistroKid": "distrokid",
+  "CD Baby": "cdbaby",
+  "ONErpm": "onerpm",
+  "YouTube": "youtube",
+  "Songtrust": "songtrust",
+  "Spotify for Artists": "spotify",
+  "Apple Music for Artists": "apple_music",
+};
 
 function LargeReadinessRing({ score }: { score: number }) {
   const r = 24;
@@ -50,6 +69,7 @@ export default function ProjectDetailPage() {
   const params = useParams<{ projectId: string }>();
   const router = useRouter();
   const { addSongCollaborator, completeRevenueAction, projects, songs, updateSongMetadata } = usePocket();
+  const [fixModal, setFixModal] = useState<{ streamType: string; collectionBody: string } | null>(null);
   const projectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
   const song = songs.find((item) => item.id === projectId);
   const fallbackProject = getProjectById(projectId, projects);
@@ -214,8 +234,8 @@ export default function ProjectDetailPage() {
                       {isGap ? (
                         <button
                           type="button"
-                          onClick={() => completeRevenueAction(song.id, stream.streamType, stream.collectionBody)}
-                          className="ml-auto rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-[#0d0d0b]"
+                          onClick={() => setFixModal({ streamType: stream.streamType, collectionBody: stream.collectionBody })}
+                          className="ml-auto rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-[#0d0d0b] active:scale-95 transition"
                         >
                           Fix →
                         </button>
@@ -603,6 +623,31 @@ export default function ProjectDetailPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Action modal — opens when artist taps "Fix →" on a revenue gap */}
+      {fixModal && song && (
+        <ActionModal
+          platformId={COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody]}
+          platform={
+            COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody]
+              ? undefined
+              : {
+                  name: fixModal.collectionBody,
+                  group: "PRO",
+                  whyItMatters: `Register this song with ${fixModal.collectionBody} to close this revenue gap.`,
+                  steps: [`Go to ${fixModal.collectionBody}`, "Register this song and your writer information", "Return here when done"],
+                  confirmPrompt: `I've registered this song with ${fixModal.collectionBody}`,
+                  estimatedMinutes: 10,
+                }
+          }
+          open={fixModal !== null}
+          onClose={() => setFixModal(null)}
+          onComplete={() => {
+            completeRevenueAction(song.id, fixModal.streamType, fixModal.collectionBody);
+            setFixModal(null);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
