@@ -181,10 +181,10 @@ export function AppShell({
         {(title || eyebrow) && (
           <header className="mb-8">
             {eyebrow && (
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a92]">{eyebrow}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ef9f27]/60">{eyebrow}</div>
             )}
             {title && (
-              <h1 className="mt-2 text-3xl font-normal tracking-tight text-[var(--text-primary)] sm:text-4xl">{title}</h1>
+              <h1 className="mt-2 text-[32px] font-light tracking-[-0.025em] text-[var(--text-primary)] sm:text-[40px]">{title}</h1>
             )}
           </header>
         )}

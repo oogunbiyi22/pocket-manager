@@ -405,7 +405,7 @@ export default function Home() {
                 Find producers, songwriters, vocalists, and featured artists who match your sound. Browse catalogs, not profiles. Invite collaborators directly into your project.
               </p>
               <Link
-                href="/guild"
+                href="/sign-in?redirect=/guild"
                 className="mt-8 inline-block rounded-xl border border-white/15 px-6 py-3 text-sm text-white/55 transition hover:border-white/30 hover:text-white/80"
               >
                 Browse The Guild →
@@ -413,28 +413,34 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { name: "Nova Keys", role: "Producer", genres: ["Lo-fi", "Soul"], open: true },
-                { name: "Remy Sol", role: "Songwriter", genres: ["R&B", "Neo Soul"], open: true },
-                { name: "Ayo J", role: "Artist", genres: ["Afrobeats", "R&B"], open: false },
-                { name: "Lena Moore", role: "Vocalist", genres: ["Soul", "Gospel"], open: true },
+                { name: "Nova Keys", role: "Producer", genres: ["Lo-fi", "Soul"], followers: "1.2k", color: "#ef9f27" },
+                { name: "Remy Sol", role: "Songwriter", genres: ["R&B", "Neo Soul"], followers: "890", color: "#c47fcf" },
+                { name: "Ayo J", role: "Artist", genres: ["Afrobeats", "R&B"], followers: "3.1k", color: "#97c459" },
+                { name: "Lena Moore", role: "Vocalist", genres: ["Soul", "Gospel"], followers: "2.0k", color: "#6c9fcf" },
               ].map((m) => (
-                <div key={m.name} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+                <div key={m.name} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 transition hover:border-white/[0.15]">
                   <div className="flex items-center gap-2.5">
-                    <div className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-medium text-white">
-                      {m.name[0]}
+                    <div
+                      className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold text-[#0d0d0b]"
+                      style={{ backgroundColor: m.color }}
+                    >
+                      {m.name.split(" ").map((w: string) => w[0]).join("")}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="truncate text-[13px] font-medium text-white">{m.name}</div>
                       <div className="text-[11px] text-white/40">{m.role}</div>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {m.genres.map((g) => (
-                      <span key={g} className="rounded-full bg-white/[0.07] px-2.5 py-0.5 text-[10px] text-white/45">{g}</span>
-                    ))}
-                    {m.open && (
-                      <span className="rounded-full bg-[#97c459]/15 px-2.5 py-0.5 text-[10px] text-[#97c459]">Open</span>
-                    )}
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex flex-wrap gap-1.5">
+                      {m.genres.map((g: string) => (
+                        <span key={g} className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[10px] text-white/40">{g}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between border-t border-white/[0.05] pt-2.5">
+                    <span className="text-[11px] text-white/25">{m.followers} followers</span>
+                    <span className="rounded-full bg-white/[0.07] px-2.5 py-0.5 text-[10px] text-white/40">Follow</span>
                   </div>
                 </div>
               ))}
