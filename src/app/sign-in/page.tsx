@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, getSupabaseConfigError } from "@/lib/supabase";
 import { LogoWordmark } from "@/components/logo";
 
 function SignInContent() {
@@ -25,7 +25,7 @@ function SignInContent() {
 
     const supabase = getSupabase();
     if (!supabase) {
-      setError("Auth not configured. Add Supabase env vars to Vercel and redeploy.");
+      setError(getSupabaseConfigError() ?? "Auth not configured — add Supabase env vars to Vercel and redeploy.");
       setLoading(false);
       return;
     }
@@ -79,7 +79,7 @@ function SignInContent() {
     setError("");
     const supabase = getSupabase();
     if (!supabase) {
-      setError("Auth not configured.");
+      setError(getSupabaseConfigError() ?? "Auth not configured — add Supabase env vars to Vercel.");
       setLoading(false);
       return;
     }
