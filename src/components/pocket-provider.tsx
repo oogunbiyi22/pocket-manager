@@ -8,6 +8,8 @@ import {
   useMemo,
   useState,
 } from "react";
+import { getSupabase } from "@/lib/supabase";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import {
   CreatorMoneyEntry,
   MoneyEntryType,
@@ -258,6 +260,25 @@ export function PocketProvider({ children }: { children: ReactNode }) {
 
       setHydrated(true);
     });
+  }, []);
+
+  // Sync signedIn with Supabase auth state (lightweight — no data sync)
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    // Set initial auth state from existing session
+    // Use onAuthStateChange for initial + future state — covers both existing sessions and new sign-ins
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) {
+        setSignedIn(true);
+        window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
+      } else if (event === "SIGNED_OUT") {
+        setSignedIn(false);
+        window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-out");
+      }
+    });
+    return () => authListener.subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // All data is stored locally on device — no Supabase sync to preserve quota
@@ -1065,6 +1086,10 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       },
       signOut() {
         setSignedIn(false);
+        window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-out");
+        // Sign out of Supabase so the auth cookie is cleared
+        const supabase = getSupabase();
+        if (supabase) void supabase.auth.signOut();
       },
       completeOnboarding(input) {
         setProfile({

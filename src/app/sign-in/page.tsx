@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { getSupabase, getSupabaseConfigError } from "@/lib/supabase";
+import { usePocket } from "@/components/pocket-provider";
 import { LogoWordmark } from "@/components/logo";
 
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signIn: pocketSignIn } = usePocket();
   const redirectTo = searchParams.get("redirect") ?? "/home";
   const defaultMode = searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
   const [email, setEmail] = useState("");
@@ -60,7 +62,7 @@ function SignInContent() {
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -70,6 +72,9 @@ function SignInContent() {
       setLoading(false);
       return;
     }
+
+    // Update app state immediately so UI reflects sign-in before redirect
+    if (signInData?.user?.email) pocketSignIn(signInData.user.email);
 
     router.push(redirectTo.startsWith("/") ? redirectTo : "/home");
   }

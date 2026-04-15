@@ -41,10 +41,13 @@ const PROTECTED_PREFIXES = [
 ];
 
 // Public routes — never require auth
-const PUBLIC_PREFIXES = ["/", "/home", "/mobile", "/sign-in", "/onboarding", "/terms", "/privacy", "/api"];
+// Note: "/" uses exact-only match to avoid matching every path (all URLs start with "/")
+const PUBLIC_PREFIXES = ["/home", "/mobile", "/sign-in", "/onboarding", "/terms", "/privacy", "/api", "/auth", "/a"];
 
 function isProtected(pathname: string): boolean {
-  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))) return false;
+  // Root landing page is always public
+  if (pathname === "/") return false;
+  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + "?"))) return false;
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
