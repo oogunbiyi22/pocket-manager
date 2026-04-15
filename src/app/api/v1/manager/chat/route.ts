@@ -7,8 +7,6 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import {
-  seedSongs,
-  seedPlatformConnections,
   getRevenueGapSummary,
   getNextRevenueAction,
   getRevenueActionQueue,
@@ -162,13 +160,13 @@ export async function POST(req: NextRequest) {
     // Sanitize artist name — strip HTML/script tags
     const cleanArtistName = safeArtistName.replace(/<[^>]*>/g, "").slice(0, 120);
 
-    // Use live data from client if provided, fall back to seed data
+    // Use live data from client if provided
     const songs = Array.isArray(parsed.data.songs) && parsed.data.songs.length > 0
       ? parsed.data.songs as SongCatalogItem[]
-      : seedSongs;
+      : [];
     const platforms = Array.isArray(parsed.data.platforms) && parsed.data.platforms.length > 0
       ? parsed.data.platforms as PlatformConnection[]
-      : seedPlatformConnections;
+      : [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = streamText({

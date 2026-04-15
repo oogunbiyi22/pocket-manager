@@ -6,40 +6,49 @@ import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
-import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary } from "@/lib/backstage-data";
+import {
+  formatGapEstimate,
+  getNextRevenueAction,
+  getRevenueActionQueue,
+  getRevenueGapSummary,
+} from "@/lib/backstage-data";
+import { getFixSummary, getStaleFixes, getAllFixRecords } from "@/lib/fix-flows";
 
-const modelStrategy = [
-  {
-    label: "Default",
-    title: "Cost-smart manager chat",
-    detail: "Use a fast, low-cost model for daily catalog questions, next actions, and short guidance.",
-  },
-  {
-    label: "Escalate",
-    title: "Hard calls only",
-    detail: "Use a stronger model for contracts, messy statements, high-stakes strategy, and long context.",
-  },
-  {
-    label: "Fallback",
-    title: "Never single-vendor",
-    detail: "Keep provider switching available so A stays reliable if pricing, latency, or quality shifts.",
-  },
-];
+const TRIAGE_KEY = "pocket-a-triage-dismissed";
 
-const QUICK_PROMPTS = [
-  "What is my biggest gap?",
-  "Walk me through it",
-  "Show the ISRC",
-  "What should I fix next?",
-];
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function APage() {
   const { songs, profile, platformConnections } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
+  const actionQueue = getRevenueActionQueue(songs).slice(0, 5);
+  const fixSummary = getFixSummary();
+  const staleFixes = getStaleFixes();
+  const allFixRecords = getAllFixRecords();
 
   const [draft, setDraft] = useState("");
+  const [triageVisible, setTriageVisible] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Show triage once per day if there are open gaps
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem(TRIAGE_KEY);
+      if (dismissed !== getTodayKey() && songs.length > 0 && summary.totalEstimatedGap > 0) {
+        setTriageVisible(true);
+      }
+    } catch {
+      setTriageVisible(false);
+    }
+  }, [songs.length, summary.totalEstimatedGap]);
+
+  function dismissTriage() {
+    try { localStorage.setItem(TRIAGE_KEY, getTodayKey()); } catch { /* noop */ }
+    setTriageVisible(false);
+  }
 
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({
@@ -48,11 +57,13 @@ export default function APage() {
         artistName: profile.artistName ?? "Artist",
         songs,
         platforms: platformConnections,
+        fixProgress: { summary: fixSummary, stale: staleFixes.length },
       },
     }),
   });
 
   const isStreaming = status === "streaming" || status === "submitted";
+  const hasMessages = messages.length > 0;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,33 +74,141 @@ export default function APage() {
     if (!clean || isStreaming) return;
     sendMessage({ text: clean });
     setDraft("");
+    setTriageVisible(false); // hide triage once conversation starts
   }
 
-  // Derive display messages: if no messages yet, show a context-aware greeting
-  const hasMessages = messages.length > 0;
-  const greeting = `Your biggest gap right now is ${nextAction.collectionBody}. ${songs[0] ? `"${songs[0].title}" is the record to fix first.` : "Your catalog has one clear fix first."} That is about ${formatGapEstimate(nextAction.estimatedValue)} sitting uncollected. Takes ${nextAction.estimatedTime}. Want me to walk you through it?`;
+  // Context-aware greeting based on actual state
+  function buildGreeting() {
+    if (songs.length === 0) {
+      return "Hey. Before I can give you real numbers, I need to know what's in your catalog. Add your first release and I'll scan every revenue path automatically. Want me to walk you through it?";
+    }
+    if (fixSummary.completed > 0) {
+      return `You've closed ${fixSummary.completed} fix${fixSummary.completed === 1 ? "" : "es"} — that's ~$${fixSummary.totalRecovered.toFixed(0)} on its way to being collected. ${fixSummary.inProgress > 0 ? `You still have ${fixSummary.inProgress} in progress. Want to pick up where you left off?` : nextAction.estimatedValue > 0 ? `Next: ${nextAction.action} via ${nextAction.collectionBody} — about ${formatGapEstimate(nextAction.estimatedValue)}.` : ""}`;
+    }
+    if (staleFixes.length > 0) {
+      const s = staleFixes[0];
+      return `You started a fix on ${s.platform} more than 48 hours ago and haven't confirmed it. That's ~$${s.estimatedValue.toFixed(0)} still in limbo. Want to finish that now?`;
+    }
+    if (summary.totalEstimatedGap > 0) {
+      return `${nextAction.action} via ${nextAction.collectionBody}${nextAction.songTitle ? ` for "${nextAction.songTitle}"` : ""}. That's about ${formatGapEstimate(nextAction.estimatedValue)} sitting uncollected — takes ${nextAction.estimatedTime}. Want me to walk you through it?`;
+    }
+    return `Everything looks clean — no open gaps detected. You have ${songs.length} track${songs.length === 1 ? "" : "s"} being tracked. Add more releases to keep the scan going.`;
+  }
+
+  // Context-aware quick prompts
+  function buildQuickPrompts() {
+    const prompts: string[] = [];
+    if (songs.length === 0) {
+      return ["How do I add my first release?", "What is an ISRC?", "What's the biggest mistake artists make with royalties?"];
+    }
+    if (staleFixes.length > 0) prompts.push(`Remind me what I started on ${staleFixes[0].platform}`);
+    if (nextAction.estimatedValue > 0) prompts.push(`Walk me through ${nextAction.collectionBody}`);
+    if (summary.totalEstimatedGap > 0) prompts.push("What is my biggest gap?");
+    if (fixSummary.inProgress > 0) prompts.push("Show me what I've started");
+    prompts.push("What should I fix next?");
+    return prompts.slice(0, 4);
+  }
+
+  const quickPrompts = buildQuickPrompts();
+  const greeting = buildGreeting();
 
   return (
     <AppShell title="A" eyebrow="Manager">
-      <main className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-        {/* Chat panel */}
+      <main className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[1fr_0.85fr]">
+
+        {/* ── Chat panel ─────────────────────────────────────────────────── */}
         <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#141412] text-white">
           <header className="flex items-center justify-between border-b-[0.5px] border-white/10 bg-[#0d0d0b] px-5 py-4">
             <div>
               <div className="text-[15px] font-medium text-white">A</div>
-              <div className="mt-1 text-xs text-white/35">Your manager · Always on</div>
+              <div className="mt-0.5 text-xs text-white/35">
+                {isStreaming ? "Thinking…" : "Your manager · Always on"}
+              </div>
             </div>
-            <Link href="/mobile" className="text-2xl font-light text-white/35" aria-label="Close A">
-              ×
-            </Link>
+            <div className="flex items-center gap-3">
+              {songs.length > 0 && summary.totalEstimatedGap > 0 && !triageVisible && (
+                <button
+                  type="button"
+                  onClick={() => setTriageVisible(true)}
+                  className="rounded-full border-[0.5px] border-[#ef9f27]/40 bg-[#ef9f27]/10 px-3 py-1.5 text-[10px] font-medium text-[#ef9f27] transition hover:bg-[#ef9f27]/20"
+                >
+                  Triage scan
+                </button>
+              )}
+              <Link href="/mobile" className="text-2xl font-light text-white/35" aria-label="Close A">
+                ×
+              </Link>
+            </div>
           </header>
 
-          <div className="flex max-h-[540px] min-h-[440px] flex-col overflow-y-auto px-5 py-5">
-            {/* Greeting (shown until first real message) */}
+          <div className="flex max-h-[560px] min-h-[460px] flex-col overflow-y-auto px-5 py-5">
+
+            {/* ── Triage mode panel ───────────────────────────────────────── */}
+            {triageVisible && !hasMessages && (
+              <div className="mb-5 overflow-hidden rounded-[18px] border-[0.5px] border-[#ef9f27]/30 bg-[#ef9f27]/10">
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ef9f27]/70">Triage scan</div>
+                    <div className="mt-0.5 text-sm font-medium text-[#ef9f27]">
+                      {formatGapEstimate(summary.totalEstimatedGap)} uncollected across {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}
+                    </div>
+                  </div>
+                  <button type="button" onClick={dismissTriage} className="text-[#ef9f27]/40 hover:text-[#ef9f27]/70 transition text-xl">×</button>
+                </div>
+                <div className="border-t border-[#ef9f27]/20 px-4 py-3 space-y-2">
+                  {actionQueue.slice(0, 3).map((action, i) => {
+                    const fixRecord = allFixRecords.find((r) => r.fixId.includes(action.collectionBody.toLowerCase().replace(/\s+/g, "_")));
+                    const isDone = fixRecord?.state === "completed";
+                    const isInProgress = fixRecord?.state === "in_progress";
+                    return (
+                      <div key={i} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${isDone ? "bg-[#97c459]/10" : "bg-white/[0.05]"}`}>
+                        <div className={`size-5 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold ${isDone ? "bg-[#97c459] text-[#0d0d0b]" : isInProgress ? "bg-[#ef9f27] text-[#0d0d0b]" : "bg-white/10 text-white/40"}`}>
+                          {isDone ? "✓" : isInProgress ? "→" : i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[12px] text-white/80 truncate">{action.action} · {action.collectionBody}</div>
+                          <div className="text-[10px] text-[#ef9f27]/70">{formatGapEstimate(action.estimatedValue)} · {action.estimatedTime}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => submit(`Walk me through ${action.action} via ${action.collectionBody}${action.songTitle ? ` for "${action.songTitle}"` : ""}`)}
+                          className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-[10px] text-white/60 transition hover:bg-white/20"
+                        >
+                          Go →
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                {fixSummary.completed > 0 && (
+                  <div className="border-t border-[#ef9f27]/20 px-4 py-2.5 text-[11px] text-[#ef9f27]/50">
+                    {fixSummary.completed} fix{fixSummary.completed === 1 ? "" : "es"} completed · ~${fixSummary.totalRecovered.toFixed(0)} recovered
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Stale fix nudge ─────────────────────────────────────────── */}
+            {staleFixes.length > 0 && !triageVisible && !hasMessages && (
+              <div className="mb-4 rounded-[16px] border-[0.5px] border-[#ef9f27]/30 bg-[#ef9f27]/8 px-4 py-3">
+                <div className="text-[11px] font-medium text-[#ef9f27]">
+                  ⏰ You started fixing {staleFixes[0].platform} more than 48h ago
+                </div>
+                <button
+                  type="button"
+                  onClick={() => submit(`Remind me what I was doing with ${staleFixes[0].platform}. I started a fix but didn't finish it.`)}
+                  className="mt-2 text-[11px] text-[#ef9f27]/60 underline underline-offset-2 hover:text-[#ef9f27] transition"
+                >
+                  Pick up where I left off →
+                </button>
+              </div>
+            )}
+
+            {/* Greeting */}
             {!hasMessages && (
               <>
                 <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
-                <div className="max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white/80">
+                <div className="max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-7 text-white/80">
                   {greeting}
                 </div>
               </>
@@ -106,13 +225,10 @@ export default function APage() {
                   {!isUser && (
                     <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
                   )}
-                  <div
-                    className={
-                      isUser
-                        ? "max-w-[82%] rounded-xl rounded-br-sm bg-white px-4 py-3 text-sm leading-6 text-[#0d0d0b]"
-                        : "max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white/80"
-                    }
-                  >
+                  <div className={isUser
+                    ? "max-w-[82%] rounded-xl rounded-br-sm bg-white px-4 py-3 text-sm leading-6 text-[#0d0d0b]"
+                    : "max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-7 text-white/80"
+                  }>
                     {text}
                   </div>
                 </div>
@@ -131,15 +247,15 @@ export default function APage() {
               </div>
             )}
 
-            {/* Quick prompts (shown only when no messages yet) */}
-            {!hasMessages && (
+            {/* Quick prompts */}
+            {!hasMessages && !isStreaming && (
               <div className="mt-5 flex flex-wrap gap-2">
-                {QUICK_PROMPTS.map((prompt) => (
+                {quickPrompts.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
                     onClick={() => submit(prompt)}
-                    className="rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-2 text-xs text-white/65"
+                    className="rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-2 text-xs text-white/65 transition hover:border-white/25 hover:text-white/85"
                   >
                     {prompt}
                   </button>
@@ -152,71 +268,118 @@ export default function APage() {
 
           <form
             className="flex items-center gap-2 border-t-[0.5px] border-white/10 bg-[#0d0d0b] px-4 py-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit(draft);
-            }}
+            onSubmit={(e) => { e.preventDefault(); submit(draft); }}
           >
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Ask A anything..."
+              placeholder={songs.length === 0 ? "Ask me anything to get started…" : "Ask A anything about your catalog…"}
               disabled={isStreaming}
               className="h-10 flex-1 rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 text-sm text-white outline-none placeholder:text-white/30 disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isStreaming || !draft.trim()}
-              className="grid size-10 place-items-center rounded-full border-[0.5px] border-white/10 bg-[#1e1e1b] text-sm text-white/70 disabled:opacity-40"
+              className="grid size-10 place-items-center rounded-full bg-white text-[#0d0d0b] text-sm font-semibold disabled:opacity-30 transition hover:bg-white/90"
             >
               →
             </button>
           </form>
         </section>
 
-        {/* Sidebar */}
-        <aside className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-          <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0d0d0b] p-5 text-white">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Manager context</div>
-            <h2 className="mt-3 text-4xl font-light tracking-[-0.03em]">A knows the account first.</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-              {profile.artistName}, your catalog has {formatGapEstimate(summary.totalEstimatedGap)} estimated missing across {summary.songsWithGaps} songs.
-            </p>
-          </section>
+        {/* ── Sidebar ────────────────────────────────────────────────────── */}
+        <aside className="space-y-4">
 
-          <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] p-4">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Top move</div>
-            <p className="mt-3 text-sm leading-6 text-[#111]">
-              {nextAction.title}. Gap impact: {formatGapEstimate(nextAction.estimatedValue)}. Time: {nextAction.estimatedTime}.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link href={`/projects/${nextAction.songId}`} className="rounded-lg bg-[#0d0d0b] px-4 py-2 text-sm text-white">
-                Open Room
-              </Link>
-              <Link href="/actions" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
-                See queue
-              </Link>
-            </div>
-          </section>
-
-          <section className="mt-5 rounded-xl border-[0.5px] border-[#e6f1fb] bg-[#e6f1fb] p-4 text-sm leading-6 text-[#185fa5]">
-            A is model-provider agnostic. Use a cost-smart default for normal manager chat, then escalate only when the job needs deeper reasoning or document analysis.
-          </section>
-
-          <section className="mt-5">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Model strategy</div>
-            <div className="space-y-3">
-              {modelStrategy.map((item) => (
-                <div key={item.label} className="rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[15px] font-medium text-[#111]">{item.title}</div>
-                    <span className="rounded-full bg-white px-3 py-1 text-[11px] font-medium text-[#6b6b65]">{item.label}</span>
+          {/* Account snapshot */}
+          <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#0d0d0b] text-white p-5">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Account</div>
+            {songs.length === 0 ? (
+              <div className="mt-4 text-center py-4">
+                <div className="text-2xl">🎵</div>
+                <p className="mt-3 text-sm text-white/45 leading-6">No releases yet. Add your first song to unlock your gap analysis.</p>
+                <Link href="/projects/new" className="mt-4 block rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-[#0d0d0b] text-center transition hover:bg-white/90">
+                  Add release →
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-[22px] font-light text-white">{songs.length}</div>
+                    <div className="text-[10px] text-white/30">tracks</div>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-[#514d47]">{item.detail}</p>
+                  <div>
+                    <div className="text-[22px] font-light text-[#ef9f27]">{formatGapEstimate(summary.totalEstimatedGap)}</div>
+                    <div className="text-[10px] text-white/30">gap</div>
+                  </div>
+                  <div>
+                    <div className="text-[22px] font-light text-[#97c459]">{fixSummary.completed}</div>
+                    <div className="text-[10px] text-white/30">fixed</div>
+                  </div>
                 </div>
-              ))}
-            </div>
+                {fixSummary.totalRecovered > 0 && (
+                  <div className="mt-4 rounded-xl bg-[#97c459]/15 px-4 py-3 text-center">
+                    <div className="text-sm font-medium text-[#97c459]">~${fixSummary.totalRecovered.toFixed(0)} recovered so far</div>
+                  </div>
+                )}
+              </>
+            )}
           </section>
+
+          {/* Action queue */}
+          {songs.length > 0 && actionQueue.length > 0 && (
+            <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Priority queue</div>
+              <div className="mt-4 space-y-2">
+                {actionQueue.map((action, i) => {
+                  const fixRecord = allFixRecords.find((r) => r.fixId.includes(action.collectionBody.toLowerCase().replace(/\s+/g, "_")));
+                  const isDone = fixRecord?.state === "completed";
+                  const isInProgress = fixRecord?.state === "in_progress";
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => submit(`Walk me through: ${action.action} via ${action.collectionBody}${action.songTitle ? ` for "${action.songTitle}"` : ""}`)}
+                      className={`w-full rounded-[14px] px-4 py-3 text-left transition hover:opacity-80 ${
+                        isDone ? "bg-[#eaf3de]" : isInProgress ? "bg-[#faeeda]" : "bg-[#f5f4f0]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold ${isDone ? "text-[#3b6d11]" : isInProgress ? "text-[#854f0b]" : "text-[#9a9a8a]"}`}>
+                          {isDone ? "✓ Done" : isInProgress ? "In progress" : `#${i + 1}`}
+                        </span>
+                        <span className="text-[12px] font-medium text-[#111] truncate">{action.collectionBody}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-[#9a9a8a]">{formatGapEstimate(action.estimatedValue)} · {action.estimatedTime}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <Link href="/actions" className="mt-4 block text-center text-[11px] text-[#9a9a8a] hover:text-[#111] transition">
+                See full queue →
+              </Link>
+            </section>
+          )}
+
+          {/* Progress memory */}
+          {(fixSummary.inProgress > 0 || fixSummary.completed > 0) && (
+            <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Progress memory</div>
+              <p className="mt-3 text-sm leading-6 text-[#514d47]">
+                A remembers every fix you&apos;ve started or completed this session.
+                {fixSummary.stale > 0 && (
+                  <span className="text-[#ef9f27]"> {fixSummary.stale} fix{fixSummary.stale === 1 ? "" : "es"} have been in progress for 48h+ without confirmation.</span>
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => submit("Show me all the fixes I've started and where they stand")}
+                className="mt-3 text-[12px] text-[#9a9a8a] underline underline-offset-2 hover:text-[#111] transition"
+              >
+                Review my progress →
+              </button>
+            </section>
+          )}
         </aside>
       </main>
     </AppShell>
