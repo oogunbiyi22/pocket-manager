@@ -43,7 +43,7 @@ body {
     radial-gradient(ellipse at 85% 80%, rgba(151, 196, 89, 0.05) 0%, transparent 55%),
     radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.4) 0%, transparent 80%);
   color: var(--text-primary);
-  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-dm-sans, -apple-system, "Helvetica Neue", Arial, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.25s ease, color 0.25s ease;
@@ -85,6 +85,10 @@ body {
 
 a {
   text-decoration: none;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-syne, -apple-system, "Helvetica Neue", Arial, sans-serif);
 }
 
 /* ── Glass card system ──────────────────────────────────────────────────────

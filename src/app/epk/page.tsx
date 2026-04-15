@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -25,9 +25,9 @@ export default function EpkPage() {
   const totalStreams = displaySongs.reduce((t, s) => t + (s.streams ?? 0), 0);
   const monthlyListeners = Math.round(totalStreams * 0.28);
   const playlistCount = displaySongs.filter((s) => s.revenueStreams?.some((r) => r.status === "collecting")).length * 3 + 2;
-  const epkViews = 12;
   const [shareCopied, setShareCopied] = useState(false);
-  const [printReady, setPrintReady] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const epkPreviewRef = useRef<HTMLDivElement>(null);
 
   const handleShareEpk = useCallback(() => {
     const url = typeof window !== "undefined" ? `${window.location.origin}/epk` : "https://pocketmanager.online/epk";
@@ -35,18 +35,52 @@ export default function EpkPage() {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     }).catch(() => {
-      // fallback — show url in prompt
       window.prompt("Copy this EPK link:", url);
     });
   }, []);
 
-  const handleDownloadPdf = useCallback(() => {
-    setPrintReady(true);
-    setTimeout(() => {
-      window.print();
-      setPrintReady(false);
-    }, 150);
-  }, []);
+  const handleDownloadPdf = useCallback(async () => {
+    if (!epkPreviewRef.current || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const [{ default: html2canvas }, { PDFDocument }] = await Promise.all([
+        import("html2canvas"),
+        import("pdf-lib"),
+      ]);
+      const canvas = await html2canvas(epkPreviewRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      // Get JPEG bytes from canvas
+      const jpegBytes = await new Promise<ArrayBuffer>((resolve, reject) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) { reject(new Error("canvas to blob failed")); return; }
+          resolve(await blob.arrayBuffer());
+        }, "image/jpeg", 0.92);
+      });
+      // Build PDF
+      const pdfDoc = await PDFDocument.create();
+      const jpgImage = await pdfDoc.embedJpg(jpegBytes);
+      const A4_W = 595; // points
+      const pageH = Math.round((jpgImage.height * A4_W) / jpgImage.width);
+      const page = pdfDoc.addPage([A4_W, pageH]);
+      page.drawImage(jpgImage, { x: 0, y: 0, width: A4_W, height: pageH });
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(profile.artistName ?? "epk").toLowerCase().replace(/\s+/g, "-")}-epk.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [pdfLoading, profile.artistName]);
 
   function toggleSong(songId: string) {
     setSelectedSongIds((current) =>
@@ -64,6 +98,17 @@ export default function EpkPage() {
             One living page for curators, labels, booking, sync, and partners. It pulls the catalog, readiness, and income proof into one professional surface.
           </p>
         </section>
+
+        {songs.length === 0 && (
+          <section className="m-5 rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-6 text-center text-sm text-[#6b6b65]">
+            <div className="text-2xl">🎵</div>
+            <div className="mt-2 font-medium text-[#111]">No releases yet</div>
+            <p className="mt-1">Add a release to build your EPK.</p>
+            <Link href="/projects/new" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+              Add release →
+            </Link>
+          </section>
+        )}
 
         <section className="grid gap-5 p-5 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-4">
@@ -107,7 +152,7 @@ export default function EpkPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
+          <div ref={epkPreviewRef} className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
             <div className="bg-[#0a0a0a] p-5 text-white">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Public page preview</div>
               <h3 className="mt-4 text-[40px] font-light leading-none tracking-[-0.03em] text-white">{profile.artistName}</h3>
@@ -159,17 +204,17 @@ export default function EpkPage() {
               <button
                 type="button"
                 onClick={handleDownloadPdf}
-                disabled={printReady}
+                disabled={pdfLoading}
                 className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111] transition hover:bg-[#f5f4f0] active:scale-95 disabled:opacity-50"
               >
-                {printReady ? "Preparing…" : "Download PDF"}
+                {pdfLoading ? "Generating PDF…" : "Download PDF"}
               </button>
               <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm font-medium text-[#111]">
                 Build pitch
               </Link>
             </div>
             <div className="border-t-[0.5px] border-black/10 px-5 py-3 text-center text-[11px] text-[#9a9a8a]">
-              Updated today · {epkViews} views this week
+              Updated today
             </div>
           </div>
         </section>

@@ -102,27 +102,8 @@ export default function WorkPage() {
               Your network makes the work move.
             </h3>
             <p className="mt-2 text-sm leading-6 text-white/45">
-              6 matches waiting · producers, songwriters, vocalists, featured artists
+              Connect with producers, songwriters, vocalists, and featured artists.
             </p>
-            <div className="mt-4 flex -space-x-2">
-              {[
-                { initials: "NK", bg: "#cecbf6", fg: "#3c3489" },
-                { initials: "RM", bg: "#9fe1cb", fg: "#085041" },
-                { initials: "AJ", bg: "#f4c0d1", fg: "#72243e" },
-                { initials: "LM", bg: "#cecbf6", fg: "#3c3489" },
-              ].map((avatar) => (
-                <span
-                  key={avatar.initials}
-                  style={{ backgroundColor: avatar.bg, color: avatar.fg }}
-                  className="grid size-8 place-items-center rounded-full border-2 border-[#0d0d0b] text-[10px] font-semibold"
-                >
-                  {avatar.initials}
-                </span>
-              ))}
-              <span className="grid size-8 place-items-center rounded-full border-2 border-[#0d0d0b] bg-white/10 text-[10px] text-white/55">
-                +2
-              </span>
-            </div>
             <Link
               href="/guild"
               className="mt-4 inline-flex rounded-lg border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/20"

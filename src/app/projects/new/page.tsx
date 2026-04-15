@@ -1,9 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { Search, Music, Check, Loader2 } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ItunesTrack = {
+  trackId: number;
+  trackName: string;
+  artistName: string;
+  collectionName: string;
+  artworkUrl100: string;
+  releaseDate: string;
+  primaryGenreName: string;
+  trackTimeMillis: number;
+  country: string;
+};
 
 type MBResult = {
   title: string;
@@ -15,6 +30,115 @@ function isValidIsrc(raw: string) {
   const stripped = raw.replace(/-/g, "").toUpperCase();
   return /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(stripped);
 }
+
+function artworkUrl(url: string, size = 300) {
+  return url.replace("100x100", `${size}x${size}`);
+}
+
+function durationLabel(ms: number) {
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+// ─── Song Search (iTunes) ──────────────────────────────────────────────────────
+
+function SongSearch({ onSelect }: { onSelect: (track: ItunesTrack) => void }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ItunesTrack[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function search(q: string) {
+    if (!q.trim() || q.length < 2) { setResults([]); setOpen(false); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=8&country=us`,
+      );
+      const data = await res.json() as { results: ItunesTrack[] };
+      setResults(data.results ?? []);
+      setOpen(true);
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleChange(value: string) {
+    setQuery(value);
+    if (debounce.current) clearTimeout(debounce.current);
+    if (value.trim().length >= 2) {
+      debounce.current = setTimeout(() => search(value), 350);
+    } else {
+      setResults([]);
+      setOpen(false);
+    }
+  }
+
+  function pick(track: ItunesTrack) {
+    onSelect(track);
+    setQuery(`${track.trackName} — ${track.artistName}`);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9a9a8a]" />
+        <input
+          value={query}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Search Spotify, Apple Music, iTunes…"
+          className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] pl-9 pr-10 py-3 text-[#111] text-sm outline-none transition focus:border-black/35"
+        />
+        {loading && <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9a9a8a] animate-spin" />}
+      </div>
+
+      {open && results.length > 0 && (
+        <div className="absolute z-50 top-full mt-1.5 w-full overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white shadow-xl">
+          {results.map(track => (
+            <button
+              key={track.trackId}
+              type="button"
+              onClick={() => pick(track)}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-[#f5f4f0]"
+            >
+              {track.artworkUrl100 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={artworkUrl(track.artworkUrl100, 60)}
+                  alt=""
+                  className="size-10 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f0ede8]">
+                  <Music size={16} className="text-[#9a9a8a]" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-[#111]">{track.trackName}</div>
+                <div className="truncate text-xs text-[#6b6b65]">
+                  {track.artistName} · {track.collectionName}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-xs text-[#9a9a8a]">{track.primaryGenreName}</div>
+                {track.trackTimeMillis && (
+                  <div className="text-xs text-[#b8b5ae]">{durationLabel(track.trackTimeMillis)}</div>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -32,16 +156,29 @@ export default function NewProjectPage() {
     territory: "",
     distributor: "",
   });
+  const [selectedArtwork, setSelectedArtwork] = useState<string | null>(null);
+  const [filledFromSearch, setFilledFromSearch] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const [mbLookup, setMbLookup] = useState<{ status: "idle" | "loading" | "found" | "not-found"; result?: MBResult }>({ status: "idle" });
   const lookupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const handleItunesSelect = useCallback((track: ItunesTrack) => {
+    setForm(f => ({
+      ...f,
+      title: track.trackName,
+      releaseDate: track.releaseDate ? track.releaseDate.split("T")[0] : f.releaseDate,
+      genre: track.primaryGenreName ?? f.genre,
+      language: f.language || "English",
+      territory: f.territory || "United States",
+    }));
+    setSelectedArtwork(artworkUrl(track.artworkUrl100, 300));
+    setFilledFromSearch(true);
+  }, []);
+
   async function lookupIsrc(raw: string) {
     const stripped = raw.replace(/-/g, "").toUpperCase();
-    if (!isValidIsrc(raw)) {
-      setMbLookup({ status: "idle" });
-      return;
-    }
+    if (!isValidIsrc(raw)) { setMbLookup({ status: "idle" }); return; }
     setMbLookup({ status: "loading" });
     try {
       const res = await fetch(
@@ -52,22 +189,14 @@ export default function NewProjectPage() {
       const data = await res.json() as { recordings?: { title: string; "artist-credit"?: { name: string }[]; "first-release-date"?: string }[] };
       const rec = data.recordings?.[0];
       if (!rec) throw new Error("not found");
-      const artist = rec["artist-credit"]?.[0]?.name;
-      setMbLookup({
-        status: "found",
-        result: {
-          title: rec.title,
-          artist,
-          releaseDate: rec["first-release-date"],
-        },
-      });
+      setMbLookup({ status: "found", result: { title: rec.title, artist: rec["artist-credit"]?.[0]?.name, releaseDate: rec["first-release-date"] } });
     } catch {
       setMbLookup({ status: "not-found" });
     }
   }
 
   function handleIsrcChange(value: string) {
-    setForm((f) => ({ ...f, isrc: value }));
+    setForm(f => ({ ...f, isrc: value }));
     setMbLookup({ status: "idle" });
     if (lookupTimeout.current) clearTimeout(lookupTimeout.current);
     if (value.trim()) {
@@ -77,21 +206,17 @@ export default function NewProjectPage() {
 
   function applyMbResult() {
     if (!mbLookup.result) return;
-    setForm((f) => ({
+    setForm(f => ({
       ...f,
       title: f.title || mbLookup.result!.title,
       releaseDate: f.releaseDate || mbLookup.result!.releaseDate || "",
     }));
-    setMbLookup((s) => ({ ...s, status: "idle" }));
+    setMbLookup(s => ({ ...s, status: "idle" }));
   }
 
   function submitSong() {
     const title = form.title.trim();
-
-    if (!title) {
-      return;
-    }
-
+    if (!title) return;
     const songId = createSong({
       title,
       isrc: form.isrc,
@@ -105,128 +230,139 @@ export default function NewProjectPage() {
       territory: form.territory,
       distributor: form.distributor,
     });
-
-    if (songId) {
-      router.push(`/projects/${songId}`);
-    }
+    if (songId) router.push(`/projects/${songId}`);
   }
 
   return (
     <AppShell title="Add Song" eyebrow="Catalog">
-      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Add your releases</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Start with one song.</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            Pocket needs the song before it can find missing money. Add the title now, then connect platforms to reveal the first gap.
+      <main className="mx-auto max-w-3xl space-y-4 text-[#111]">
+
+        {/* Hero */}
+        <section className="overflow-hidden rounded-[24px] bg-[#0a0a0a] px-5 py-6 text-white">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Add release</div>
+          <h2 className="mt-3 text-[32px] font-light leading-tight tracking-[-0.03em]">Start with one song.</h2>
+          <p className="mt-2 text-sm leading-6 text-white/40">
+            Search and we auto-fill everything. Or just type the title and add details later.
           </p>
         </section>
 
-        <section className="mt-5 grid gap-4">
-          <label className="block text-sm text-[#514d47]">
-            <span className="mb-2 block">Song title</span>
+        <section className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5">
+
+          {/* Smart search — always first */}
+          <SongSearch onSelect={handleItunesSelect} />
+
+          {/* Artwork + fill confirmation */}
+          {selectedArtwork && (
+            <div className="mt-3 flex items-center gap-4 rounded-xl border-[0.5px] border-[#97c459]/40 bg-[#eaf3de] p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selectedArtwork} alt="Album artwork" className="size-14 shrink-0 rounded-lg object-cover" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-[#111]">{form.title}</div>
+                <div className="mt-0.5 text-xs text-[#3b6d11]">
+                  <Check size={10} className="mr-1 inline" />
+                  Auto-filled from Apple Music · {form.genre}{form.releaseDate ? ` · ${form.releaseDate}` : ""}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Title — always visible */}
+          <div className="mt-4">
             <input
               value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Enter song title"
-              className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              placeholder="Song title (required)"
+              className="w-full rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] text-sm outline-none transition focus:border-black/35"
             />
-          </label>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="block text-sm text-[#514d47]">
-              <span className="mb-2 block">ISRC code</span>
-              <div className="relative">
-                <input
-                  value={form.isrc}
-                  onChange={(e) => handleIsrcChange(e.target.value)}
-                  placeholder="US-ABC-24-00001"
-                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-                />
-                {mbLookup.status === "loading" && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#9a9a8a]">Looking up…</span>
-                )}
-              </div>
-              {mbLookup.status === "found" && mbLookup.result && (
-                <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-3 py-2.5 text-xs">
-                  <div>
-                    <span className="font-medium text-[#3b6d11]">{mbLookup.result.title}</span>
-                    {mbLookup.result.artist && <span className="ml-1 text-[#3b6d11]/70">· {mbLookup.result.artist}</span>}
-                    {mbLookup.result.releaseDate && <span className="ml-1 text-[#3b6d11]/50">· {mbLookup.result.releaseDate}</span>}
-                  </div>
-                  <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#3b6d11]">
-                    Use →
-                  </button>
-                </div>
-              )}
-              {mbLookup.status === "not-found" && (
-                <div className="mt-1.5 text-xs text-[#9a9a8a]">ISRC not found in MusicBrainz — enter details manually.</div>
-              )}
-            </div>
-
-            <label className="block text-sm text-[#514d47]">
-              <span className="mb-2 block">UPC</span>
-              <input
-                value={form.upc}
-                onChange={(event) => setForm((current) => ({ ...current, upc: event.target.value }))}
-                placeholder="196871234567"
-                className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-              />
-            </label>
-
-            <label className="block text-sm text-[#514d47]">
-              <span className="mb-2 block">Release date</span>
-              <input
-                type="date"
-                value={form.releaseDate}
-                onChange={(event) => setForm((current) => ({ ...current, releaseDate: event.target.value }))}
-                className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-              />
-            </label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              ["Genre", "genre", "e.g. R&B"],
-              ["Mood", "mood", "e.g. Late night"],
-              ["BPM", "bpm", "e.g. 92"],
-              ["Key", "musicalKey", "e.g. A minor"],
-              ["Language", "language", "e.g. English"],
-              ["Territory", "territory", "e.g. United States"],
-            ].map(([label, key, placeholder]) => (
-              <label key={key} className="block text-sm text-[#514d47]">
-                <span className="mb-2 block">{label}</span>
-                <input
-                  type={key === "bpm" ? "number" : "text"}
-                  value={form[key as keyof typeof form]}
-                  onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
-                  placeholder={placeholder}
-                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-                />
-              </label>
-            ))}
-          </div>
-
-          <label className="block text-sm text-[#514d47]">
-            <span className="mb-2 block">Where is it distributed?</span>
-            <select
-              value={form.distributor}
-              onChange={(event) => setForm((current) => ({ ...current, distributor: event.target.value }))}
-              className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
-            >
-              {["", "DistroKid", "TuneCore", "CD Baby", "ONErpm", "UnitedMasters", "Amuse", "Stem", "Other", "Not sure yet"].map((item) => (
-                <option key={item} value={item}>{item || "Select distributor…"}</option>
-              ))}
-            </select>
-          </label>
-
-          <div className="rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-sm leading-6 text-[#854f0b]">
-            Next: connect one platform. If Pocket cannot calculate a gap yet, it will show the registration checklist instead of a blank number.
-          </div>
-
-          <button type="button" onClick={submitSong} className="rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white transition hover:bg-black/80">
-            Add song
+          {/* Add details — collapsed by default */}
+          <button
+            type="button"
+            onClick={() => setShowDetails(v => !v)}
+            className="mt-3 flex w-full items-center justify-between rounded-xl border-[0.5px] border-black/10 bg-[#f8f6f1] px-4 py-2.5 text-[12px] text-[#6b6b65] transition hover:bg-[#f0ede8]"
+          >
+            <span>{showDetails ? "Hide details" : "Add details — ISRC, genre, mood, BPM, distributor"}</span>
+            <span className="text-[#9a9a8a]">{showDetails ? "▲" : "▼"}</span>
           </button>
+
+          {showDetails && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {/* ISRC with MB lookup */}
+              <div className="sm:col-span-2">
+                <label className="block text-sm text-[#514d47]">
+                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">ISRC</span>
+                  <div className="relative">
+                    <input
+                      value={form.isrc}
+                      onChange={e => handleIsrcChange(e.target.value)}
+                      placeholder="US-ABC-24-00001 (auto-looks up MusicBrainz)"
+                      className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-2.5 text-sm text-[#111] outline-none transition focus:border-black/35"
+                    />
+                    {mbLookup.status === "loading" && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#9a9a8a]">Looking up…</span>
+                    )}
+                  </div>
+                  {mbLookup.status === "found" && mbLookup.result && (
+                    <div className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-3 py-2 text-xs">
+                      <span className="text-[#3b6d11]">{mbLookup.result.title}{mbLookup.result.artist ? ` · ${mbLookup.result.artist}` : ""}</span>
+                      <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#3b6d11]">Use →</button>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              {/* Rest of fields */}
+              {([
+                ["UPC", "upc", "196871234567", "text"],
+                ["Release date", "releaseDate", "", "date"],
+                ["Genre", "genre", "e.g. R&B", "text"],
+                ["Mood", "mood", "e.g. Late night", "text"],
+                ["BPM", "bpm", "e.g. 92", "number"],
+                ["Key", "musicalKey", "e.g. A minor", "text"],
+                ["Language", "language", "e.g. English", "text"],
+                ["Territory", "territory", "e.g. United States", "text"],
+              ] as const).map(([label, key, placeholder, type]) => (
+                <label key={key} className="block">
+                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">{label}</span>
+                  <input
+                    type={type}
+                    value={form[key as keyof typeof form]}
+                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-2.5 text-sm text-[#111] outline-none transition focus:border-black/35"
+                  />
+                </label>
+              ))}
+
+              {/* Distributor */}
+              <div className="sm:col-span-2">
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Distributor</span>
+                <select
+                  value={form.distributor}
+                  onChange={e => setForm(f => ({ ...f, distributor: e.target.value }))}
+                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-2.5 text-sm text-[#111] outline-none transition focus:border-black/35"
+                >
+                  {["", "DistroKid", "TuneCore", "CD Baby", "ONErpm", "UnitedMasters", "Amuse", "Stem", "Other", "Not sure yet"].map(item => (
+                    <option key={item} value={item}>{item || "Select distributor…"}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
+          <button
+            type="button"
+            onClick={submitSong}
+            disabled={!form.title.trim()}
+            className="mt-5 w-full rounded-xl bg-[#0a0a0a] py-3.5 text-sm font-medium text-white transition hover:bg-black/80 disabled:opacity-40"
+          >
+            {form.title.trim() ? `Add "${form.title}" to catalog →` : "Enter a song title to continue"}
+          </button>
+          <p className="mt-2 text-center text-[11px] text-[#9a9a8a]">
+            You can add ISRC, genre, and splits from inside the song room after saving.
+          </p>
         </section>
       </main>
     </AppShell>

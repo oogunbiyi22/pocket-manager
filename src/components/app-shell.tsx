@@ -79,7 +79,11 @@ function getActiveSurface(pathname: string): string {
     pathname.startsWith("/studio") ||
     pathname.startsWith("/epk") ||
     pathname.startsWith("/pitch-kits") ||
-    pathname.startsWith("/sync")
+    pathname.startsWith("/sync") ||
+    pathname.startsWith("/booking") ||
+    pathname.startsWith("/events") ||
+    pathname.startsWith("/venues") ||
+    pathname.startsWith("/radio")
   ) return "Signal";
   if (
     pathname.startsWith("/harvest") ||
@@ -180,7 +184,7 @@ export function AppShell({
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a92]">{eyebrow}</div>
             )}
             {title && (
-              <h1 className="mt-2 text-3xl font-normal tracking-tight text-[#0d0d0b] sm:text-4xl">{title}</h1>
+              <h1 className="mt-2 text-3xl font-normal tracking-tight text-[var(--text-primary)] sm:text-4xl">{title}</h1>
             )}
           </header>
         )}

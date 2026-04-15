@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
 import { formatMoney } from "@/lib/backstage-data";
 
-const starterCsv = `Song,Platform,Territory,Streams,Income
-Late Nights,Spotify,United States,340000,120
-Late Nights,YouTube,United States,44000,18
-Neon Heart,Spotify,United States,126000,54`;
+// Per-distributor column header mappings
+// Maps distributor name → { song, platform, territory, streams, income } column headers
+const DISTRIBUTOR_COLUMNS: Record<string, { song: string; platform: string; territory: string; streams: string; income: string }> = {
+  DistroKid:    { song: "Title",        platform: "Store",        territory: "Country of Sale", streams: "Streams",       income: "Earnings (USD)" },
+  TuneCore:     { song: "Track Name",   platform: "Store",        territory: "Country",          streams: "Streams",       income: "Royalties" },
+  "CD Baby":    { song: "Title",        platform: "Store Name",   territory: "Country",          streams: "Quantity",      income: "Net Earnings" },
+  ASCAP:        { song: "Work Title",   platform: "Society",      territory: "Country",          streams: "Performances",  income: "Royalty Amount" },
+  BMI:          { song: "Title",        platform: "Payment Type", territory: "Country",          streams: "Performances",  income: "Amount" },
+  SoundExchange: { song: "Sound Recording Title", platform: "Service", territory: "Country",    streams: "Plays",         income: "Royalties" },
+};
 
 type StatementRow = {
   song: string;
@@ -20,12 +26,38 @@ type StatementRow = {
 
 export default function StatementsPage() {
   const [statementSource, setStatementSource] = useState("DistroKid");
-  const [rawCsv, setRawCsv] = useState(starterCsv);
-  const rows = useMemo(() => parseStatementRows(rawCsv), [rawCsv]);
+  const [rawCsv, setRawCsv] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const colMap = DISTRIBUTOR_COLUMNS[statementSource] ?? DISTRIBUTOR_COLUMNS.DistroKid;
+  const rows = useMemo(() => parseStatementRows(rawCsv, colMap), [rawCsv, colMap]);
   const totalIncome = rows.reduce((total, row) => total + row.income, 0);
   const totalStreams = rows.reduce((total, row) => total + row.streams, 0);
   const bySong = groupRows(rows, "song");
   const anomalies = getStatementAnomalies(rows);
+
+  function loadFile(file: File) {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setRawCsv((e.target?.result as string) ?? "");
+    };
+    reader.readAsText(file);
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) loadFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) loadFile(file);
+  }
 
   return (
     <AppShell title="Statement Reader" eyebrow="Phase 9 preview">
@@ -41,31 +73,77 @@ export default function StatementsPage() {
         <section className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-4">
             <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Import preview</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Import statement</div>
               <label className="mt-4 block text-sm text-[#514d47]">
                 <span className="mb-2 block">Statement source</span>
                 <select
                   value={statementSource}
-                  onChange={(event) => setStatementSource(event.target.value)}
+                  onChange={(event) => { setStatementSource(event.target.value); setRawCsv(""); setFileName(null); }}
                   className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
                 >
-                  {["DistroKid", "TuneCore", "CD Baby", "ASCAP", "BMI", "SoundExchange"].map((source) => (
+                  {Object.keys(DISTRIBUTOR_COLUMNS).map((source) => (
                     <option key={source}>{source}</option>
                   ))}
                 </select>
               </label>
+
+              {/* File upload drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`mt-4 cursor-pointer rounded-xl border-[0.5px] p-6 text-center transition ${
+                  dragOver
+                    ? "border-[#ef9f27] bg-[#faeeda]/40"
+                    : fileName
+                    ? "border-[#97c459] bg-[#eaf3de]/40"
+                    : "border-dashed border-black/20 bg-white hover:bg-[#f5f4f0]"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.tsv,.txt"
+                  className="hidden"
+                  onChange={handleFileInput}
+                />
+                {fileName ? (
+                  <>
+                    <div className="text-2xl">✓</div>
+                    <div className="mt-1 text-sm font-medium text-[#3b6d11]">{fileName}</div>
+                    <div className="mt-0.5 text-xs text-[#6b6b65]">{rows.length} rows parsed</div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setRawCsv(""); setFileName(null); }}
+                      className="mt-2 text-xs text-[#9a9a8a] underline"
+                    >
+                      Clear
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl">📂</div>
+                    <div className="mt-1 text-sm text-[#5d5a54]">Drop CSV here or click to browse</div>
+                    <div className="mt-0.5 text-xs text-[#9a9a8a]">.csv · .tsv · .txt</div>
+                  </>
+                )}
+              </div>
+
+              {/* Or paste */}
               <label className="mt-4 block text-sm text-[#514d47]">
-                <span className="mb-2 block">CSV rows</span>
+                <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Or paste CSV rows</span>
                 <textarea
                   value={rawCsv}
-                  onChange={(event) => setRawCsv(event.target.value)}
-                  className="min-h-64 w-full rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3 font-mono text-xs leading-5 text-[#111] outline-none"
+                  onChange={(event) => { setRawCsv(event.target.value); setFileName(null); }}
+                  placeholder={`${colMap.song},${colMap.platform},${colMap.territory},${colMap.streams},${colMap.income}\nYour Song,Spotify,US,50000,21.50`}
+                  className="min-h-40 w-full rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3 font-mono text-xs leading-5 text-[#111] outline-none placeholder:text-[#9a9a8a]/60"
                 />
               </label>
             </div>
 
             <div className="rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-              Expected columns: Song, Platform, Territory, Streams, Income. Exact distributor CSV/PDF parsing remains backend work.
+              Expected headers for <strong>{statementSource}</strong>: {colMap.song} · {colMap.platform} · {colMap.territory} · {colMap.streams} · {colMap.income}
             </div>
           </div>
 
@@ -109,23 +187,47 @@ export default function StatementsPage() {
   );
 }
 
-function parseStatementRows(rawCsv: string) {
+function parseStatementRows(
+  rawCsv: string,
+  colMap: { song: string; platform: string; territory: string; streams: string; income: string },
+) {
   const lines = rawCsv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const [, ...body] = lines;
+  if (lines.length < 2) return [];
 
-  return body
+  // Detect delimiter
+  const delimiter = lines[0].includes("\t") ? "\t" : ",";
+
+  const headers = lines[0].split(delimiter).map((h) => h.trim().replace(/^"|"$/g, ""));
+
+  // Try to find columns by distributor mapping first, fall back to generic names
+  function colIndex(preferred: string, fallbacks: string[]): number {
+    const idx = headers.findIndex((h) => h.toLowerCase() === preferred.toLowerCase());
+    if (idx !== -1) return idx;
+    for (const fb of fallbacks) {
+      const fi = headers.findIndex((h) => h.toLowerCase().includes(fb.toLowerCase()));
+      if (fi !== -1) return fi;
+    }
+    return -1;
+  }
+
+  const songIdx     = colIndex(colMap.song,      ["title", "song", "track", "work"]);
+  const platformIdx = colIndex(colMap.platform,  ["store", "service", "platform", "society"]);
+  const territoryIdx= colIndex(colMap.territory, ["country", "territory", "region"]);
+  const streamsIdx  = colIndex(colMap.streams,   ["stream", "play", "performance", "qty", "quantity"]);
+  const incomeIdx   = colIndex(colMap.income,    ["earn", "royalt", "income", "amount", "net"]);
+
+  return lines.slice(1)
     .map((line) => {
-      const [song, platform, territory, streams, income] = line.split(",").map((cell) => cell.trim());
-
+      const cells = line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
       return {
-        song: song || "Unknown song",
-        platform: platform || "Unknown platform",
-        territory: territory || "Unknown territory",
-        streams: Number(streams) || 0,
-        income: Number(income) || 0,
+        song:      cells[songIdx]      ?? "Unknown",
+        platform:  cells[platformIdx]  ?? "Unknown",
+        territory: cells[territoryIdx] ?? "Unknown",
+        streams:   Number(cells[streamsIdx]?.replace(/,/g, ""))  || 0,
+        income:    Number(cells[incomeIdx]?.replace(/[$,]/g, "")) || 0,
       };
     })
-    .filter((row) => row.song !== "Unknown song" || row.income > 0);
+    .filter((row) => row.song !== "Unknown" || row.income > 0);
 }
 
 function groupRows(rows: StatementRow[], key: "song" | "platform" | "territory") {

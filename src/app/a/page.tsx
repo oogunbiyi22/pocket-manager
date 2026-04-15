@@ -15,9 +15,25 @@ import {
 import { getFixSummary, getStaleFixes, getAllFixRecords } from "@/lib/fix-flows";
 
 const TRIAGE_KEY = "pocket-a-triage-dismissed";
+const CHAT_HISTORY_KEY = "pocket-a-chat-history";
+const MAX_SAVED_MESSAGES = 40;
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+type SavedMessage = { id: string; role: "user" | "assistant"; text: string; savedAt: string };
+
+function loadChatHistory(): SavedMessage[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as SavedMessage[]) : [];
+  } catch { return []; }
+}
+
+function saveChatHistory(msgs: SavedMessage[]) {
+  try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(msgs.slice(-MAX_SAVED_MESSAGES))); } catch { /* noop */ }
 }
 
 export default function APage() {
@@ -31,7 +47,14 @@ export default function APage() {
 
   const [draft, setDraft] = useState("");
   const [triageVisible, setTriageVisible] = useState(false);
+  const [chatHistory, setChatHistory] = useState<SavedMessage[]>([]);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Load saved chat history on mount
+  useEffect(() => {
+    setChatHistory(loadChatHistory());
+  }, []);
 
   // Show triage once per day if there are open gaps
   useEffect(() => {
@@ -64,6 +87,18 @@ export default function APage() {
 
   const isStreaming = status === "streaming" || status === "submitted";
   const hasMessages = messages.length > 0;
+
+  // Persist new messages to localStorage as they arrive
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const toSave: SavedMessage[] = messages.flatMap((msg) => {
+      const textPart = msg.parts?.find((p) => p.type === "text");
+      const text = textPart ? (textPart as { type: "text"; text: string }).text : "";
+      if (!text) return [];
+      return [{ id: msg.id, role: msg.role as "user" | "assistant", text, savedAt: new Date().toISOString() }];
+    });
+    saveChatHistory(toSave);
+  }, [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -125,23 +160,63 @@ export default function APage() {
                 {isStreaming ? "Thinking…" : "Your manager · Always on"}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {songs.length > 0 && summary.totalEstimatedGap > 0 && !triageVisible && (
                 <button
                   type="button"
                   onClick={() => setTriageVisible(true)}
                   className="rounded-full border-[0.5px] border-[#ef9f27]/40 bg-[#ef9f27]/10 px-3 py-1.5 text-[10px] font-medium text-[#ef9f27] transition hover:bg-[#ef9f27]/20"
                 >
-                  Triage scan
+                  Triage
                 </button>
               )}
-              <Link href="/mobile" className="text-2xl font-light text-white/35" aria-label="Close A">
+              {chatHistory.length > 0 && !hasMessages && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryVisible((v) => !v)}
+                  className="rounded-full border-[0.5px] border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] text-white/40 transition hover:text-white/60"
+                >
+                  {historyVisible ? "Hide history" : `History (${chatHistory.length})`}
+                </button>
+              )}
+              {chatHistory.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { saveChatHistory([]); setChatHistory([]); setHistoryVisible(false); }}
+                  className="text-[10px] text-white/20 transition hover:text-white/40"
+                >
+                  Clear
+                </button>
+              )}
+              <Link href="/mobile" className="ml-1 text-2xl font-light text-white/35" aria-label="Close A">
                 ×
               </Link>
             </div>
           </header>
 
           <div className="flex max-h-[560px] min-h-[460px] flex-col overflow-y-auto px-5 py-5">
+
+            {/* ── Saved chat history ──────────────────────────────────────── */}
+            {historyVisible && !hasMessages && chatHistory.length > 0 && (
+              <div className="mb-4 space-y-3">
+                <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/20">Previous session</div>
+                {chatHistory.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "flex-col"}`}>
+                    {msg.role === "assistant" && (
+                      <div className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-white/20">A</div>
+                    )}
+                    <div className={`max-w-[88%] rounded-xl px-4 py-2.5 text-xs leading-5 opacity-50 ${
+                      msg.role === "user"
+                        ? "rounded-br-sm bg-white/10 text-white"
+                        : "rounded-bl-sm border-[0.5px] border-white/8 bg-[#1e1e1b] text-white/70"
+                    }`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                <div className="text-[10px] text-white/15">— new session below —</div>
+              </div>
+            )}
 
             {/* ── Triage mode panel ───────────────────────────────────────── */}
             {triageVisible && !hasMessages && (

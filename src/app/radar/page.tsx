@@ -24,74 +24,85 @@ export default function RadarPage() {
           </p>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Active release</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {songs.map((song) => (
-              <button
-                key={song.id}
-                type="button"
-                onClick={() => setSelectedSongId(song.id)}
-                className={`rounded-lg px-4 py-2 text-sm ${
-                  selectedSong?.id === song.id ? "bg-[#0a0a0a] text-white" : "border-[0.5px] border-black/15 bg-white text-[#111]"
-                }`}
-              >
-                {song.title}
-              </button>
-            ))}
-          </div>
-        </section>
+        {songs.length === 0 && (
+          <section className="mt-5 rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-6 text-center text-sm text-[#6b6b65]">
+            <div className="text-2xl">📡</div>
+            <div className="mt-2 font-medium text-[#111]">No releases yet</div>
+            <p className="mt-1">Add a release with a date and the radar builds itself.</p>
+            <Link href="/projects/new" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+              Add release →
+            </Link>
+          </section>
+        )}
 
-        {selectedSong ? (
+        {songs.length > 0 && (
           <>
             <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next checkpoint</div>
-                  <h3 className="mt-2 text-2xl font-normal text-[#111]">{nextCheckpoint?.title ?? "Add a release date"}</h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#514d47]">
-                    {nextCheckpoint?.detail ?? "A release date is required before Pocket can build the countdown."}
-                  </p>
-                </div>
-                <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-4 py-3 text-sm">
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Target</div>
-                  <div className="mt-1 text-[#111]">{nextCheckpoint?.targetDate ?? selectedSong.releaseDate}</div>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link href={`/projects/${selectedSong.id}`} className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
-                  Open song room
-                </Link>
-                <Link href="/notifications" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
-                  Notification settings
-                </Link>
-              </div>
-            </section>
-
-            <section className="mt-5">
-              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Milestones</div>
-              <div className="space-y-3">
-                {checkpoints.map((checkpoint) => (
-                  <article key={`${checkpoint.daysBefore}-${checkpoint.title}`} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-[15px] font-medium text-[#111]">{checkpoint.title}</div>
-                        <p className="mt-2 text-sm leading-6 text-[#514d47]">{checkpoint.detail}</p>
-                        <div className="mt-2 text-xs text-[#6b6b65]">{checkpoint.targetDate}</div>
-                      </div>
-                      <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${statusClass(checkpoint.status)}`}>
-                        {checkpoint.status}
-                      </span>
-                    </div>
-                  </article>
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Active release</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {songs.map((song) => (
+                  <button
+                    key={song.id}
+                    type="button"
+                    onClick={() => setSelectedSongId(song.id)}
+                    className={`rounded-lg px-4 py-2 text-sm ${
+                      selectedSong?.id === song.id ? "bg-[#0a0a0a] text-white" : "border-[0.5px] border-black/15 bg-white text-[#111]"
+                    }`}
+                  >
+                    {song.title}
+                  </button>
                 ))}
               </div>
             </section>
+
+            {selectedSong && (
+              <>
+                <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next checkpoint</div>
+                      <h3 className="mt-2 text-2xl font-normal text-[#111]">{nextCheckpoint?.title ?? "Add a release date"}</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#514d47]">
+                        {nextCheckpoint?.detail ?? "A release date is required before Pocket can build the countdown."}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border-[0.5px] border-black/10 bg-white px-4 py-3 text-sm">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-[#6d6860]">Target</div>
+                      <div className="mt-1 text-[#111]">{nextCheckpoint?.targetDate ?? selectedSong.releaseDate}</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href={`/projects/${selectedSong.id}`} className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+                      Open song room
+                    </Link>
+                    <Link href="/notifications" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+                      Notification settings
+                    </Link>
+                  </div>
+                </section>
+
+                <section className="mt-5">
+                  <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Milestones</div>
+                  <div className="space-y-3">
+                    {checkpoints.map((checkpoint) => (
+                      <article key={`${checkpoint.daysBefore}-${checkpoint.title}`} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-[15px] font-medium text-[#111]">{checkpoint.title}</div>
+                            <p className="mt-2 text-sm leading-6 text-[#514d47]">{checkpoint.detail}</p>
+                            <div className="mt-2 text-xs text-[#6b6b65]">{checkpoint.targetDate}</div>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${statusClass(checkpoint.status)}`}>
+                            {checkpoint.status}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </>
+            )}
           </>
-        ) : (
-          <section className="mt-5 rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-4 text-sm text-[#6b6b65]">
-            Add a song before building a Release Radar.
-          </section>
         )}
       </main>
     </AppShell>
