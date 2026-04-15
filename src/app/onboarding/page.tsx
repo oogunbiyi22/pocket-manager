@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoMark } from "@/components/logo";
-import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary, seedSongs } from "@/lib/backstage-data";
+import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary } from "@/lib/backstage-data";
 
 // ─── Count-up ───────────────────────────────────────────────────────────────
 function GapCountUp({ target }: { target: number }) {
@@ -50,10 +50,9 @@ type AddMode = "manual" | "isrc" | null;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { createSong, updateProfile, songs, profile } = usePocket();
-  const useSeedData = !songs.length;
-  const summary = getRevenueGapSummary(useSeedData ? seedSongs : songs);
-  const nextAction = getNextRevenueAction(useSeedData ? seedSongs : songs);
+  const { createSong, updateProfile, completeOnboarding, songs, profile } = usePocket();
+  const summary = getRevenueGapSummary(songs);
+  const nextAction = getNextRevenueAction(songs);
 
   const [step, setStep] = useState(0);
   const [artistName, setArtistName] = useState(profile.artistName ?? "");
@@ -428,22 +427,37 @@ export default function OnboardingPage() {
               >
                 <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(239,159,39,0.12) 0%, transparent 70%)" }} />
                 <div className="relative">
-                  <motion.div
-                    className="text-[64px] font-light leading-none tracking-[-0.05em] text-[#ef9f27]"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.15 }}
-                  >
-                    {gapRevealed ? <GapCountUp target={summary.totalEstimatedGap} /> : "$0"}
-                  </motion.div>
-                  <motion.p
-                    className="mt-3 text-sm leading-6 text-white/45"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    Estimated uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"} · {summary.activeIncomeStreams} streams active
-                  </motion.p>
+                  {songs.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <div className="text-[48px] font-light text-white/20">—</div>
+                      <p className="mt-3 text-sm leading-6 text-white/45">
+                        No releases added yet. Go back and add a song to see your gap.
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <motion.div
+                        className="text-[64px] font-light leading-none tracking-[-0.05em] text-[#ef9f27]"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.15 }}
+                      >
+                        {gapRevealed ? <GapCountUp target={summary.totalEstimatedGap} /> : "$0"}
+                      </motion.div>
+                      <motion.p
+                        className="mt-3 text-sm leading-6 text-white/45"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                      >
+                        Estimated uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"} · {summary.activeIncomeStreams} streams active
+                      </motion.p>
+                    </>
+                  )}
                   <motion.div
                     className="mt-5 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4"
                     initial={{ opacity: 0, y: 8 }}
@@ -460,7 +474,10 @@ export default function OnboardingPage() {
 
               <button
                 type="button"
-                onClick={next}
+                onClick={() => {
+                  completeOnboarding({ artistName: artistName.trim() || profile.artistName || "Artist", role: role.trim() || profile.role || "", vibe: "", currentProject: "", targetWindow: "", mainGoal: "" });
+                  next();
+                }}
                 className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] press"
               >
                 Start collecting →
