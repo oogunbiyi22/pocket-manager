@@ -151,7 +151,7 @@ export default function MobilePage() {
             className="grid size-10 place-items-center rounded-full border border-black/10 bg-white text-sm font-medium text-[#111]"
             aria-label="Open profile"
           >
-            {profile.artistName?.[0] ?? "B"}
+            {profile.artistName?.[0]?.toUpperCase() ?? "?"}
           </Link>
         </header>
 
@@ -184,7 +184,11 @@ export default function MobilePage() {
         </section>
 
         {/* Gap strip */}
-        {summary.totalEstimatedGap > 0 ? (
+        {songs.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-[18px] border border-dashed border-black/15 px-5 py-4 card-shadow">
+            <span className="text-sm text-[#9a9a8a]">Add a release to see your revenue gap.</span>
+          </div>
+        ) : summary.totalEstimatedGap > 0 ? (
           <Link
             href="/harvest"
             className="flex items-center justify-between gap-3 rounded-[18px] bg-[#faeeda] px-5 py-4 press card-shadow"
@@ -244,43 +248,61 @@ export default function MobilePage() {
 
         {/* Next action card */}
         <section className="rounded-[20px] glass p-5 card-shadow">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Next action</div>
-          <div className="mt-0.5 text-[11px] text-[#9a9a8a]">{nextAction.songTitle}</div>
-          <div className="mt-3 text-[18px] font-normal leading-7 text-[var(--text-primary)]">
-            {nextAction.action} via {nextAction.collectionBody}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            {nextAction.estimatedValue > 0 ? (
-              <span className="rounded-full bg-[#faeeda] px-3 py-1 font-medium text-[#854f0b]">
-                {formatGapEstimate(nextAction.estimatedValue)}
-              </span>
-            ) : null}
-            <span className="rounded-full bg-black/[0.06] px-3 py-1 text-[#34312d]">
-              {nextAction.estimatedTime}
-            </span>
-          </div>
-          <Link
-            href={`/projects/${nextAction.songId}`}
-            className="mt-5 block rounded-xl bg-[var(--bg-dark)] px-4 py-3.5 text-center text-sm font-medium text-white press"
-          >
-            Start now
-          </Link>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={clearCurrentAction}
-              className="rounded-xl border-[0.5px] border-black/[0.1] px-3 py-2.5 text-xs text-[var(--text-muted)] press"
-            >
-              Skip
-            </button>
-            <button
-              type="button"
-              onClick={completeCurrentAction}
-              className="rounded-xl border-[0.5px] border-black/[0.1] px-3 py-2.5 text-xs text-[var(--text-muted)] press"
-            >
-              Mark done
-            </button>
-          </div>
+          {songs.length === 0 ? (
+            <div className="py-2 text-center">
+              <div className="text-3xl">🎵</div>
+              <div className="mt-3 text-[15px] font-medium text-[var(--text-primary)]">Add your first release</div>
+              <p className="mt-2 text-sm leading-6 text-[#9a9a8a]">
+                Once you add a song, Pocket Manager scans every revenue path and shows you exactly what to fix.
+              </p>
+              <Link
+                href="/projects/new"
+                className="mt-5 block rounded-xl bg-[var(--bg-dark)] px-4 py-3.5 text-center text-sm font-medium text-white press"
+              >
+                Add release →
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Next action</div>
+              <div className="mt-0.5 text-[11px] text-[#9a9a8a]">{nextAction.songTitle}</div>
+              <div className="mt-3 text-[18px] font-normal leading-7 text-[var(--text-primary)]">
+                {nextAction.action} via {nextAction.collectionBody}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {nextAction.estimatedValue > 0 ? (
+                  <span className="rounded-full bg-[#faeeda] px-3 py-1 font-medium text-[#854f0b]">
+                    {formatGapEstimate(nextAction.estimatedValue)}
+                  </span>
+                ) : null}
+                <span className="rounded-full bg-black/[0.06] px-3 py-1 text-[#34312d]">
+                  {nextAction.estimatedTime}
+                </span>
+              </div>
+              <Link
+                href={nextAction.songId ? `/projects/${nextAction.songId}` : "/projects"}
+                className="mt-5 block rounded-xl bg-[var(--bg-dark)] px-4 py-3.5 text-center text-sm font-medium text-white press"
+              >
+                Start now
+              </Link>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={clearCurrentAction}
+                  className="rounded-xl border-[0.5px] border-black/[0.1] px-3 py-2.5 text-xs text-[var(--text-muted)] press"
+                >
+                  Skip
+                </button>
+                <button
+                  type="button"
+                  onClick={completeCurrentAction}
+                  className="rounded-xl border-[0.5px] border-black/[0.1] px-3 py-2.5 text-xs text-[var(--text-muted)] press"
+                >
+                  Mark done
+                </button>
+              </div>
+            </>
+          )}
         </section>
 
         {/* Song list with readiness rings */}

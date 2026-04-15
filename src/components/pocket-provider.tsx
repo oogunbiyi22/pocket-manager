@@ -187,13 +187,13 @@ const PocketContext = createContext<PocketContextValue | null>(null);
 
 export function PocketProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
-  const [projects, setProjects] = useState<Project[]>(seedProjects);
-  const [songs, setSongs] = useState<SongCatalogItem[]>(seedSongs);
-  const [platformConnections, setPlatformConnections] = useState<PlatformConnection[]>(seedPlatformConnections);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [songs, setSongs] = useState<SongCatalogItem[]>([]);
+  const [platformConnections, setPlatformConnections] = useState<PlatformConnection[]>([]);
   const [profile, setProfile] = useState<PocketProfile>(getDefaultProfile);
   const [signedIn, setSignedIn] = useState(false);
   const [events, setEvents] = useState<PocketEvent[]>([]);
-  const [moneyEntries, setMoneyEntries] = useState<CreatorMoneyEntry[]>(seedMoneyEntries);
+  const [moneyEntries, setMoneyEntries] = useState<CreatorMoneyEntry[]>([]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -201,7 +201,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawProjects = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
         if (rawProjects) {
           const parsed = JSON.parse(rawProjects) as Project[];
-          setProjects(Array.isArray(parsed) && parsed.length ? parsed : seedProjects);
+          setProjects(Array.isArray(parsed) ? parsed : []);
         }
       } catch {
         window.localStorage.removeItem(PROJECTS_STORAGE_KEY);
@@ -232,7 +232,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawMoney = window.localStorage.getItem(MONEY_STORAGE_KEY);
         if (rawMoney) {
           const parsed = JSON.parse(rawMoney) as CreatorMoneyEntry[];
-          setMoneyEntries(Array.isArray(parsed) ? parsed : seedMoneyEntries);
+          setMoneyEntries(Array.isArray(parsed) ? parsed : []);
         }
       } catch {
         window.localStorage.removeItem(MONEY_STORAGE_KEY);
@@ -242,7 +242,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawSongs = window.localStorage.getItem(SONGS_STORAGE_KEY);
         if (rawSongs) {
           const parsed = JSON.parse(rawSongs) as SongCatalogItem[];
-          setSongs(Array.isArray(parsed) && parsed.length ? parsed : seedSongs);
+          setSongs(Array.isArray(parsed) ? parsed : []);
         }
       } catch {
         window.localStorage.removeItem(SONGS_STORAGE_KEY);
@@ -252,7 +252,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawPlatforms = window.localStorage.getItem(PLATFORMS_STORAGE_KEY);
         if (rawPlatforms) {
           const parsed = JSON.parse(rawPlatforms) as PlatformConnection[];
-          setPlatformConnections(Array.isArray(parsed) && parsed.length ? mergeSeedPlatforms(parsed) : seedPlatformConnections);
+          setPlatformConnections(Array.isArray(parsed) ? mergeSeedPlatforms(parsed) : []);
         }
       } catch {
         window.localStorage.removeItem(PLATFORMS_STORAGE_KEY);
@@ -424,7 +424,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
   }, [hydrated, platformConnections]);
 
   const value = useMemo<PocketContextValue>(() => {
-    const activeProject = projects[0] ?? seedProjects[0];
+    const activeProject = projects[0] ?? { id: "", name: "", type: "", stage: "", daysLeft: 0, goal: "", health: "", summary: "", managerNote: "", nextStep: "", priorities: [], missingAssets: [], assets: [], contentIdeas: [], outreach: [], tasks: [] } as Project;
     const pushEvent = (event: Omit<PocketEvent, "id" | "createdAt">) => {
       setEvents((current) => [
         {

@@ -29,8 +29,8 @@ export default function NewProjectPage() {
     bpm: "",
     musicalKey: "",
     language: "",
-    territory: "United States",
-    distributor: "DistroKid",
+    territory: "",
+    distributor: "",
   });
 
   const [mbLookup, setMbLookup] = useState<{ status: "idle" | "loading" | "found" | "not-found"; result?: MBResult }>({ status: "idle" });
@@ -128,7 +128,7 @@ export default function NewProjectPage() {
             <input
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Late Nights"
+              placeholder="Enter song title"
               className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
             />
           </label>
@@ -187,12 +187,12 @@ export default function NewProjectPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {[
-              ["Genre", "genre", "R&B"],
-              ["Mood", "mood", "Late night"],
-              ["BPM", "bpm", "92"],
-              ["Key", "musicalKey", "A minor"],
-              ["Language", "language", "English"],
-              ["Territory", "territory", "United States"],
+              ["Genre", "genre", "e.g. R&B"],
+              ["Mood", "mood", "e.g. Late night"],
+              ["BPM", "bpm", "e.g. 92"],
+              ["Key", "musicalKey", "e.g. A minor"],
+              ["Language", "language", "e.g. English"],
+              ["Territory", "territory", "e.g. United States"],
             ].map(([label, key, placeholder]) => (
               <label key={key} className="block text-sm text-[#514d47]">
                 <span className="mb-2 block">{label}</span>
@@ -214,8 +214,8 @@ export default function NewProjectPage() {
               onChange={(event) => setForm((current) => ({ ...current, distributor: event.target.value }))}
               className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
             >
-              {["DistroKid", "TuneCore", "CD Baby", "Not sure yet"].map((item) => (
-                <option key={item}>{item}</option>
+              {["", "DistroKid", "TuneCore", "CD Baby", "ONErpm", "UnitedMasters", "Amuse", "Stem", "Other", "Not sure yet"].map((item) => (
+                <option key={item} value={item}>{item || "Select distributor…"}</option>
               ))}
             </select>
           </label>

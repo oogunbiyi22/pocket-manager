@@ -881,7 +881,7 @@ export function computeSongGap(song: SongCatalogItem): number {
   return song.revenueStreams.reduce((total, stream) => total + computeStreamGap(song, stream), 0);
 }
 
-export function getRevenueGapSummary(songs: SongCatalogItem[] = seedSongs) {
+export function getRevenueGapSummary(songs: SongCatalogItem[] = []) {
   const totalSecured = songs.reduce(
     (total, song) => total + song.revenueStreams.reduce((songTotal, stream) => songTotal + stream.actualAmount, 0),
     0,
@@ -1093,19 +1093,19 @@ export function getMetadataIntelligence(song: SongCatalogItem) {
   };
 }
 
-export function getNextRevenueAction(songs: SongCatalogItem[] = seedSongs) {
+export function getNextRevenueAction(songs: SongCatalogItem[] = []) {
   const top = getRevenueActionQueue(songs)[0];
 
   if (!top) {
     return {
-      title: "All detected revenue paths are covered",
+      title: songs.length === 0 ? "Add your first release" : "All detected revenue paths are covered",
       estimatedValue: 0,
-      estimatedTime: "Review",
-      songId: songs[0]?.id ?? "late-nights",
-      songTitle: songs[0]?.title ?? "Catalog",
+      estimatedTime: songs.length === 0 ? "2 min" : "Review",
+      songId: songs[0]?.id ?? "",
+      songTitle: songs[0]?.title ?? "",
       streamType: "streaming",
-      collectionBody: "Catalog",
-      action: "Review catalog",
+      collectionBody: songs.length === 0 ? "Catalog" : "All paths covered",
+      action: songs.length === 0 ? "Add release" : "Review catalog",
     };
   }
 
@@ -1121,7 +1121,7 @@ export function getNextRevenueAction(songs: SongCatalogItem[] = seedSongs) {
   };
 }
 
-export function getRevenueActionQueue(songs: SongCatalogItem[] = seedSongs) {
+export function getRevenueActionQueue(songs: SongCatalogItem[] = []) {
   return songs
     .flatMap((song) =>
       song.revenueStreams
