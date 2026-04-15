@@ -48,7 +48,7 @@ function SignInContent() {
       const { error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
       });
       if (signUpError) {
         setError(signUpError.message);
@@ -85,7 +85,9 @@ function SignInContent() {
     }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/mobile` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/home`,
+      },
     });
     if (oauthError) {
       setError(oauthError.message);
