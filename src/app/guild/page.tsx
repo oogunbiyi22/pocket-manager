@@ -36,8 +36,31 @@ const SEED_PROFILES: GuildProfile[] = [
   { user_id: "seed-6", display_name: "Mika St.", role: "Songwriter", genres: ["Indie", "Pop"], vibe: "bridge specialist", open: true },
 ];
 
-const ROLES = ["All", "Producer", "Songwriter", "Artist", "Vocalist", "Engineer", "DJ"];
+const ROLES = ["All", "Producer", "Songwriter", "Artist", "Vocalist", "Mix Engineer", "DJ"];
 const GENRES = ["All", "R&B", "Soul", "Lo-fi", "Afrobeats", "Pop", "Trap", "Hip-Hop", "Gospel", "Indie"];
+
+const SHORTLIST_KEY = "pocket-guild-shortlist";
+function loadShortlist(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SHORTLIST_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch { return new Set(); }
+}
+function saveShortlist(s: Set<string>) {
+  try { localStorage.setItem(SHORTLIST_KEY, JSON.stringify([...s])); } catch { /* noop */ }
+}
+
+function cardGradient(name: string) {
+  const gradients = [
+    "from-[#3c3489]/40 to-[#0d0d0b]",
+    "from-[#085041]/40 to-[#0d0d0b]",
+    "from-[#72243e]/40 to-[#0d0d0b]",
+    "from-[#854f0b]/40 to-[#0d0d0b]",
+    "from-[#1a5a8a]/40 to-[#0d0d0b]",
+  ];
+  return gradients[name.charCodeAt(0) % gradients.length];
+}
 
 function avatarColor(name: string) {
   const colors = [
@@ -84,6 +107,34 @@ export default function GuildPage() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [roleFilter, setRoleFilter] = useState("All");
   const [genreFilter, setGenreFilter] = useState("All");
+  const [shortlist, setShortlist] = useState<Set<string>>(new Set());
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [showShortlistOnly, setShowShortlistOnly] = useState(false);
+
+  // Load shortlist from localStorage
+  useEffect(() => { setShortlist(loadShortlist()); }, []);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }
+
+  function toggleShortlist(userId: string, name: string) {
+    setShortlist((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) { next.delete(userId); showToast(`Removed ${name} from shortlist`); }
+      else { next.add(userId); showToast(`${name} added to shortlist ✓`); }
+      saveShortlist(next);
+      return next;
+    });
+  }
+
+  function copyDmOpener(name: string) {
+    const text = `Hey ${name}, I found you in the Pocket Manager Guild. I'd love to connect and see if we can work together.`;
+    navigator.clipboard.writeText(text).then(() => showToast("DM opener copied to clipboard ✓")).catch(() => showToast("Copy failed — try manually"));
+  }
+
 
   // ── Chat ────────────────────────────────────────────────────────────────
   const [messages, setMessages] = useState<GuildMessage[]>([]);
@@ -235,9 +286,10 @@ export default function GuildPage() {
     return members.filter((m) => {
       const roleOk = roleFilter === "All" || m.role === roleFilter;
       const genreOk = genreFilter === "All" || m.genres?.includes(genreFilter);
-      return roleOk && genreOk;
+      const shortlistOk = !showShortlistOnly || shortlist.has(m.user_id);
+      return roleOk && genreOk && shortlistOk;
     });
-  }, [members, roleFilter, genreFilter]);
+  }, [members, roleFilter, genreFilter, showShortlistOnly, shortlist]);
 
   const myDisplayName = myName || profile.artistName || "";
 
@@ -283,10 +335,10 @@ export default function GuildPage() {
 
         {/* ── Browse tab ──────────────────────────────────────────────────── */}
         {tab === "browse" && (
-          <section className="p-5">
-            {/* Filters */}
-            <div className="mb-4 flex flex-wrap gap-2">
-              <div className="flex gap-1 overflow-x-auto">
+          <section className="p-4">
+            {/* Filters row */}
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {ROLES.map((r) => (
                   <button
                     key={r}
@@ -300,20 +352,32 @@ export default function GuildPage() {
                   </button>
                 ))}
               </div>
+              {shortlist.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowShortlistOnly((v) => !v)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
+                    showShortlistOnly ? "bg-[#ef9f27] text-[#0d0d0b]" : "border-[0.5px] border-[#ef9f27]/40 text-[#ef9f27]/70 hover:text-[#ef9f27]"
+                  }`}
+                >
+                  ★ Shortlist ({shortlist.size})
+                </button>
+              )}
             </div>
 
             {membersLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 animate-pulse rounded-[16px] bg-white/[0.04]" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-48 animate-pulse rounded-[20px] bg-white/[0.04]" />
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-sm text-white/35">No matches for those filters.</p>
+              <div className="py-16 text-center">
+                <div className="text-3xl">🔍</div>
+                <p className="mt-3 text-sm text-white/35">No matches for those filters.</p>
                 <button
                   type="button"
-                  onClick={() => { setRoleFilter("All"); setGenreFilter("All"); }}
+                  onClick={() => { setRoleFilter("All"); setGenreFilter("All"); setShowShortlistOnly(false); }}
                   className="mt-3 text-xs text-white/35 underline underline-offset-2"
                 >
                   Clear filters
@@ -321,54 +385,139 @@ export default function GuildPage() {
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {filtered.map((member) => (
-                  <div
-                    key={member.user_id}
-                    className="rounded-[16px] border-[0.5px] border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold ${avatarColor(member.display_name)}`}>
-                        {initials(member.display_name)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[15px] font-medium text-white">{member.display_name}</span>
-                          {member.open && (
-                            <span className="rounded-full bg-[#97c459]/20 px-2 py-0.5 text-[10px] font-medium text-[#97c459]">
-                              Open
-                            </span>
-                          )}
+                {filtered.map((member) => {
+                  const isShortlisted = shortlist.has(member.user_id);
+                  const isExpanded = activeCard === member.user_id;
+
+                  return (
+                    <motion.div
+                      key={member.user_id}
+                      layout
+                      className="overflow-hidden rounded-[20px] border-[0.5px] border-white/10 bg-[#0d0d0b] transition hover:border-white/20"
+                    >
+                      {/* Card header — gradient bg */}
+                      <div className={`bg-gradient-to-b ${cardGradient(member.display_name)} px-4 pt-5 pb-4`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex size-12 shrink-0 items-center justify-center rounded-full text-[15px] font-bold ${avatarColor(member.display_name)}`}>
+                              {initials(member.display_name)}
+                            </div>
+                            <div>
+                              <div className="text-[15px] font-semibold text-white leading-tight">{member.display_name}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {member.role && (
+                                  <span className="text-[11px] text-white/50">{member.role}</span>
+                                )}
+                                {member.open && (
+                                  <span className="rounded-full bg-[#97c459]/20 px-2 py-0.5 text-[9px] font-semibold text-[#97c459]">OPEN</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleShortlist(member.user_id, member.display_name)}
+                            className={`shrink-0 text-lg transition hover:scale-110 ${isShortlisted ? "text-[#ef9f27]" : "text-white/20 hover:text-white/50"}`}
+                            aria-label={isShortlisted ? "Remove from shortlist" : "Add to shortlist"}
+                          >
+                            ★
+                          </button>
                         </div>
-                        {member.role && (
-                          <div className="mt-0.5 text-[12px] text-white/45">{member.role}</div>
-                        )}
+
                         {member.vibe && (
-                          <div className="mt-1 text-[12px] italic text-white/30">"{member.vibe}"</div>
+                          <p className="mt-3 text-[12px] italic text-white/40 leading-5">"{member.vibe}"</p>
                         )}
+
                         {member.genres?.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {member.genres.slice(0, 3).map((g) => (
-                              <span key={g} className="rounded-full border-[0.5px] border-white/15 px-2 py-0.5 text-[10px] text-white/40">
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {member.genres.slice(0, 4).map((g) => (
+                              <span key={g} className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-white/55">
                                 {g}
                               </span>
                             ))}
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-                ))}
+
+                      {/* Quick actions */}
+                      <div className="grid grid-cols-2 gap-1.5 p-3 border-t border-white/[0.06]">
+                        <button
+                          type="button"
+                          onClick={() => copyDmOpener(member.display_name)}
+                          className="flex items-center justify-center gap-1.5 rounded-xl border-[0.5px] border-white/15 py-2.5 text-[11px] font-medium text-white/60 transition hover:border-white/30 hover:text-white/85 active:scale-95"
+                        >
+                          <span>💬</span> Message
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleShortlist(member.user_id, member.display_name)}
+                          className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-medium transition active:scale-95 ${
+                            isShortlisted
+                              ? "bg-[#ef9f27]/20 border-[0.5px] border-[#ef9f27]/40 text-[#ef9f27]"
+                              : "border-[0.5px] border-white/15 text-white/60 hover:border-white/30 hover:text-white/85"
+                          }`}
+                        >
+                          <span>{isShortlisted ? "★" : "☆"}</span> {isShortlisted ? "Shortlisted" : "Shortlist"}
+                        </button>
+                      </div>
+
+                      {/* Expand toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setActiveCard(isExpanded ? null : member.user_id)}
+                        className="w-full border-t border-white/[0.04] px-4 py-2 text-[10px] text-white/25 hover:text-white/45 transition text-center"
+                      >
+                        {isExpanded ? "▲ Less" : "▼ More"}
+                      </button>
+
+                      {/* Expanded: collab context */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            key="expanded"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden border-t border-white/[0.06]"
+                          >
+                            <div className="px-4 py-4 space-y-3">
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">Why you might work together</div>
+                              <p className="text-[12px] leading-5 text-white/50">
+                                {member.role === "Producer" && "Producers bring the foundation. If you need beats, loops, or full production — this is where to start."}
+                                {member.role === "Songwriter" && "A dedicated songwriter can elevate your hook, bridge, or concept without taking the lead role."}
+                                {member.role === "Vocalist" && "Vocalists add a feature, harmonies, or an entirely new angle to your production."}
+                                {member.role === "Artist" && "Another artist means joint releases, cross-promotion, and shared audience reach."}
+                                {member.role === "Mix Engineer" && "A mix engineer takes your finished recording and makes it sound like it belongs on any playlist."}
+                                {member.role === "DJ" && "DJs open doors to live performance, remixes, and new market exposure."}
+                                {!member.role && "Browse their catalog and reach out if the energy aligns."}
+                              </p>
+                              <a
+                                href={`/projects/new?collaborator=${encodeURIComponent(member.display_name)}`}
+                                className="mt-1 block rounded-xl border-[0.5px] border-white/15 py-2.5 text-center text-[12px] font-medium text-white/60 transition hover:border-white/30 hover:text-white/85"
+                              >
+                                + Invite to a project
+                              </a>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
 
-            {/* Not in the guild yet CTA */}
-            {!guildProfileSaved && !myDisplayName && (
-              <div className="mt-6 rounded-[16px] border-[0.5px] border-dashed border-white/15 p-5 text-center">
-                <p className="text-sm text-white/35">You&apos;re not in the Guild yet.</p>
+            {/* Join CTA */}
+            {!myDisplayName && (
+              <div className="mt-5 rounded-[20px] border-[0.5px] border-dashed border-white/15 p-6 text-center">
+                <div className="text-2xl">🎵</div>
+                <p className="mt-3 text-sm font-medium text-white">You&apos;re not in the Guild yet.</p>
+                <p className="mt-1 text-xs text-white/35">Set up your profile so other artists can find you.</p>
                 <button
                   type="button"
                   onClick={() => setProfileOpen(true)}
-                  className="mt-3 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-[#0d0d0b] transition hover:bg-white/90 active:scale-95"
+                  className="mt-4 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#0d0d0b] transition hover:bg-white/90 active:scale-95"
                 >
                   Join the Guild →
                 </button>
@@ -588,16 +737,16 @@ export default function GuildPage() {
         )}
       </AnimatePresence>
 
-      {/* Success toast */}
+      {/* Toast */}
       <AnimatePresence>
-        {guildProfileSaved && (
+        {(guildProfileSaved || toast) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#97c459] px-5 py-2.5 text-sm font-semibold text-[#0d0d0b] shadow-lg"
+            className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#97c459] px-5 py-2.5 text-sm font-semibold text-[#0d0d0b] shadow-lg"
           >
-            Profile saved to Guild ✓
+            {guildProfileSaved ? "Profile saved to Guild ✓" : toast}
           </motion.div>
         )}
       </AnimatePresence>
