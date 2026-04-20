@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { audiodbSearchArtist, bandsintownGetEvents } from "@/lib/music-apis";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -10,9 +11,27 @@ import {
   getSongReadinessScore,
 } from "@/lib/backstage-data";
 
+type AudioDbArtist = { strArtist: string; strBiographyEN?: string; strArtistThumb?: string; strFacebook?: string; strTwitter?: string; strInstagram?: string };
+type BandsintownEvent = { id: string; title?: string; venue?: { name: string; city: string; country: string }; datetime?: string; url?: string };
+
 export default function EpkPage() {
   const { profile, songs } = usePocket();
   const [selectedSongIds, setSelectedSongIds] = useState(() => songs.slice(0, 3).map((song) => song.id));
+  const [audioDbData, setAudioDbData] = useState<AudioDbArtist | null>(null);
+  const [upcomingShows, setUpcomingShows] = useState<BandsintownEvent[]>([]);
+
+  // Load artist enrichment from free APIs
+  useEffect(() => {
+    const name = profile.artistName;
+    if (!name) return;
+    audiodbSearchArtist(name).then((data) => {
+      const d = data as { artists?: AudioDbArtist[] };
+      if (d?.artists?.[0]) setAudioDbData(d.artists[0]);
+    }).catch(() => {});
+    bandsintownGetEvents(name).then((data) => {
+      if (Array.isArray(data)) setUpcomingShows((data as BandsintownEvent[]).slice(0, 3));
+    }).catch(() => {});
+  }, [profile.artistName]);
   const [artistBio, setArtistBio] = useState(
     `${profile.artistName} is building a release catalog with Pocket Manager, tracking revenue readiness, platform registration, and the next money moves across every song.`,
   );
@@ -155,7 +174,13 @@ export default function EpkPage() {
           <div ref={epkPreviewRef} className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
             <div className="bg-[#0a0a0a] p-5 text-white">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Public page preview</div>
-              <h3 className="mt-4 text-[40px] font-light leading-none tracking-[-0.03em] text-white">{profile.artistName}</h3>
+              <div className="mt-4 flex items-center gap-4">
+                {audioDbData?.strArtistThumb && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={audioDbData.strArtistThumb} alt={profile.artistName} className="size-16 rounded-full object-cover" />
+                )}
+                <h3 className="text-[40px] font-light leading-none tracking-[-0.03em] text-white">{profile.artistName}</h3>
+              </div>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">{artistBio}</p>
               <div className="mt-4 text-sm text-white/45">{contact}</div>
             </div>
@@ -192,6 +217,18 @@ export default function EpkPage() {
                 </Link>
               ))}
             </div>
+
+            {upcomingShows.length > 0 && (
+              <div className="space-y-2 border-t-[0.5px] border-black/10 p-5">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Upcoming shows</div>
+                {upcomingShows.map((show) => (
+                  <div key={show.id} className="rounded-lg border-[0.5px] border-black/10 bg-[#f8f6f1] px-3 py-2 text-sm">
+                    <div className="font-medium text-[#111]">{show.venue?.name ?? "TBD"}</div>
+                    <div className="text-xs text-[#6b6b65]">{show.venue?.city}, {show.venue?.country} · {show.datetime ? new Date(show.datetime).toLocaleDateString() : ""}</div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-3 border-t-[0.5px] border-black/10 p-5">
               <button

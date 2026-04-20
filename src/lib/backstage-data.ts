@@ -103,6 +103,9 @@ export type SongCatalogItem = {
   language?: string;
   streams: number;
   territory: string;
+  emotionalStory?: string;
+  spotifyArtistId?: string;
+  spotifyTrackId?: string;
   collaborators: Array<{
     name: string;
     role: "writer" | "producer" | "featured_artist" | "master_owner";

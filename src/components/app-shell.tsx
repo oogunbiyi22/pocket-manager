@@ -7,12 +7,11 @@ import { PocketSheet } from "@/components/pocket-sheet";
 import { AChatOverlay, DraggableAButton } from "@/components/a-chat-overlay";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoWordmark } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-provider";
 
 // ─── SVG Icons ─────────────────────────────────────────────────────────────
 function IconHome({ active }: { active: boolean }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 12L12 4l9 8" />
       <path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
     </svg>
@@ -21,17 +20,16 @@ function IconHome({ active }: { active: boolean }) {
 
 function IconWork({ active }: { active: boolean }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8v4l2.5 2.5" />
-      <path d="M7 3.338A9.954 9.954 0 0112 2c5.523 0 10 4.477 10 10" />
     </svg>
   );
 }
 
 function IconSignal({ active }: { active: boolean }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 20h.01M7 20v-4M12 20V10M17 20V4M22 20h.01" />
     </svg>
   );
@@ -39,7 +37,7 @@ function IconSignal({ active }: { active: boolean }) {
 
 function IconHarvest({ active }: { active: boolean }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="1" x2="12" y2="23" />
       <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
     </svg>
@@ -48,7 +46,7 @@ function IconHarvest({ active }: { active: boolean }) {
 
 function IconProfile({ active }: { active: boolean }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" />
     </svg>
@@ -79,6 +77,8 @@ function getActiveSurface(pathname: string): string {
     pathname.startsWith("/studio") ||
     pathname.startsWith("/epk") ||
     pathname.startsWith("/pitch-kits") ||
+    pathname.startsWith("/pitching") ||
+    pathname.startsWith("/career-twin") ||
     pathname.startsWith("/sync") ||
     pathname.startsWith("/booking") ||
     pathname.startsWith("/events") ||
@@ -123,28 +123,49 @@ export function AppShell({
   const { signedIn, profile } = usePocket();
 
   return (
-    <div className="min-h-screen text-[var(--text-primary)]">
+    <div className="min-h-screen" style={{ color: "var(--text-primary)" }}>
 
-      {/* ── Frosted nav bar ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-black/[0.05] glass px-4 py-3 sm:px-6">
+      {/* ── HUD header bar ──────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-40 px-4 py-3 sm:px-6"
+        style={{
+          background: "linear-gradient(180deg, rgba(0,0,14,0.95) 0%, rgba(3,3,15,0.85) 100%)",
+          backdropFilter: "blur(40px) saturate(180%)",
+          WebkitBackdropFilter: "blur(40px) saturate(180%)",
+          borderBottom: "0.5px solid rgba(0, 212, 255, 0.08)",
+          boxShadow: "0 1px 0 rgba(0,212,255,0.04) inset",
+        }}
+      >
         <div className="mx-auto flex max-w-7xl items-center gap-4">
-          <Link href="/home" className="shrink-0 press">
+          <Link href="/home" className="shrink-0 press" style={{ opacity: 0.9 }}>
             <LogoWordmark size={28} />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden flex-1 justify-center gap-1 rounded-xl border border-black/[0.06] bg-white/60 p-1 md:flex">
+          {/* Desktop nav — holographic pill */}
+          <nav
+            className="hidden flex-1 justify-center gap-0.5 rounded-2xl p-1 md:flex"
+            style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "0.5px solid rgba(255,255,255,0.07)",
+            }}
+          >
             {NAV_ITEMS.map((item) => {
               const isActive = activeNav === item.label;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm transition-colors ${
-                    isActive
-                      ? "bg-[#0d0d0b] text-white"
-                      : "text-[#6b6b65] hover:bg-[#f5f4f0] hover:text-[#0d0d0b]"
-                  }`}
+                  className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm transition-all duration-200 press"
+                  style={isActive ? {
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(0,212,255,0.12) 100%)",
+                    border: "0.5px solid rgba(0,212,255,0.2)",
+                    color: "var(--cyan)",
+                    boxShadow: "0 0 12px rgba(0,212,255,0.12)",
+                    fontWeight: 500,
+                    letterSpacing: "0.02em",
+                  } : {
+                    color: "rgba(255,255,255,0.35)",
+                  }}
                 >
                   <item.Icon active={isActive} />
                   {item.label}
@@ -153,13 +174,25 @@ export function AppShell({
             })}
           </nav>
 
-          {/* Auth-aware right action */}
+          {/* Right — identity orb */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <ThemeToggle className="text-[var(--text-muted)] border border-[var(--border-subtle)]" />
             {signedIn ? (
               <Link
                 href="/settings"
-                className="grid size-8 place-items-center rounded-full bg-[var(--bg-dark)] text-xs font-medium text-[var(--bg-base)] transition hover:opacity-80"
+                className="press"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: "linear-gradient(135deg, rgba(168,85,247,0.3), rgba(0,212,255,0.3))",
+                  border: "0.5px solid rgba(0,212,255,0.3)",
+                  color: "var(--cyan)",
+                  boxShadow: "0 0 12px rgba(0,212,255,0.15)",
+                }}
                 aria-label="Profile"
               >
                 {profile.artistName?.[0]?.toUpperCase() ?? "A"}
@@ -167,7 +200,15 @@ export function AppShell({
             ) : (
               <Link
                 href="/sign-in"
-                className="rounded-lg border border-[var(--border-subtle)] glass px-4 py-2 text-xs text-[var(--text-muted)] transition hover:opacity-80"
+                className="press"
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  border: "0.5px solid rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.4)",
+                  background: "rgba(255,255,255,0.03)",
+                }}
               >
                 Sign in
               </Link>
@@ -181,45 +222,82 @@ export function AppShell({
         {(title || eyebrow) && (
           <header className="mb-8">
             {eyebrow && (
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#ef9f27]/60">{eyebrow}</div>
+              <div className="label-upper" style={{ color: "rgba(0,212,255,0.5)", marginBottom: 6 }}>{eyebrow}</div>
             )}
             {title && (
-              <h1 className="mt-2 text-[32px] font-light tracking-[-0.025em] text-[var(--text-primary)] sm:text-[40px]">{title}</h1>
+              <h1 style={{ fontSize: "clamp(28px,5vw,42px)", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 1.1, color: "var(--text-primary)", margin: 0 }}>{title}</h1>
             )}
           </header>
         )}
         {children}
       </main>
 
-      {/* ── Frosted mobile tab bar ──────────────────────────────── */}
+      {/* ── Floating mobile tab bar — HUD control panel ──────────── */}
       <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
-        <nav className="mx-3 mb-3 grid grid-cols-5 rounded-2xl glass px-1 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+        <nav
+          className="mx-3 mb-3 grid grid-cols-5 rounded-2xl px-1 py-2"
+          style={{
+            background: "linear-gradient(180deg, rgba(8,8,24,0.96) 0%, rgba(3,3,15,0.98) 100%)",
+            backdropFilter: "blur(60px) saturate(200%)",
+            WebkitBackdropFilter: "blur(60px) saturate(200%)",
+            border: "0.5px solid rgba(0,212,255,0.1)",
+            boxShadow: "0 0 40px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(255,255,255,0.04) inset",
+          }}
+        >
           {NAV_ITEMS.map((item) => {
             const isActive = activeNav === item.label;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-center transition active:scale-90 ${
-                  isActive ? "text-[#0d0d0b]" : "text-[#9a9a92]"
-                }`}
+                className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-center transition-all duration-200 active:scale-90"
+                style={isActive ? {
+                  color: "var(--cyan)",
+                } : {
+                  color: "rgba(255,255,255,0.28)",
+                }}
               >
                 <item.Icon active={isActive} />
-                <span className={`text-[9px] leading-none ${isActive ? "font-semibold" : "font-normal"}`}>
+                <span
+                  className="label-mono"
+                  style={{ fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: 1 }}
+                >
                   {item.label}
                 </span>
-                <span className={`h-[2.5px] w-3 rounded-full transition-all duration-200 ${isActive ? "bg-[#0d0d0b] w-5" : "bg-transparent"}`} />
+                <span
+                  style={{
+                    height: 2,
+                    width: isActive ? 16 : 0,
+                    borderRadius: 1,
+                    background: isActive ? "var(--cyan)" : "transparent",
+                    boxShadow: isActive ? "0 0 6px var(--cyan)" : "none",
+                    transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  }}
+                />
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {/* ── Floating Pocket button ───────────────────────────────── */}
+      {/* ── Pocket button — plasma orb ───────────────────────────── */}
       <button
         type="button"
         onClick={() => setPocketOpen(true)}
-        className="fixed bottom-[76px] left-4 z-50 grid size-11 place-items-center rounded-full backdrop-blur-md bg-[rgba(13,13,11,0.92)] text-white text-xl font-light shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition active:scale-90 md:bottom-6"
+        className="fixed bottom-[76px] left-4 z-50 press"
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          background: "linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(0,212,255,0.4) 100%)",
+          border: "0.5px solid rgba(168,85,247,0.5)",
+          color: "#fff",
+          fontSize: 20,
+          fontWeight: 200,
+          boxShadow: "0 0 20px rgba(168,85,247,0.4), 0 4px 16px rgba(0,0,0,0.6)",
+        }}
         aria-label="Open Pocket"
       >
         +
@@ -248,10 +326,17 @@ export function Panel({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl glass p-6">
+    <section
+      className="rounded-2xl p-6"
+      style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "0.5px solid rgba(255,255,255,0.07)",
+        backdropFilter: "blur(40px)",
+      }}
+    >
       <div className="mb-5">
-        <h2 className="text-lg font-normal tracking-tight text-[#0d0d0b]">{title}</h2>
-        {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6b6b65]">{description}</p> : null}
+        <h2 style={{ fontSize: 18, fontWeight: 300, letterSpacing: "-0.02em", color: "var(--text-primary)", margin: "0 0 8px" }}>{title}</h2>
+        {description ? <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)", margin: 0 }}>{description}</p> : null}
       </div>
       {children}
     </section>

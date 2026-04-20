@@ -155,6 +155,12 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Spotify Artist ID */}
+        <SpotifyArtistIdInput />
+
+        {/* API integrations status */}
+        <ApiIntegrationsStatus />
+
         {/* Pricing tiers */}
         <section className="space-y-3">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Subscription</div>
@@ -217,6 +223,129 @@ export default function SettingsPage() {
         ) : null}
       </main>
     </AppShell>
+  );
+}
+
+const API_INTEGRATIONS = [
+  { name: "MusicBrainz", description: "ISRC lookup, metadata verification", free: true, envKey: null },
+  { name: "iTunes Search", description: "Apple Music catalog search, artwork", free: true, envKey: null },
+  { name: "TheAudioDB", description: "Artist bios, photos, album art (free tier)", free: true, envKey: null },
+  { name: "Bandsintown", description: "Live events and show data", free: true, envKey: null },
+  { name: "Lyrics.ovh", description: "Song lyrics lookup", free: true, envKey: null },
+  { name: "Last.fm", description: "Similar artists, listener counts", free: true, envKey: "LASTFM_API_KEY" },
+  { name: "TasteDive", description: "Similar artist recommendations for Career Twin", free: true, envKey: "TASTEDIVE_API_KEY" },
+  { name: "Genius", description: "Lyrics, annotations, song knowledge", free: true, envKey: "GENIUS_ACCESS_TOKEN" },
+  { name: "Musixmatch", description: "Synchronized lyrics, lyric snippets", free: false, envKey: "MUSIXMATCH_API_KEY" },
+  { name: "MusicFetch", description: "Auto-generate links for 40+ DSPs from ISRC", free: false, envKey: "MUSICFETCH_TOKEN" },
+  { name: "Songstats", description: "Live streaming stats, playlist placements", free: false, envKey: "SONGSTATS_API_KEY" },
+  { name: "Radiostats", description: "Radio airplay analytics", free: false, envKey: "SONGSTATS_API_KEY" },
+  { name: "AI Mastering", description: "Automated audio mastering (premium)", free: false, envKey: "AIMASTERING_API_KEY" },
+  { name: "Resend", description: "In-app email sending for pitch campaigns", free: true, envKey: "RESEND_API_KEY" },
+  { name: "Groq", description: "AI pitch generation (free tier)", free: true, envKey: "GROQ_API_KEY" },
+];
+
+function ApiIntegrationsStatus() {
+  const freeApis = API_INTEGRATIONS.filter((a) => a.free && !a.envKey);
+  const freeWithKey = API_INTEGRATIONS.filter((a) => a.free && a.envKey);
+  const paidApis = API_INTEGRATIONS.filter((a) => !a.free);
+
+  return (
+    <section className="rounded-[20px] glass card-shadow p-5">
+      <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">API integrations</div>
+
+      <div className="mb-4">
+        <div className="mb-2 text-[11px] font-medium text-[#3b6d11]">Active — no key needed</div>
+        <div className="space-y-1.5">
+          {freeApis.map((api) => (
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#f0f7e6] px-3 py-2">
+              <div>
+                <span className="text-sm font-medium text-[#111]">{api.name}</span>
+                <span className="ml-2 text-xs text-[#6b6b65]">{api.description}</span>
+              </div>
+              <span className="text-[10px] font-medium text-[#3b6d11]">✓ Active</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <div className="mb-2 text-[11px] font-medium text-[#854f0b]">Free — add key to Vercel</div>
+        <div className="space-y-1.5">
+          {freeWithKey.map((api) => (
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#fef9f0] px-3 py-2">
+              <div>
+                <span className="text-sm font-medium text-[#111]">{api.name}</span>
+                <span className="ml-2 text-xs text-[#6b6b65]">{api.description}</span>
+              </div>
+              <code className="text-[10px] text-[#854f0b]">{api.envKey}</code>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 text-[11px] font-medium text-[#9a9a8a]">Paid API — requires subscription</div>
+        <div className="space-y-1.5">
+          {paidApis.map((api) => (
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#f8f6f1] px-3 py-2">
+              <div>
+                <span className="text-sm font-medium text-[#111]">{api.name}</span>
+                <span className="ml-2 text-xs text-[#6b6b65]">{api.description}</span>
+              </div>
+              <code className="text-[10px] text-[#9a9a8a]">{api.envKey}</code>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SpotifyArtistIdInput() {
+  const { profile, updateProfile } = usePocket();
+  const [value, setValue] = useState(profile.spotifyArtistId ?? "");
+  const [saved, setSaved] = useState(false);
+
+  // Extract ID from full URL if pasted
+  function extractId(input: string): string {
+    const match = input.match(/artist\/([A-Za-z0-9]+)/);
+    return match ? match[1] : input.trim();
+  }
+
+  function save() {
+    const id = extractId(value);
+    setValue(id);
+    updateProfile({ spotifyArtistId: id });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <section className="rounded-[20px] glass card-shadow p-5">
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Integrations</div>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm text-[#514d47]">
+            <span className="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#9a9a8a]">Spotify artist URL or ID</span>
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => { setValue(e.target.value); setSaved(false); }}
+              placeholder="https://open.spotify.com/artist/... or paste the ID"
+              className="h-10 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none placeholder:text-[#bbb]"
+            />
+          </label>
+          <p className="mt-1.5 text-[11px] text-[#9a9a8a]">Used to pull live stream counts and top playlists via Songstats on your song pages.</p>
+          <button
+            type="button"
+            onClick={save}
+            className="mt-2.5 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
+          >
+            {saved ? "Saved ✓" : "Save"}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

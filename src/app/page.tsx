@@ -9,37 +9,43 @@ const PILLARS = [
     label: "Manager Brain",
     tag: "A — AI",
     body: "Ask about your gap, next move, ISRC, release windows, or any part of your catalog. Context-aware. Always in your corner.",
-    accent: "#ef9f27",
+    color: "var(--cyan)",
+    glow: "rgba(0,212,255,0.15)",
   },
   {
     label: "Release Room",
     tag: "Planning",
     body: "Pre-release checklist with real checkpoints — metadata, distribution submission, platform delivery, outreach timing. Nothing slips.",
-    accent: "#97c459",
+    color: "var(--green)",
+    glow: "rgba(16,240,144,0.12)",
   },
   {
     label: "The Vault",
     tag: "Protection",
-    body: "Masters, split sheets, contracts, and artwork stored in one place. Not scattered across email threads and USB drives.",
-    accent: "#6c9fcf",
+    body: "Masters, split sheets, contracts, and artwork in one place. Not scattered across email threads and USB drives.",
+    color: "var(--purple)",
+    glow: "rgba(168,85,247,0.15)",
   },
   {
     label: "Pocket A&R",
     tag: "Outreach",
     body: "300+ venues, 150+ radio stations, 65 sync companies — with real booking contacts, not homepage links. Pitch from inside the app.",
-    accent: "#c47fcf",
+    color: "var(--cyan)",
+    glow: "rgba(0,212,255,0.12)",
   },
   {
     label: "Signal",
     tag: "Playlisting",
     body: "Match your song by genre, mood, and BPM to the right playlists. We generate the pitch. You send it. Track opens, replies, and placements.",
-    accent: "#cf7f7f",
+    color: "var(--amber)",
+    glow: "rgba(255,179,0,0.12)",
   },
   {
     label: "The Gap Engine",
     tag: "Revenue",
     body: "SoundExchange, The MLC, PRO, YouTube Content ID, mechanical — we scan every door and show you exactly what's still closed.",
-    accent: "#9fcfb0",
+    color: "var(--green)",
+    glow: "rgba(16,240,144,0.12)",
   },
 ];
 
@@ -83,9 +89,9 @@ function WaitlistForm() {
 
   if (status === "done") {
     return (
-      <div className="rounded-2xl border border-[#ef9f27]/30 bg-[#ef9f27]/10 px-6 py-5 text-center">
-        <div className="text-[15px] font-medium text-[#ef9f27]">You&apos;re on the list.</div>
-        <p className="mt-1 text-sm text-white/45">We&apos;ll reach out before launch. Tell one artist you trust.</p>
+      <div style={{ borderRadius: 16, border: "0.5px solid rgba(0,212,255,0.2)", background: "rgba(0,212,255,0.06)", padding: "20px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: "var(--cyan)" }}>You&apos;re on the list.</div>
+        <p style={{ marginTop: 4, fontSize: 13, color: "rgba(255,255,255,0.35)" }}>We&apos;ll reach out before launch. Tell one artist you trust.</p>
       </div>
     );
   }
@@ -98,17 +104,17 @@ function WaitlistForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="your@email.com"
         required
-        className="h-12 flex-1 rounded-xl border border-white/15 bg-white/5 px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/35"
+        style={{ flex: 1, height: 48, borderRadius: 12, border: "0.5px solid rgba(0,212,255,0.15)", background: "rgba(0,212,255,0.04)", padding: "0 16px", fontSize: 14, color: "#fff", outline: "none" }}
       />
       <button
         type="submit"
         disabled={status === "loading" || !email.trim()}
-        className="h-12 rounded-xl bg-[#ef9f27] px-6 text-sm font-semibold text-[#0d0d0b] transition hover:bg-[#f5b048] disabled:opacity-50 active:scale-[0.98]"
+        style={{ height: 48, borderRadius: 12, background: "linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%)", border: "none", padding: "0 24px", fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer", whiteSpace: "nowrap", opacity: status === "loading" ? 0.6 : 1 }}
       >
         {status === "loading" ? "Saving…" : "Get early access"}
       </button>
       {status === "error" && (
-        <p className="w-full text-center text-xs text-[#e24b4a]">Something went wrong — try again.</p>
+        <p style={{ width: "100%", textAlign: "center", fontSize: 12, color: "var(--red)" }}>Something went wrong — try again.</p>
       )}
     </form>
   );
@@ -116,90 +122,191 @@ function WaitlistForm() {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#0d0d0b] text-white">
+    <div style={{ minHeight: "100vh", background: "var(--void)", color: "var(--text-primary)" }}>
 
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[rgba(13,13,11,0.88)] px-5 py-4 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-2.5">
+      {/* Nav — HUD glass bar */}
+      <header style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+        padding: "14px 20px",
+        background: "rgba(0,0,14,0.92)",
+        backdropFilter: "blur(40px) saturate(200%)",
+        WebkitBackdropFilter: "blur(40px) saturate(200%)",
+        borderBottom: "0.5px solid rgba(0,212,255,0.07)",
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <LogoMark size={32} />
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Pocket</div>
-              <div className="-mt-0.5 text-[16px] font-normal tracking-[-0.02em] leading-none text-white">Manager</div>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(0,212,255,0.4)", fontFamily: "monospace" }}>Pocket</div>
+              <div style={{ marginTop: -2, fontSize: 16, fontWeight: 300, letterSpacing: "-0.02em", lineHeight: 1, color: "#fff" }}>Manager</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/sign-in" className="hidden rounded-lg border border-white/10 px-4 py-2 text-sm text-white/55 transition hover:border-white/25 hover:text-white/80 sm:block">
-              Sign in
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Link
+              href="/sign-in"
+              style={{ display: "none" }}
+              className="sm:block"
+            >
+              <span style={{ padding: "6px 16px", borderRadius: 10, border: "0.5px solid rgba(255,255,255,0.1)", fontSize: 13, color: "rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.03)" }}>
+                Sign in
+              </span>
             </Link>
-            <Link href="/sign-in?mode=sign-up" className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-[#0d0d0b] transition hover:bg-white/90">
-              Start free →
+            <Link href="/sign-in?mode=sign-up">
+              <span style={{ padding: "8px 18px", borderRadius: 10, background: "linear-gradient(135deg, rgba(168,85,247,0.25) 0%, rgba(0,212,255,0.25) 100%)", border: "0.5px solid rgba(0,212,255,0.3)", fontSize: 13, fontWeight: 500, color: "var(--cyan)", boxShadow: "0 0 16px rgba(0,212,255,0.1)" }}>
+                Start free →
+              </span>
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden px-5 pb-24 pt-20 sm:pb-36 sm:pt-32">
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-[700px] w-[700px] rounded-full bg-[#ef9f27]/[0.04] blur-[140px]" />
+      {/* Hero — deep space command center */}
+      <section style={{ position: "relative", overflow: "hidden", padding: "100px 20px 120px" }}>
+        {/* Aurora orbs */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          <div style={{ position: "absolute", top: "10%", left: "5%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(168,85,247,0.12) 0%, transparent 70%)", filter: "blur(40px)" }} />
+          <div style={{ position: "absolute", bottom: "5%", right: "5%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(0,212,255,0.1) 0%, transparent 70%)", filter: "blur(40px)" }} />
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 800, height: 800, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(16,240,144,0.04) 0%, transparent 70%)", filter: "blur(60px)" }} />
+          {/* Scan line */}
+          <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.01) 2px, rgba(0,212,255,0.01) 4px)" }} />
         </div>
-        <div className="relative mx-auto max-w-5xl">
-          <div className="mb-8 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">
-            Built for independent artists
+
+        <div style={{ position: "relative", maxWidth: 1100, margin: "0 auto" }}>
+          {/* Eyebrow */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, border: "0.5px solid rgba(0,212,255,0.2)", background: "rgba(0,212,255,0.05)", marginBottom: 32 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--cyan)", boxShadow: "0 0 8px var(--cyan)" }} />
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(0,212,255,0.7)", fontFamily: "monospace" }}>Built for independent artists</span>
           </div>
-          <h1 className="max-w-4xl text-[52px] font-light leading-[1.02] tracking-[-0.04em] sm:text-[72px] lg:text-[88px]">
-            Your manager brain.<br className="hidden sm:block" />
-            <span className="text-[#ef9f27]">In your pocket.</span>
+
+          <h1 className="display-xl" style={{ maxWidth: 900, marginBottom: 32, color: "#fff" }}>
+            Your manager brain.<br />
+            <span style={{ color: "var(--cyan)", textShadow: "0 0 40px rgba(0,212,255,0.4)" }}>In your pocket.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-[17px] leading-8 text-white/45">
-            From finishing the song to building real momentum — Pocket Manager handles the business, the outreach, the paperwork, and the strategy. So you can stay in the music.
+
+          <p style={{ maxWidth: 560, fontSize: 17, lineHeight: 1.8, color: "rgba(255,255,255,0.4)", marginBottom: 48 }}>
+            From finishing the song to building real momentum. Pocket Manager handles the business, the outreach, the paperwork, and the strategy. So you can stay in the music.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Link
-              href="/sign-in?mode=sign-up"
-              className="rounded-xl bg-white px-8 py-4 text-[15px] font-semibold text-[#0d0d0b] transition hover:bg-white/90 active:scale-[0.98]"
-            >
-              Start for free
+
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginBottom: 24 }}>
+            <Link href="/sign-in?mode=sign-up">
+              <span style={{ display: "inline-block", padding: "14px 32px", borderRadius: 12, background: "linear-gradient(135deg, rgba(168,85,247,0.3) 0%, rgba(0,212,255,0.3) 100%)", border: "0.5px solid rgba(0,212,255,0.4)", fontSize: 15, fontWeight: 500, color: "#fff", boxShadow: "0 0 24px rgba(0,212,255,0.15), 0 4px 20px rgba(0,0,0,0.5)", cursor: "pointer" }}>
+                Start for free
+              </span>
             </Link>
-            <Link
-              href="/onboarding"
-              className="rounded-xl border border-white/15 px-8 py-4 text-[15px] text-white/50 transition hover:border-white/30 hover:text-white/80 active:scale-[0.98]"
-            >
-              See how it works →
+            <Link href="/onboarding">
+              <span style={{ display: "inline-block", padding: "14px 28px", borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.1)", fontSize: 15, color: "rgba(255,255,255,0.35)", cursor: "pointer" }}>
+                See how it works →
+              </span>
             </Link>
           </div>
-          <p className="mt-5 text-xs text-white/20">No credit card. No agency fees. Just the tools a real manager would use.</p>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.15)", letterSpacing: "0.05em" }}>No credit card. No agency fees. Just the tools a real manager would use.</p>
         </div>
       </section>
 
-      {/* The real pitch — not just money */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+      {/* Live dashboard — HUD stat preview */}
+      <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.05)", padding: "80px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ marginBottom: 48, textAlign: "center" }}>
+            <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(0,212,255,0.4)", fontFamily: "monospace", marginBottom: 16 }}>System status · live</div>
+            <h2 style={{ fontSize: "clamp(32px,5vw,52px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff" }}>
+              What your catalog looks like<br />with a manager brain.
+            </h2>
+          </div>
+
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            {/* Revenue gap card */}
+            <div style={{ borderRadius: 20, padding: 24, background: "rgba(255,179,0,0.04)", border: "0.5px solid rgba(255,179,0,0.15)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: "radial-gradient(ellipse, rgba(255,179,0,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(255,179,0,0.5)", fontFamily: "monospace", marginBottom: 12 }}>Revenue gap</div>
+              <div style={{ fontSize: 52, fontWeight: 100, letterSpacing: "-0.05em", color: "var(--amber)", textShadow: "0 0 30px rgba(255,179,0,0.3)", lineHeight: 1 }}>$340+</div>
+              <div style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.3)" }}>3 unregistered platforms</div>
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+                {["SoundExchange — $68 est.", "The MLC — $120 est.", "YouTube Content ID — $152 est."].map((item) => (
+                  <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(255,179,0,0.06)", border: "0.5px solid rgba(255,179,0,0.1)", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--amber)", flexShrink: 0 }} />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Playlist signal */}
+            <div style={{ borderRadius: 20, padding: 24, background: "rgba(16,240,144,0.03)", border: "0.5px solid rgba(16,240,144,0.12)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: "radial-gradient(ellipse, rgba(16,240,144,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(16,240,144,0.5)", fontFamily: "monospace", marginBottom: 12 }}>Playlist signal</div>
+              <div style={{ fontSize: 52, fontWeight: 100, letterSpacing: "-0.05em", color: "var(--green)", textShadow: "0 0 30px rgba(16,240,144,0.3)", lineHeight: 1 }}>14</div>
+              <div style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.3)" }}>pitches in flight · 3 placed</div>
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { label: "Late Night R&B", status: "Placed", color: "var(--green)" },
+                  { label: "Chill Bedroom Beats", status: "Opened", color: "var(--amber)" },
+                  { label: "Neo Soul Essentials", status: "Sent", color: "rgba(255,255,255,0.2)" },
+                ].map((p) => (
+                  <div key={p.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 10, background: "rgba(16,240,144,0.04)", border: "0.5px solid rgba(16,240,144,0.08)", fontSize: 12 }}>
+                    <span style={{ color: "rgba(255,255,255,0.5)" }}>{p.label}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: p.color }} />
+                      <span style={{ color: "rgba(255,255,255,0.3)" }}>{p.status}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Release room */}
+            <div style={{ borderRadius: 20, padding: 24, background: "rgba(0,212,255,0.03)", border: "0.5px solid rgba(0,212,255,0.12)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: "radial-gradient(ellipse, rgba(0,212,255,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(0,212,255,0.5)", fontFamily: "monospace", marginBottom: 12 }}>Release room</div>
+              <div style={{ fontSize: 52, fontWeight: 100, letterSpacing: "-0.05em", color: "var(--cyan)", textShadow: "0 0 30px rgba(0,212,255,0.3)", lineHeight: 1 }}>7/12</div>
+              <div style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.3)" }}>steps complete · drop in 14 days</div>
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { label: "Metadata complete", done: true },
+                  { label: "Distribution submitted", done: true },
+                  { label: "Platform pre-save live", done: false },
+                  { label: "Curator pitches sent", done: false },
+                ].map((step) => (
+                  <div key={step.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(0,212,255,0.04)", border: "0.5px solid rgba(0,212,255,0.08)", fontSize: 12 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: step.done ? "var(--cyan)" : "rgba(255,255,255,0.15)", boxShadow: step.done ? "0 0 6px var(--cyan)" : "none", flexShrink: 0 }} />
+                    <span style={{ color: step.done ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)", textDecoration: step.done ? "none" : "none" }}>{step.label}</span>
+                    {step.done && <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(0,212,255,0.5)", fontFamily: "monospace" }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What it actually is */}
+      <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "80px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "grid", alignItems: "center", gap: 48, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">What this actually is</div>
-              <h2 className="mt-5 text-[36px] font-light leading-[1.1] tracking-[-0.03em] sm:text-[48px]">
+              <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 20 }}>What this actually is</div>
+              <h2 style={{ fontSize: "clamp(32px,4vw,48px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.1, marginBottom: 24 }}>
                 Not a royalty tracker.<br />A partner.
               </h2>
-              <p className="mt-6 text-[15px] leading-8 text-white/45">
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: "rgba(255,255,255,0.35)", marginBottom: 16 }}>
                 Major labels have teams for this. Business managers, A&R staff, publishing admins, booking agents, sync coordinators. They handle the messy middle between finishing a song and building momentum around it.
               </p>
-              <p className="mt-4 text-[15px] leading-8 text-white/45">
-                Pocket Manager gives you that same infrastructure — everything from split sheets to sync pitches to playlist placement — without the label deal, the manager cut, or the guesswork.
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: "rgba(255,255,255,0.35)" }}>
+                Pocket Manager gives you that same infrastructure — without the label deal, the manager cut, or the guesswork.
               </p>
             </div>
-            <div className="space-y-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
-                { label: "Without Pocket Manager", items: ["Royalties sitting uncollected", "No split sheet filed", "Pitch emails sitting in drafts", "Release dates missed", "Booking contacts buried in DMs"] },
+                { label: "Without Pocket Manager", items: ["Royalties sitting uncollected", "No split sheet filed", "Pitch emails sitting in drafts", "Release dates missed", "Booking contacts buried in DMs"], positive: false },
                 { label: "With Pocket Manager", items: ["Every revenue door tracked and opened", "Split sheets stored in the Vault", "AI-matched playlists pitched automatically", "Release Room with real checkpoints", "300+ venues with direct booking contacts"], positive: true },
               ].map((col) => (
-                <div key={col.label} className={`rounded-2xl border p-5 ${col.positive ? "border-[#97c459]/25 bg-[#97c459]/[0.04]" : "border-white/[0.06] bg-white/[0.02]"}`}>
-                  <div className={`mb-3 text-[11px] font-medium uppercase tracking-[0.18em] ${col.positive ? "text-[#97c459]/70" : "text-white/25"}`}>{col.label}</div>
-                  <ul className="space-y-2">
+                <div key={col.label} style={{ borderRadius: 16, padding: 20, border: `0.5px solid ${col.positive ? "rgba(16,240,144,0.2)" : "rgba(255,255,255,0.05)"}`, background: col.positive ? "rgba(16,240,144,0.04)" : "rgba(255,255,255,0.01)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "monospace", color: col.positive ? "rgba(16,240,144,0.6)" : "rgba(255,255,255,0.2)", marginBottom: 12 }}>{col.label}</div>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
                     {col.items.map((item) => (
-                      <li key={item} className={`flex items-start gap-2.5 text-[13px] ${col.positive ? "text-white/70" : "text-white/30 line-through decoration-white/20"}`}>
-                        <span className="mt-0.5 shrink-0">{col.positive ? "→" : "×"}</span>
+                      <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: col.positive ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)", textDecoration: col.positive ? "none" : "line-through", textDecorationColor: "rgba(255,255,255,0.1)" }}>
+                        <span style={{ flexShrink: 0, marginTop: 1 }}>{col.positive ? "→" : "×"}</span>
                         {item}
                       </li>
                     ))}
@@ -211,178 +318,100 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6 Pillars */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-14">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">Everything in one place</div>
-            <h2 className="mt-5 text-[36px] font-light tracking-[-0.03em] sm:text-[48px]">
-              From chaos to rollout.
-            </h2>
-            <p className="mt-4 max-w-2xl text-[15px] leading-8 text-white/40">
+      {/* 6 pillars — plasma grid */}
+      <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "80px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ marginBottom: 56 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 16 }}>Everything in one place</div>
+            <h2 style={{ fontSize: "clamp(32px,4vw,52px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff", marginBottom: 16 }}>From chaos to rollout.</h2>
+            <p style={{ maxWidth: 480, fontSize: 15, lineHeight: 1.8, color: "rgba(255,255,255,0.3)" }}>
               Six tools. One operating system. Built around the way music actually moves.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
             {PILLARS.map((pillar) => (
               <div
                 key={pillar.label}
-                className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition hover:border-white/[0.12] hover:bg-white/[0.04]"
+                style={{ borderRadius: 20, padding: 24, border: `0.5px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden", cursor: "default", transition: "border-color 0.2s" }}
               >
-                <div className="mb-4 flex items-start justify-between gap-2">
-                  <div className="text-[18px] font-light text-white">{pillar.label}</div>
-                  <span
-                    className="mt-0.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em]"
-                    style={{ color: pillar.accent, backgroundColor: `${pillar.accent}18` }}
-                  >
-                    {pillar.tag}
-                  </span>
+                <div style={{ position: "absolute", top: 0, right: 0, width: 160, height: 160, background: `radial-gradient(ellipse, ${pillar.glow} 0%, transparent 70%)`, pointerEvents: "none" }} />
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 16 }}>
+                  <div style={{ fontSize: 18, fontWeight: 300, color: "#fff" }}>{pillar.label}</div>
+                  <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "monospace", color: pillar.color, background: `${pillar.glow}`, border: `0.5px solid ${pillar.color}30`, flexShrink: 0 }}>{pillar.tag}</span>
                 </div>
-                <p className="text-[13px] leading-6 text-white/40">{pillar.body}</p>
+                <p style={{ fontSize: 13, lineHeight: 1.7, color: "rgba(255,255,255,0.35)" }}>{pillar.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Live dashboard preview */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 text-center">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">Inside the app</div>
-            <h2 className="mt-5 text-[36px] font-light tracking-[-0.03em] sm:text-[44px]">
-              What your catalog looks like<br className="hidden sm:block" /> with a manager brain.
-            </h2>
-          </div>
-          {/* Mock app cards */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            {/* Gap card */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-              <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#ef9f27]/60">Revenue gap</div>
-              <div className="mt-3 text-[44px] font-light tracking-[-0.04em] text-[#ef9f27]">$340+</div>
-              <div className="mt-2 text-sm text-white/35">3 unregistered platforms</div>
-              <div className="mt-5 space-y-2">
-                {["SoundExchange — $68 est.", "The MLC — $120 est.", "YouTube Content ID — $152 est."].map((item) => (
-                  <div key={item} className="flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2 text-[12px] text-white/50">
-                    <div className="size-1.5 rounded-full bg-[#ef9f27]/60" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Pitch score card */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-              <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#97c459]/60">Playlist signal</div>
-              <div className="mt-3 text-[44px] font-light tracking-[-0.04em] text-white">14</div>
-              <div className="mt-2 text-sm text-white/35">pitches in flight · 3 placed</div>
-              <div className="mt-5 space-y-2">
-                {[
-                  { label: "Late Night R&B", status: "Placed", color: "bg-[#97c459]" },
-                  { label: "Chill Bedroom Beats", status: "Opened", color: "bg-[#ef9f27]" },
-                  { label: "Neo Soul Essentials", status: "Sent", color: "bg-white/20" },
-                ].map((p) => (
-                  <div key={p.label} className="flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2 text-[12px]">
-                    <span className="text-white/55">{p.label}</span>
-                    <span className="flex items-center gap-1.5">
-                      <div className={`size-1.5 rounded-full ${p.color}`} />
-                      <span className="text-white/35">{p.status}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Release room card */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-              <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#6c9fcf]/60">Release room</div>
-              <div className="mt-3 text-[44px] font-light tracking-[-0.04em] text-white">7/12</div>
-              <div className="mt-2 text-sm text-white/35">steps complete · drop in 14 days</div>
-              <div className="mt-5 space-y-2">
-                {[
-                  { label: "Metadata complete", done: true },
-                  { label: "Distribution submitted", done: true },
-                  { label: "Platform pre-save live", done: false },
-                  { label: "Curator pitches sent", done: false },
-                ].map((step) => (
-                  <div key={step.label} className="flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2 text-[12px]">
-                    <div className={`size-1.5 rounded-full ${step.done ? "bg-[#6c9fcf]" : "bg-white/15"}`} />
-                    <span className={step.done ? "text-white/55" : "text-white/25"}>{step.label}</span>
-                    {step.done && <span className="ml-auto text-[10px] text-[#6c9fcf]/60">Done</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Signal auto-pitching highlight */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#0f1109]">
-            <div className="grid items-center gap-0 lg:grid-cols-2">
-              <div className="p-10 lg:p-14">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#97c459]/60">Signal — auto pitching</div>
-                <h2 className="mt-5 text-[36px] font-light leading-[1.1] tracking-[-0.03em]">
+      {/* Signal pitching highlight */}
+      <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "80px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ borderRadius: 28, border: "0.5px solid rgba(0,212,255,0.12)", background: "rgba(0,212,255,0.02)", overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 80% at 100% 50%, rgba(0,212,255,0.05) 0%, transparent 60%)", pointerEvents: "none" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+              <div style={{ padding: "48px 56px" }}>
+                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(16,240,144,0.5)", fontFamily: "monospace", marginBottom: 20 }}>Signal — auto pitching</div>
+                <h2 style={{ fontSize: "clamp(28px,4vw,42px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.1, marginBottom: 24 }}>
                   We pitch your songs.<br />You watch the results.
                 </h2>
-                <p className="mt-6 text-[15px] leading-8 text-white/40">
+                <p style={{ fontSize: 15, lineHeight: 1.8, color: "rgba(255,255,255,0.35)", marginBottom: 16 }}>
                   Type your song, mood, and genre. Pocket Manager matches it to the right playlists and generates a pitch email that fits the curator&apos;s vibe — not generic copy-paste.
                 </p>
-                <p className="mt-4 text-[15px] leading-8 text-white/40">
-                  When a curator opens your pitch or replies, you get notified. When it&apos;s placed or declined, the score updates automatically. No manual status clicking.
+                <p style={{ fontSize: 15, lineHeight: 1.8, color: "rgba(255,255,255,0.35)", marginBottom: 32 }}>
+                  When a curator opens your pitch or replies, you get notified. When it&apos;s placed or declined, the score updates automatically.
                 </p>
-                <Link
-                  href="/sign-in?mode=sign-up"
-                  className="mt-8 inline-block rounded-xl bg-[#97c459] px-7 py-3.5 text-[14px] font-semibold text-[#0d0d0b] transition hover:bg-[#a8d46a] active:scale-[0.98]"
-                >
-                  Start pitching free →
+                <Link href="/sign-in?mode=sign-up">
+                  <span style={{ display: "inline-block", padding: "12px 28px", borderRadius: 12, background: "linear-gradient(135deg, rgba(16,240,144,0.2), rgba(0,212,255,0.2))", border: "0.5px solid rgba(16,240,144,0.3)", fontSize: 14, fontWeight: 500, color: "var(--green)", boxShadow: "0 0 20px rgba(16,240,144,0.1)", cursor: "pointer" }}>
+                    Start pitching free →
+                  </span>
                 </Link>
               </div>
-              <div className="border-t border-white/[0.06] p-8 lg:border-l lg:border-t-0">
-                <div className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/25">Pitch score — "Late Nights"</div>
-                {/* Score meter visual */}
-                <div className="mt-6 flex items-center gap-6">
-                  <div className="relative flex size-28 shrink-0 items-center justify-center">
-                    <svg className="absolute inset-0" viewBox="0 0 112 112">
-                      <circle cx="56" cy="56" r="48" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-                      <circle cx="56" cy="56" r="48" fill="none" stroke="#97c459" strokeWidth="8"
-                        strokeDasharray={`${0.58 * 2 * Math.PI * 48} ${2 * Math.PI * 48}`}
-                        strokeLinecap="round" transform="rotate(-90 56 56)" />
+              <div style={{ padding: 32, borderLeft: "0.5px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 20 }}>Pitch score — &quot;Late Nights&quot;</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 24 }}>
+                  <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
+                    <svg style={{ position: "absolute", inset: 0 }} viewBox="0 0 96 96">
+                      <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                      <circle cx="48" cy="48" r="40" fill="none" stroke="var(--green)" strokeWidth="6"
+                        strokeDasharray={`${0.58 * 2 * Math.PI * 40} ${2 * Math.PI * 40}`}
+                        strokeLinecap="round" transform="rotate(-90 48 48)"
+                        style={{ filter: "drop-shadow(0 0 8px var(--green))" }} />
                     </svg>
-                    <div className="text-center">
-                      <div className="text-[28px] font-light text-white">58%</div>
-                      <div className="text-[10px] text-white/30">engaged</div>
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ fontSize: 24, fontWeight: 200, color: "#fff" }}>58%</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>engaged</div>
                     </div>
                   </div>
-                  <div className="space-y-3 flex-1">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
                     {[
-                      { label: "Sent", count: "14", color: "bg-white/20" },
-                      { label: "Opened", count: "8", color: "bg-[#ef9f27]" },
-                      { label: "Placed", count: "3", color: "bg-[#97c459]" },
-                      { label: "Declined", count: "2", color: "bg-[#e24b4a]/60" },
+                      { label: "Sent", count: "14", color: "rgba(255,255,255,0.2)" },
+                      { label: "Opened", count: "8", color: "var(--amber)" },
+                      { label: "Placed", count: "3", color: "var(--green)" },
+                      { label: "Declined", count: "2", color: "var(--red)" },
                     ].map((s) => (
-                      <div key={s.label} className="flex items-center gap-2.5">
-                        <div className={`size-2 shrink-0 rounded-full ${s.color}`} />
-                        <span className="text-[12px] text-white/40 flex-1">{s.label}</span>
-                        <span className="text-[12px] text-white/70">{s.count}</span>
+                      <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", flex: 1 }}>{s.label}</span>
+                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>{s.count}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="mt-6 space-y-2">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {[
-                    { name: "Late Night R&B", fit: 94, status: "Placed", badge: "bg-[#97c459]/15 text-[#97c459]" },
-                    { name: "Bedroom Soul", fit: 89, status: "Opened", badge: "bg-[#ef9f27]/15 text-[#ef9f27]" },
-                    { name: "Smooth After Hours", fit: 82, status: "Sent", badge: "bg-white/[0.08] text-white/40" },
+                    { name: "Late Night R&B", fit: 94, status: "Placed", c: "var(--green)" },
+                    { name: "Bedroom Soul", fit: 89, status: "Opened", c: "var(--amber)" },
+                    { name: "Smooth After Hours", fit: 82, status: "Sent", c: "rgba(255,255,255,0.2)" },
                   ].map((p) => (
-                    <div key={p.name} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+                    <div key={p.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 12, border: "0.5px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)", padding: "10px 14px" }}>
                       <div>
-                        <div className="text-[13px] text-white/70">{p.name}</div>
-                        <div className="text-[10px] text-white/25">{p.fit}% fit</div>
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>{p.name}</div>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", fontFamily: "monospace" }}>{p.fit}% fit</div>
                       </div>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${p.badge}`}>{p.status}</span>
+                      <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 500, color: p.c, background: `${p.c}15`, border: `0.5px solid ${p.c}30` }}>{p.status}</span>
                     </div>
                   ))}
                 </div>
@@ -392,77 +421,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* The Guild */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">The Guild</div>
-              <h2 className="mt-5 text-[36px] font-light tracking-[-0.03em] sm:text-[44px]">
-                Your network makes<br className="hidden sm:block" /> the work move.
-              </h2>
-              <p className="mt-6 text-[15px] leading-8 text-white/40">
-                Find producers, songwriters, vocalists, and featured artists who match your sound. Browse catalogs, not profiles. Invite collaborators directly into your project.
-              </p>
-              <Link
-                href="/sign-in?redirect=/guild"
-                className="mt-8 inline-block rounded-xl border border-white/15 px-6 py-3 text-sm text-white/55 transition hover:border-white/30 hover:text-white/80"
-              >
-                Browse The Guild →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { name: "Nova Keys", role: "Producer", genres: ["Lo-fi", "Soul"], followers: "1.2k", color: "#ef9f27" },
-                { name: "Remy Sol", role: "Songwriter", genres: ["R&B", "Neo Soul"], followers: "890", color: "#c47fcf" },
-                { name: "Ayo J", role: "Artist", genres: ["Afrobeats", "R&B"], followers: "3.1k", color: "#97c459" },
-                { name: "Lena Moore", role: "Vocalist", genres: ["Soul", "Gospel"], followers: "2.0k", color: "#6c9fcf" },
-              ].map((m) => (
-                <div key={m.name} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 transition hover:border-white/[0.15]">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold text-[#0d0d0b]"
-                      style={{ backgroundColor: m.color }}
-                    >
-                      {m.name.split(" ").map((w: string) => w[0]).join("")}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-medium text-white">{m.name}</div>
-                      <div className="text-[11px] text-white/40">{m.role}</div>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1.5">
-                      {m.genres.map((g: string) => (
-                        <span key={g} className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[10px] text-white/40">{g}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-2.5 flex items-center justify-between border-t border-white/[0.05] pt-2.5">
-                    <span className="text-[11px] text-white/25">{m.followers} followers</span>
-                    <span className="rounded-full bg-white/[0.07] px-2.5 py-0.5 text-[10px] text-white/40">Follow</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Social proof */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">From the community</div>
-            <h2 className="mt-5 text-[32px] font-light tracking-[-0.03em]">Artists who stopped guessing.</h2>
+      <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "80px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 16 }}>From the community</div>
+            <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff" }}>Artists who stopped guessing.</h2>
           </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {SOCIAL_PROOF.map((p) => (
-              <div key={p.name} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-                <p className="text-[15px] font-light leading-7 text-white/70">&ldquo;{p.quote}&rdquo;</p>
-                <div className="mt-5 border-t border-white/[0.06] pt-4">
-                  <div className="text-sm font-medium text-white">{p.name}</div>
-                  <div className="text-xs text-white/30">{p.context}</div>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            {SOCIAL_PROOF.map((p, i) => (
+              <div key={p.name} style={{ borderRadius: 20, padding: 24, border: "0.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, width: 100, height: 100, background: `radial-gradient(ellipse, ${["rgba(0,212,255,0.08)", "rgba(168,85,247,0.08)", "rgba(16,240,144,0.06)"][i]} 0%, transparent 70%)` }} />
+                <p style={{ fontSize: 15, fontWeight: 300, lineHeight: 1.7, color: "rgba(255,255,255,0.6)", fontStyle: "italic", marginBottom: 20 }}>&ldquo;{p.quote}&rdquo;</p>
+                <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "monospace", marginTop: 2 }}>{p.context}</div>
                 </div>
               </div>
             ))}
@@ -470,58 +443,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Vault highlight */}
-      <section className="border-t border-white/[0.06] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-[28px] border border-white/[0.06] bg-white/[0.02] px-8 py-12 text-center sm:px-16 sm:py-16">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30">The Vault</div>
-            <h2 className="mx-auto mt-5 max-w-2xl text-[36px] font-light tracking-[-0.03em] sm:text-[44px]">
-              Protect the work first.<br />Everything else follows.
+      {/* Final CTA — plasma command */}
+      <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "100px 20px 80px" }}>
+        <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ position: "relative", display: "inline-block", marginBottom: 48 }}>
+            <div style={{ position: "absolute", inset: "-60px -80px", background: "radial-gradient(ellipse, rgba(168,85,247,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <h2 className="display-xl" style={{ color: "#fff", position: "relative" }}>
+              Everything around<br />the music.
             </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-8 text-white/40">
-              Split sheets, master recordings, contracts, artwork, and licensing agreements in one place. If you&apos;ve ever lost a file, missed a royalty window, or had a split dispute — the Vault stops all of that.
-            </p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              {["Split sheets", "Master WAVs", "Publishing agreements", "Artwork files", "Sync licenses", "Tour riders"].map((item) => (
-                <span key={item} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-[12px] text-white/45">{item}</span>
-              ))}
-            </div>
           </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="border-t border-white/[0.06] px-5 py-28">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-[48px] font-light leading-[1.05] tracking-[-0.03em] sm:text-[60px]">
-            Everything around<br />the music.
-          </h2>
-          <p className="mt-6 text-[17px] leading-8 text-white/40">
+          <p style={{ fontSize: 17, lineHeight: 1.8, color: "rgba(255,255,255,0.35)", marginBottom: 48 }}>
             So you can stay in the music.
           </p>
-          <div className="mt-12 flex flex-col items-center gap-5">
-            <Link
-              href="/sign-in?mode=sign-up"
-              className="rounded-xl bg-white px-12 py-4 text-[15px] font-semibold text-[#0d0d0b] transition hover:bg-white/90 active:scale-[0.98]"
-            >
-              Start for free — no card needed
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+            <Link href="/sign-in?mode=sign-up">
+              <span style={{ display: "inline-block", padding: "16px 48px", borderRadius: 14, background: "linear-gradient(135deg, rgba(168,85,247,0.35) 0%, rgba(0,212,255,0.35) 100%)", border: "0.5px solid rgba(0,212,255,0.4)", fontSize: 16, fontWeight: 500, color: "#fff", boxShadow: "0 0 40px rgba(168,85,247,0.2), 0 4px 24px rgba(0,0,0,0.6)", cursor: "pointer", letterSpacing: "0.02em" }}>
+                Start for free — no card needed
+              </span>
             </Link>
-            <div className="flex justify-center">
-              <WaitlistForm />
-            </div>
+            <WaitlistForm />
           </div>
-          <p className="mt-6 text-xs text-white/20">Free plan available. Built for independent artists. Cancel anytime.</p>
+          <p style={{ marginTop: 24, fontSize: 11, color: "rgba(255,255,255,0.12)", letterSpacing: "0.04em" }}>Free plan available. Built for independent artists. Cancel anytime.</p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.06] px-5 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-[11px] text-white/20 sm:flex-row">
+      <footer style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "24px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
           <span>Pocket Manager · Your manager brain in your pocket · Built for independent artists</span>
-          <div className="flex gap-5">
-            <Link href="/terms" className="transition hover:text-white/40">Terms</Link>
-            <Link href="/privacy" className="transition hover:text-white/40">Privacy</Link>
-            <Link href="/sign-in" className="transition hover:text-white/40">Sign in</Link>
+          <div style={{ display: "flex", gap: 20 }}>
+            <Link href="/terms"><span style={{ color: "rgba(255,255,255,0.2)" }}>Terms</span></Link>
+            <Link href="/privacy"><span style={{ color: "rgba(255,255,255,0.2)" }}>Privacy</span></Link>
+            <Link href="/sign-in"><span style={{ color: "rgba(255,255,255,0.2)" }}>Sign in</span></Link>
           </div>
         </div>
       </footer>

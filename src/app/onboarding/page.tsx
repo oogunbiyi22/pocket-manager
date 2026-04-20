@@ -50,7 +50,7 @@ type AddMode = "manual" | "isrc" | null;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { createSong, updateProfile, completeOnboarding, songs, profile } = usePocket();
+  const { createSong, updateProfile, completeOnboarding, songs, profile, signedIn } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
 
@@ -476,11 +476,11 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => {
                   completeOnboarding({ artistName: artistName.trim() || profile.artistName || "Artist", role: role.trim() || profile.role || "", vibe: "", currentProject: "", targetWindow: "", mainGoal: "" });
-                  next();
+                  if (signedIn) { router.push("/home"); } else { next(); }
                 }}
                 className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] press"
               >
-                Start collecting →
+                {signedIn ? "Enter the app →" : "Start collecting →"}
               </button>
             </div>
           )}

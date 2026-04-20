@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { getSupabase } from "@/lib/supabase";
 import { AppShell } from "@/components/app-shell";
 import {
   formatMoney,
@@ -409,6 +410,36 @@ export default function ProjectDetailPage() {
           </section>
         ) : null}
 
+        {/* Live stats from Songstats */}
+        {song?.isrc && <SongstatsPanel isrc={song.isrc} spotifyArtistId={song.spotifyArtistId} />}
+
+        {/* Streaming links across all DSPs via MusicFetch */}
+        {song?.isrc && <MusicFetchPanel isrc={song.isrc} />}
+
+        {/* Emotional Story — pitch DNA */}
+        {song && (
+          <section className="bg-white px-5 pb-5 text-[#111]">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Emotional story</div>
+            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+              <p className="mb-3 text-[11px] leading-5 text-[#9a9a8a]">
+                How did you feel when you made this song? Write it raw — this powers every pitch in your exact voice. You only write it once.
+              </p>
+              <EmotionalStoryField song={song} updateSongMetadata={updateSongMetadata} />
+              <div className="mt-3 flex gap-2">
+                <Link
+                  href={`/pitching?song=${song.id}`}
+                  className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
+                >
+                  Launch Pitching Engine →
+                </Link>
+                <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#514d47]">
+                  Pitch kit
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Files */}
         <section className="bg-white px-5 pb-5 text-[#111]">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Files</div>
@@ -649,6 +680,204 @@ export default function ProjectDetailPage() {
         />
       )}
     </AppShell>
+  );
+}
+
+function EmotionalStoryField({
+  song,
+  updateSongMetadata,
+}: {
+  song: { id: string; emotionalStory?: string };
+  updateSongMetadata: (id: string, data: { emotionalStory: string }) => void;
+}) {
+  const [value, setValue] = useState(song.emotionalStory ?? "");
+  const [saved, setSaved] = useState(false);
+
+  function save() {
+    updateSongMetadata(song.id, { emotionalStory: value });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  }
+
+  return (
+    <div>
+      <textarea
+        rows={4}
+        value={value}
+        onChange={(e) => { setValue(e.target.value); setSaved(false); }}
+        placeholder="Write from the gut — what were you feeling, going through, trying to survive when you made this? This becomes the soul of every pitch."
+        className="w-full resize-none rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-2 text-sm text-[#111] outline-none placeholder:text-[#aaa]"
+      />
+      <button
+        type="button"
+        onClick={save}
+        className="mt-2 rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-1.5 text-xs text-[#514d47]"
+      >
+        {saved ? "Saved ✓" : "Save story"}
+      </button>
+    </div>
+  );
+}
+
+type MusicFetchLinks = Record<string, { url?: string; label?: string }>;
+
+function MusicFetchPanel({ isrc }: { isrc: string }) {
+  const [links, setLinks] = useState<MusicFetchLinks | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch(`/api/musicfetch?isrc=${encodeURIComponent(isrc)}`);
+        if (!cancelled) {
+          if (res.status === 503) { setUnavailable(true); setLoading(false); return; }
+          if (!res.ok) { setLoading(false); return; }
+          const data = await res.json() as { services?: MusicFetchLinks };
+          setLinks(data.services ?? null);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [isrc]);
+
+  if (unavailable) return null; // silently skip if not configured
+
+  const DSP_LABELS: Record<string, string> = {
+    spotify: "Spotify", appleMusic: "Apple Music", youtube: "YouTube",
+    youtubeMusic: "YouTube Music", deezer: "Deezer", tidal: "TIDAL",
+    amazonMusic: "Amazon Music", soundcloud: "SoundCloud", pandora: "Pandora",
+    kkbox: "KKBOX", napster: "Napster", qobuz: "Qobuz",
+  };
+
+  const activeLinks = links
+    ? Object.entries(links)
+        .filter(([k, v]) => DSP_LABELS[k] && v?.url)
+        .map(([k, v]) => ({ key: k, label: DSP_LABELS[k], url: v.url! }))
+    : [];
+
+  return (
+    <section className="bg-white px-5 pb-5 text-[#111]">
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Streaming links</div>
+      <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+        {loading && <div className="text-sm text-[#9a9a8a]">Finding links…</div>}
+        {!loading && activeLinks.length === 0 && (
+          <div className="text-sm text-[#9a9a8a]">No links found yet — ISRC resolves once the release goes live.</div>
+        )}
+        {!loading && activeLinks.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeLinks.map(({ key, label, url }) => (
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-1.5 text-xs text-[#514d47] hover:border-black/35"
+              >
+                {label} ↗
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SongstatsPanel({ isrc, spotifyArtistId }: { isrc: string; spotifyArtistId?: string }) {
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [radioStats, setRadioStats] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const supabase = getSupabase();
+        const session = supabase ? await supabase.auth.getSession() : null;
+        const token = session?.data?.session?.access_token;
+        if (!token) { setLoading(false); return; }
+
+        const headers = { Authorization: `Bearer ${token}` };
+        const [trackRes, radioRes] = await Promise.allSettled([
+          fetch(`/api/songstats?endpoint=tracks/stats&isrc=${encodeURIComponent(isrc)}`, { headers }),
+          fetch(`/api/radiostats?endpoint=tracks/stats&isrc=${encodeURIComponent(isrc)}`, { headers }),
+        ]);
+
+        if (!cancelled) {
+          if (trackRes.status === "fulfilled" && trackRes.value.ok) {
+            const data = await trackRes.value.json();
+            setStats(data as Record<string, unknown>);
+          }
+          if (radioRes.status === "fulfilled" && radioRes.value.ok) {
+            const data = await radioRes.value.json();
+            setRadioStats(data as Record<string, unknown>);
+          }
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) { setError((e as Error).message); setLoading(false); }
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [isrc, spotifyArtistId]);
+
+  const fmt = (n: unknown) => typeof n === "number" ? n.toLocaleString() : "—";
+
+  const sources = Array.isArray((stats as { stats?: unknown })?.stats)
+    ? (stats as { stats: { source: string; total_streams?: number; total_playlists?: number }[] }).stats
+    : [];
+
+  const totalStreams = sources.reduce((acc, s) => acc + (s.total_streams ?? 0), 0);
+  const totalPlaylists = sources.reduce((acc, s) => acc + (s.total_playlists ?? 0), 0);
+  const radioPlays = (radioStats as { total_plays?: number } | null)?.total_plays;
+
+  return (
+    <section className="bg-white px-5 pb-5 text-[#111]">
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Live stats</div>
+      <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+        {loading && <div className="text-sm text-[#9a9a8a]">Loading live data…</div>}
+        {error && <div className="text-sm text-[#e24b4a]">Could not load stats: {error}</div>}
+        {!loading && !error && sources.length === 0 && !radioPlays && (
+          <div className="text-sm text-[#9a9a8a]">No data yet — stats appear once the song is live on DSPs and SONGSTATS_API_KEY is set.</div>
+        )}
+        {!loading && (sources.length > 0 || radioPlays !== undefined) && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-white px-3 py-3 text-center">
+              <div className="text-[18px] font-medium text-[#111]">{fmt(totalStreams)}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-[#9a9a8a]">Total streams</div>
+            </div>
+            <div className="rounded-lg bg-white px-3 py-3 text-center">
+              <div className="text-[18px] font-medium text-[#111]">{fmt(totalPlaylists)}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-[#9a9a8a]">Playlists</div>
+            </div>
+            <div className="rounded-lg bg-white px-3 py-3 text-center">
+              <div className="text-[18px] font-medium text-[#111]">{fmt(radioPlays)}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-[#9a9a8a]">Radio spins</div>
+            </div>
+          </div>
+        )}
+        {!loading && sources.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            {sources.map((s) => (
+              <div key={s.source} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm">
+                <span className="capitalize text-[#514d47]">{s.source}</span>
+                <span className="font-medium text-[#111]">{fmt(s.total_streams)} streams</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

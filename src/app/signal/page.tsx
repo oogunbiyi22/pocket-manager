@@ -480,8 +480,10 @@ export default function SignalPage() {
         {/* Signal tools */}
         <section className="grid gap-3 sm:grid-cols-2">
           {[
+            { href: "/pitching", title: "Pitching engine", body: "Import thousands of curator contacts, generate AI-personalized pitches, and send at scale." },
             { href: "/pitch-kits", title: "Pitch kit builder", body: "Build a targeted outreach package for labels, sync, radio, and venues." },
             { href: "/epk", title: "Electronic press kit", body: "Living page for curators, labels, booking, and partners." },
+            { href: "/career-twin", title: "Career twin", body: "See which artists were at your exact stage 2–3 years ago and what move broke them through." },
           ].map((area) => (
             <Link key={area.href} href={area.href} className="rounded-[20px] glass card-shadow p-5 press">
               <div className="text-[14px] font-medium text-[#111]">{area.title}</div>

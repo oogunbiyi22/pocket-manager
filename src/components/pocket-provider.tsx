@@ -55,6 +55,9 @@ type CreateSongInput = {
   territory?: string;
   distributor: string;
   collaborators?: SongCatalogItem["collaborators"];
+  emotionalStory?: string;
+  spotifyArtistId?: string;
+  spotifyTrackId?: string;
 };
 
 type AddCollaboratorInput = {
@@ -65,7 +68,7 @@ type AddCollaboratorInput = {
 };
 
 type SongMetadataInput = Partial<
-  Pick<SongCatalogItem, "isrc" | "upc" | "releaseDate" | "genre" | "mood" | "bpm" | "musicalKey" | "language" | "territory">
+  Pick<SongCatalogItem, "isrc" | "upc" | "releaseDate" | "genre" | "mood" | "bpm" | "musicalKey" | "language" | "territory" | "emotionalStory" | "spotifyArtistId" | "spotifyTrackId">
 >;
 
 type ProfileInput = {
@@ -122,6 +125,7 @@ type PocketProfile = ProfileInput & {
   email?: string;
   plan?: "free" | "pro" | "elite";
   stripeCustomerId?: string;
+  spotifyArtistId?: string;
 };
 
 type PocketSnapshot = {
@@ -262,26 +266,64 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Sync signedIn with Supabase auth state (lightweight — no data sync)
+  // Sync with Supabase auth state + pull remote data on sign-in
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
-    // Set initial auth state from existing session
-    // Use onAuthStateChange for initial + future state — covers both existing sessions and new sign-ins
+    let unmounted = false;
+
     const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) {
-        setSignedIn(true);
-        window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
+        if (!unmounted) {
+          setSignedIn(true);
+          window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
+        }
+
+        // Pull remote songs and profile on sign-in — remote wins if newer
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          Promise.allSettled([
+            supabase.from("user_catalogs").select("songs").eq("user_id", session.user.id).single(),
+            supabase.from("profiles").select("*").eq("id", session.user.id).single(),
+          ]).then(([catalogResult, profileResult]) => {
+            if (unmounted) return;
+
+            if (catalogResult.status === "fulfilled" && catalogResult.value.data?.songs) {
+              const remoteSongs = catalogResult.value.data.songs as SongCatalogItem[];
+              if (Array.isArray(remoteSongs) && remoteSongs.length > 0) {
+                setSongs(remoteSongs);
+                window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(remoteSongs));
+              }
+            }
+
+            if (profileResult.status === "fulfilled" && profileResult.value.data) {
+              const r = profileResult.value.data as { artist_name?: string; artist_role?: string; vibe?: string; plan?: string; onboarded?: boolean; email?: string };
+              setProfile((prev) => ({
+                ...prev,
+                artistName: r.artist_name ?? prev.artistName,
+                role: r.artist_role ?? prev.role,
+                vibe: r.vibe ?? prev.vibe,
+                plan: (r.plan as PocketProfile["plan"]) ?? prev.plan,
+                onboarded: r.onboarded ?? prev.onboarded,
+                email: r.email ?? session.user.email ?? prev.email,
+              }));
+            }
+          }).catch(() => { /* silently fail — local data remains */ });
+        }
       } else if (event === "SIGNED_OUT") {
-        setSignedIn(false);
-        window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-out");
+        if (!unmounted) {
+          setSignedIn(false);
+          window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-out");
+        }
       }
     });
-    return () => authListener.subscription.unsubscribe();
+    return () => {
+      unmounted = true;
+      authListener.subscription.unsubscribe();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // All data is stored locally on device — no Supabase sync to preserve quota
+  // Push songs to Supabase when they change (debounced via effect + signedIn guard)
 
   useEffect(() => {
     if (!hydrated) return;
@@ -291,7 +333,25 @@ export function PocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  }, [hydrated, profile]);
+    // Write-through to Supabase profiles table if signed in
+    if (!signedIn) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    void supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
+      const uid = result.data?.session?.user?.id;
+      if (!uid) return;
+      supabase.from("profiles").upsert({
+        id: uid,
+        email: profile.email,
+        artist_name: profile.artistName,
+        artist_role: profile.role,
+        vibe: profile.vibe,
+        plan: profile.plan ?? "free",
+        onboarded: profile.onboarded,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "id" }).then(() => {});
+    }).catch(() => {});
+  }, [hydrated, signedIn, profile]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -311,7 +371,16 @@ export function PocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(songs));
-  }, [hydrated, songs]);
+    // Write-through to Supabase if signed in
+    if (!signedIn) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    void supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
+      const uid = result.data?.session?.user?.id;
+      if (!uid) return;
+      supabase.from("user_catalogs").upsert({ user_id: uid, songs, updated_at: new Date().toISOString() }, { onConflict: "user_id" }).then(() => {});
+    }).catch(() => {});
+  }, [hydrated, signedIn, songs]);
 
   useEffect(() => {
     if (!hydrated) return;
