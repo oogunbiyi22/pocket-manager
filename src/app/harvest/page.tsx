@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -82,9 +81,7 @@ function ForecastBar({ label, value, max, color }: { label: string; value: numbe
         <span className="text-[13px] font-normal text-[#111]">{formatMoney(value)}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-black/8">
-        <motion.div className="h-full rounded-full" style={{ backgroundColor: color }}
-          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
+        <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ backgroundColor: color, width: `${pct}%` }} />
       </div>
     </div>
   );

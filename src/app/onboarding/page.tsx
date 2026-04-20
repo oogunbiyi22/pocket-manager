@@ -2,28 +2,25 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoMark } from "@/components/logo";
 import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary } from "@/lib/backstage-data";
 
 // ─── Count-up ───────────────────────────────────────────────────────────────
 function GapCountUp({ target }: { target: number }) {
-  const motionVal = useMotionValue(0);
-  const formatted = useTransform(motionVal, (v) => {
-    if (v >= 1000) return `~$${(v / 1000).toFixed(0)}K`;
-    return `$${Math.round(v)}`;
-  });
-  const [display, setDisplay] = useState("$0");
-
+  const [val, setVal] = useState(0);
   useEffect(() => {
-    const controls = animate(motionVal, target, { duration: 1.2, ease: [0.16, 1, 0.3, 1] });
-    const unsub = formatted.on("change", setDisplay);
-    return () => { controls.stop(); unsub(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    let v = 0;
+    const step = target / 30;
+    const id = setInterval(() => {
+      v = Math.min(v + step, target);
+      setVal(Math.round(v));
+      if (v >= target) clearInterval(id);
+    }, 40);
+    return () => clearInterval(id);
   }, [target]);
-
-  return <>{display}</>;
+  if (val >= 1000) return <>~${(val / 1000).toFixed(0)}K</>;
+  return <>${val}</>;
 }
 
 // ─── Progress indicator ──────────────────────────────────────────────────────
@@ -32,12 +29,7 @@ function ProgressBar({ total, current }: { total: number; current: number }) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 h-0.5 rounded-full bg-white/10 overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-white/50"
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-        />
+        <div className="h-full rounded-full bg-white/50 transition-all duration-350 ease-out" style={{ width: `${pct}%` }} />
       </div>
       <span className="shrink-0 text-[11px] text-white/30">{current + 1}/{total}</span>
     </div>
@@ -86,15 +78,8 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={step}
-          className="mx-auto max-w-md px-5 pb-16 pt-8"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.28, ease: "easeOut" }}
-        >
+      <main key={step} className="mx-auto max-w-md px-5 pb-16 pt-8" style={{ animation: "onbFadeIn 0.28s ease-out both" }}>
+        <style>{`@keyframes onbFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
           {/* ── Step 0: Splash ─────────────────────────────────────── */}
           {step === 0 && (
@@ -418,59 +403,38 @@ export default function OnboardingPage() {
                 <p className="mt-3 text-sm text-white/45">Estimated uncollected royalties across your catalog.</p>
               </div>
 
-              <motion.div
+              <div
                 className="relative overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-[rgba(255,255,255,0.04)] p-6"
-                initial={{ scale: 0.96, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                onAnimationComplete={() => setGapRevealed(true)}
+                style={{ animation: "onbFadeIn 0.4s ease-out both" }}
+                onAnimationEnd={() => setGapRevealed(true)}
               >
                 <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(239,159,39,0.12) 0%, transparent 70%)" }} />
                 <div className="relative">
                   {songs.length === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                    >
+                    <div style={{ animation: "onbFadeIn 0.4s 0.2s ease-out both" }}>
                       <div className="text-[48px] font-light text-white/20">—</div>
                       <p className="mt-3 text-sm leading-6 text-white/45">
                         No releases added yet. Go back and add a song to see your gap.
                       </p>
-                    </motion.div>
+                    </div>
                   ) : (
                     <>
-                      <motion.div
-                        className="text-[64px] font-light leading-none tracking-[-0.05em] text-[#ef9f27]"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.15 }}
-                      >
+                      <div className="text-[64px] font-light leading-none tracking-[-0.05em] text-[#ef9f27]" style={{ animation: "onbFadeIn 0.3s 0.15s ease-out both" }}>
                         {gapRevealed ? <GapCountUp target={summary.totalEstimatedGap} /> : "$0"}
-                      </motion.div>
-                      <motion.p
-                        className="mt-3 text-sm leading-6 text-white/45"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                      >
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-white/45" style={{ animation: "onbFadeIn 0.3s 0.5s ease-out both" }}>
                         Estimated uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"} · {summary.activeIncomeStreams} streams active
-                      </motion.p>
+                      </p>
                     </>
                   )}
-                  <motion.div
-                    className="mt-5 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
-                  >
+                  <div className="mt-5 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4" style={{ animation: "onbFadeIn 0.3s 0.7s ease-out both" }}>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">Biggest fix</div>
                     <div className="mt-2 text-sm text-white">{nextAction.action} via {nextAction.collectionBody}</div>
                     <div className="mt-1 text-xs text-white/40">{formatGapEstimate(nextAction.estimatedValue)} · {nextAction.estimatedTime}</div>
-                  </motion.div>
+                  </div>
                   <p className="mt-4 text-[11px] text-white/20">Conservative estimate. Not guaranteed income. For illustration purposes.</p>
                 </div>
-              </motion.div>
+              </div>
 
               <button
                 type="button"
@@ -536,8 +500,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-        </motion.main>
-      </AnimatePresence>
+      </main>
     </div>
   );
 }

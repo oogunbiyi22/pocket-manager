@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { AppShell } from "@/components/app-shell";
@@ -560,27 +559,18 @@ export default function ProjectDetailPage() {
       </main>
 
       {/* Share sheet */}
-      <AnimatePresence>
         {shareOpen && (
           <>
-            <motion.div
+            <div
               className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
+              style={{ animation: "fadeIn 0.18s ease both" }}
               onClick={() => setShareOpen(false)}
             />
-            <motion.div
-              className="fixed inset-x-0 bottom-0 z-50 overflow-hidden rounded-t-[24px] bg-[rgba(20,20,18,0.92)] text-white backdrop-blur-xl [backdrop-filter:saturate(180%)_blur(20px)]"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 180, damping: 22 }}
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              onDragEnd={(_, info) => { if (info.offset.y > 60) setShareOpen(false); }}
+            <div
+              className="fixed inset-x-0 bottom-0 z-50 overflow-hidden rounded-t-[24px] bg-[rgba(20,20,18,0.92)] text-white backdrop-blur-xl"
+              style={{ animation: "slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both" }}
             >
+            <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
               {/* Handle */}
               <div className="flex justify-center pt-[10px] pb-1">
                 <div className="h-1 w-9 rounded-full bg-white/20" />
@@ -650,10 +640,9 @@ export default function ProjectDetailPage() {
 
               {/* Safe area spacing */}
               <div className="h-6" />
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
 
       {/* Action modal — opens when artist taps "Fix →" on a revenue gap */}
       {fixModal && song && (

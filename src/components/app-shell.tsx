@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
-import { PocketSheet } from "@/components/pocket-sheet";
-import { AChatOverlay, DraggableAButton } from "@/components/a-chat-overlay";
+import dynamic from "next/dynamic";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoWordmark } from "@/components/logo";
+
+const PocketSheet = dynamic(() => import("@/components/pocket-sheet").then(m => ({ default: m.PocketSheet })), { ssr: false });
+const AChatOverlay = dynamic(() => import("@/components/a-chat-overlay").then(m => ({ default: m.AChatOverlay })), { ssr: false });
+const DraggableAButton = dynamic(() => import("@/components/a-chat-overlay").then(m => ({ default: m.DraggableAButton })), { ssr: false });
 
 // ─── SVG Icons ─────────────────────────────────────────────────────────────
 function IconHome({ active }: { active: boolean }) {
