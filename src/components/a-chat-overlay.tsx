@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { usePocket } from "@/components/pocket-provider";
@@ -29,27 +28,25 @@ function loadPosition(): Position | null {
     const raw = localStorage.getItem(POSITION_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as Position;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function savePosition(pos: Position) {
-  try {
-    localStorage.setItem(POSITION_KEY, JSON.stringify(pos));
-  } catch { /* noop */ }
+  try { localStorage.setItem(POSITION_KEY, JSON.stringify(pos)); } catch { /* noop */ }
 }
 
 // ─── Chat overlay sheet ─────────────────────────────────────────────────────
-function ChatSheet({ onClose }: { onClose: () => void }) {
+function ChatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { songs, profile, platformConnections } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
   const catalogReadiness = getCatalogReadinessScore(songs);
   const readinessLevel = getReadinessLevel(catalogReadiness);
   const [draft, setDraft] = useState("");
+  const [mounted, setMounted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<{ startY: number; currentY: number } | null>(null);
 
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({
@@ -69,17 +66,20 @@ function ChatSheet({ onClose }: { onClose: () => void }) {
   const greeting = `Your biggest gap right now is ${nextAction.collectionBody}. That's ${formatGapEstimate(nextAction.estimatedValue)} sitting uncollected on "${nextAction.songTitle}". Takes ${nextAction.estimatedTime}. Want me to walk you through it?`;
 
   useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => setMounted(true));
+      setTimeout(() => inputRef.current?.focus(), 350);
+    } else {
+      setMounted(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 350);
-  }, []);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -91,28 +91,43 @@ function ChatSheet({ onClose }: { onClose: () => void }) {
     setDraft("");
   }
 
+  // Touch drag-to-dismiss on the sheet
+  function onTouchStart(e: React.TouchEvent) {
+    dragRef.current = { startY: e.touches[0].clientY, currentY: e.touches[0].clientY };
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (dragRef.current) dragRef.current.currentY = e.touches[0].clientY;
+  }
+  function onTouchEnd() {
+    if (dragRef.current && dragRef.current.currentY - dragRef.current.startY > 80) onClose();
+    dragRef.current = null;
+  }
+
+  if (!open && !mounted) return null;
+
   return (
     <>
+      <style>{`
+        @keyframes acBdIn  { from{opacity:0} to{opacity:1} }
+        @keyframes acBdOut { from{opacity:1} to{opacity:0} }
+        @keyframes acSlIn  { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes acSlOut { from{transform:translateY(0)} to{transform:translateY(100%)} }
+      `}</style>
+
       {/* Backdrop */}
-      <motion.div
+      <div
         className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        style={{ animation: `${mounted ? "acBdIn" : "acBdOut"} 0.2s ease both` }}
         onClick={onClose}
       />
 
-      {/* Chat sheet */}
-      <motion.div
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col overflow-hidden rounded-t-[28px] bg-[rgba(13,13,11,0.97)] text-white [backdrop-filter:saturate(180%)_blur(40px)]"
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 200, damping: 26 }}
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        onDragEnd={(_, info) => { if (info.offset.y > 80) onClose(); }}
+      {/* Sheet */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col overflow-hidden rounded-t-[28px] bg-[rgba(13,13,11,0.97)] text-white"
+        style={{ animation: `${mounted ? "acSlIn" : "acSlOut"} 0.28s cubic-bezier(0.16,1,0.3,1) both` }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         {/* Drag handle */}
         <div className="flex shrink-0 justify-center pt-3 pb-1">
@@ -153,12 +168,8 @@ function ChatSheet({ onClose }: { onClose: () => void }) {
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
                 {QUICK_PROMPTS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => submit(p)}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 transition press hover:border-white/20 hover:text-white/80"
-                  >
+                  <button key={p} type="button" onClick={() => submit(p)}
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 transition press hover:border-white/20 hover:text-white/80">
                     {p}
                   </button>
                 ))}
@@ -173,16 +184,11 @@ function ChatSheet({ onClose }: { onClose: () => void }) {
             if (!text) return null;
             return (
               <div key={msg.id} className={`mt-4 flex ${isUser ? "justify-end" : "flex-col"}`}>
-                {!isUser && (
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">A</div>
-                )}
-                <div
-                  className={
-                    isUser
-                      ? "max-w-[82%] rounded-[16px] rounded-br-sm bg-white px-4 py-3 text-sm leading-7 text-[#0d0d0b]"
-                      : "max-w-[88%] rounded-[16px] rounded-bl-sm border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm leading-7 text-white/80"
-                  }
-                >
+                {!isUser && <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">A</div>}
+                <div className={isUser
+                  ? "max-w-[82%] rounded-[16px] rounded-br-sm bg-white px-4 py-3 text-sm leading-7 text-[#0d0d0b]"
+                  : "max-w-[88%] rounded-[16px] rounded-bl-sm border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm leading-7 text-white/80"
+                }>
                   {text}
                 </div>
               </div>
@@ -199,7 +205,6 @@ function ChatSheet({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
-
           <div ref={bottomRef} />
         </div>
 
@@ -216,88 +221,86 @@ function ChatSheet({ onClose }: { onClose: () => void }) {
             disabled={isStreaming}
             className="h-10 flex-1 rounded-full border border-white/10 bg-white/[0.06] px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25 disabled:opacity-50"
           />
-          <button
-            type="submit"
-            disabled={isStreaming || !draft.trim()}
+          <button type="submit" disabled={isStreaming || !draft.trim()}
             className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-sm text-white/70 transition active:scale-90 disabled:opacity-40"
-            aria-label="Send"
-          >
+            aria-label="Send">
             →
           </button>
         </form>
-      </motion.div>
+      </div>
     </>
   );
 }
 
-// ─── Draggable floating A button ────────────────────────────────────────────
+// ─── Chat overlay wrapper ───────────────────────────────────────────────────
 export function AChatOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <AnimatePresence>
-      {open && <ChatSheet onClose={onClose} />}
-    </AnimatePresence>
-  );
+  if (!open) return null;
+  return <ChatSheet open={open} onClose={onClose} />;
 }
 
-/**
- * DraggableAButton — the floating A FAB.
- * Drag it anywhere on screen; position persists in localStorage.
- * Replaces the static button in app-shell.tsx.
- */
+// ─── Draggable floating A button ────────────────────────────────────────────
 export function DraggableAButton({ onOpen }: { onOpen: () => void }) {
   const { songs } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const hasGap = summary.totalEstimatedGap > 0;
 
-  const constraintsRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [ready, setReady] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; btnX: number; btnY: number } | null>(null);
 
-  // Load persisted position
   useEffect(() => {
     const saved = loadPosition();
     if (saved) setPosition(saved);
     setReady(true);
   }, []);
 
-  const handleDragEnd = useCallback((_: unknown, info: { offset: { x: number; y: number }; point: { x: number; y: number } }) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStart.current = { x: e.clientX, y: e.clientY, btnX: position.x, btnY: position.y };
     setIsDragging(false);
-    const newPos = { x: info.point.x, y: info.point.y };
-    setPosition(newPos);
-    savePosition(newPos);
+  }, [position]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragStart.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      setIsDragging(true);
+      setPosition({ x: dragStart.current.btnX + dx, y: dragStart.current.btnY + dy });
+    }
   }, []);
+
+  const handlePointerUp = useCallback(() => {
+    if (dragStart.current) {
+      savePosition(position);
+      dragStart.current = null;
+    }
+  }, [position]);
 
   if (!ready) return null;
 
   return (
-    // Invisible full-screen constraint layer
-    <div ref={constraintsRef} className="fixed inset-0 z-50 pointer-events-none">
-      <motion.button
-        type="button"
-        drag
-        dragConstraints={constraintsRef}
-        dragElastic={0.1}
-        dragMomentum={false}
-        onDragStart={() => setIsDragging(true)}
-        onDragEnd={handleDragEnd}
-        animate={{ scale: [1, 1.04, 1] }}
-        transition={{
-          scale: { duration: 3.5, ease: "easeInOut", repeat: Infinity },
-        }}
-        onClick={() => { if (!isDragging) onOpen(); }}
-        className="pointer-events-auto absolute bottom-[76px] right-4 size-12 rounded-full glass-dark text-[15px] font-semibold text-white shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex items-center justify-center md:bottom-6"
-        style={{
-          cursor: isDragging ? "grabbing" : "grab",
-          touchAction: "none",
-        }}
-        aria-label="Open A — your AI manager"
-      >
-        A
-        {hasGap && (
-          <span className="absolute right-0 top-0 size-3 rounded-full bg-[var(--amber)] ring-2 ring-[var(--bg-base)]" />
-        )}
-      </motion.button>
-    </div>
+    <button
+      type="button"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onClick={() => { if (!isDragging) onOpen(); }}
+      className="fixed z-50 size-12 rounded-full glass-dark text-[15px] font-semibold text-white shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex items-center justify-center"
+      style={{
+        bottom: 76 + position.y * -1,
+        right: 16 + position.x * -1,
+        cursor: isDragging ? "grabbing" : "grab",
+        touchAction: "none",
+        userSelect: "none",
+      }}
+      aria-label="Open A — your AI manager"
+    >
+      A
+      {hasGap && (
+        <span className="absolute right-0 top-0 size-3 rounded-full bg-[var(--amber)] ring-2 ring-[var(--bg-base)]" />
+      )}
+    </button>
   );
 }

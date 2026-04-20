@@ -47,7 +47,7 @@ function SignInContent() {
     }
 
     if (mode === "sign-up") {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
@@ -57,6 +57,23 @@ function SignInContent() {
         setLoading(false);
         return;
       }
+      // If Supabase returned a session immediately (email confirmation disabled), go straight to the app
+      if (signUpData?.session) {
+        if (signUpData.user?.email) pocketSignIn(signUpData.user.email);
+        router.push("/onboarding");
+        return;
+      }
+      // Otherwise try signing in directly — if email confirm is off in Supabase, this works immediately
+      const { data: autoSignIn, error: autoSignInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (!autoSignInError && autoSignIn?.user) {
+        if (autoSignIn.user.email) pocketSignIn(autoSignIn.user.email);
+        router.push("/onboarding");
+        return;
+      }
+      // Email confirmation required — show the check-email screen
       setSent(true);
       setLoading(false);
       return;
