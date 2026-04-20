@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -18,24 +17,20 @@ import {
 } from "@/lib/backstage-data";
 
 function CountUp({ target, prefix = "", suffix = "" }: { target: number; prefix?: string; suffix?: string }) {
-  const motionVal = useMotionValue(0);
-  const rounded = useTransform(motionVal, (v) => `${prefix}${Math.round(v).toLocaleString()}${suffix}`);
-  const [display, setDisplay] = useState(`${prefix}0${suffix}`);
+  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    const controls = animate(motionVal, target, {
-      duration: 0.8,
-      ease: [0.16, 1, 0.3, 1],
-    });
-    const unsub = rounded.on("change", (v) => setDisplay(v));
-    return () => {
-      controls.stop();
-      unsub();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    let start = 0;
+    const step = target / 24;
+    const id = setInterval(() => {
+      start = Math.min(start + step, target);
+      setDisplay(Math.round(start));
+      if (start >= target) clearInterval(id);
+    }, 33);
+    return () => clearInterval(id);
   }, [target]);
 
-  return <span>{display}</span>;
+  return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
 }
 
 function ReadinessRing({ score }: { score: number }) {
@@ -209,15 +204,8 @@ export default function MobilePage() {
 
         {/* A daily brief */}
         {briefVisible && (
-          <motion.section
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            onDragEnd={(_, info) => { if (info.offset.y < -40) dismissBrief(); }}
-          >
+          <section style={{ animation: "fadeSlideIn 0.35s ease-out both" }}>
+            <style>{`@keyframes fadeSlideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
             <div className="overflow-hidden rounded-[20px] glass-dark card-shadow-dark">
               <div className="flex items-start justify-between gap-3 px-5 py-4">
                 <div>
@@ -243,7 +231,7 @@ export default function MobilePage() {
                 </Link>
               </div>
             </div>
-          </motion.section>
+          </section>
         )}
 
         {/* Next action card */}
