@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
-import { ActionModal } from "@/components/action-modal";
+const ActionModal = dynamic(() => import("@/components/action-modal").then(m => ({ default: m.ActionModal })), { ssr: false });
 import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
 import { PLATFORM_REGISTRY, getPlatform, type PlatformEntry } from "@/lib/platform-registry";
 

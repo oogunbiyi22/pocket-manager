@@ -8,8 +8,9 @@
  */
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { usePocket } from "@/components/pocket-provider";
-import { ActionModal } from "@/components/action-modal";
+const ActionModal = dynamic(() => import("@/components/action-modal").then(m => ({ default: m.ActionModal })), { ssr: false });
 import { MONEY_HEALTH_ITEMS, getPlatform } from "@/lib/platform-registry";
 import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
 import Link from "next/link";

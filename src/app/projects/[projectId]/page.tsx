@@ -19,7 +19,8 @@ import {
   releaseRadarMilestones,
 } from "@/lib/backstage-data";
 import { usePocket } from "@/components/pocket-provider";
-import { ActionModal } from "@/components/action-modal";
+import dynamic from "next/dynamic";
+const ActionModal = dynamic(() => import("@/components/action-modal").then(m => ({ default: m.ActionModal })), { ssr: false });
 import { getPlatform } from "@/lib/platform-registry";
 
 // Map collection body names → platform registry IDs for the ActionModal
