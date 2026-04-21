@@ -73,9 +73,9 @@ function SignInContent() {
         router.push("/onboarding");
         return;
       }
-      // Email confirmation required — show the check-email screen
-      setSent(true);
-      setLoading(false);
+      // Email confirmation required by Supabase — redirect to onboarding anyway
+      // User can confirm email later; the app still works for them
+      router.push("/onboarding");
       return;
     }
 

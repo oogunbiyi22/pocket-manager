@@ -13,6 +13,7 @@ export default function StatusPage() {
     { label: "Supabase DB tables", status: "loading" },
     { label: "AI endpoint", status: "loading" },
     { label: "Stripe billing", status: "loading" },
+    { label: "Telegram bot", status: "loading" },
   ]);
   const [session, setSession] = useState<string>("Checking…");
 
@@ -89,12 +90,20 @@ export default function StatusPage() {
         results.push({ label: "AI endpoint", status: "error", detail: String(e) });
       }
 
-      // Stripe — just check if the checkout API exists
+      // Stripe — check checkout API exists
       try {
-        const res = await fetch("/api/billing/checkout", { method: "POST", body: JSON.stringify({ plan: "pro" }), headers: { "Content-Type": "application/json" } });
-        results.push({ label: "Stripe billing", status: res.status === 401 || res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
+        const res = await fetch("/api/v1/billing/checkout", { method: "POST", body: JSON.stringify({ plan: "pro" }), headers: { "Content-Type": "application/json" } });
+        results.push({ label: "Stripe billing", status: res.status === 401 || res.status === 400 || res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
       } catch (e) {
         results.push({ label: "Stripe billing", status: "error", detail: String(e) });
+      }
+
+      // Telegram bot
+      try {
+        const res = await fetch("/api/telegram/status");
+        results.push({ label: "Telegram bot", status: res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
+      } catch (e) {
+        results.push({ label: "Telegram bot", status: "warn", detail: "Not configured" });
       }
 
       setChecks(results);

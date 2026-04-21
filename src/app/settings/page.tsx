@@ -155,8 +155,11 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Spotify Artist ID */}
+        {/* Spotify Artist ID + Telegram */}
         <SpotifyArtistIdInput />
+
+        {/* Telegram bot */}
+        <TelegramSection />
 
         {/* API integrations status */}
         <ApiIntegrationsStatus />
@@ -345,6 +348,94 @@ function SpotifyArtistIdInput() {
           </button>
         </div>
       </div>
+    </section>
+  );
+}
+
+function TelegramSection() {
+  const [botStatus, setBotStatus] = useState<null | { ok: boolean; bot?: { username?: string; first_name?: string }; error?: string }>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [connectResult, setConnectResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/telegram/status")
+      .then((r) => r.json() as Promise<{ ok: boolean; bot?: { username?: string; first_name?: string }; error?: string }>)
+      .then(setBotStatus)
+      .catch(() => setBotStatus({ ok: false, error: "Not configured" }));
+  }, []);
+
+  async function connectWebhook() {
+    setConnecting(true);
+    setConnectResult(null);
+    try {
+      const res = await fetch("/api/telegram/connect", { method: "POST" });
+      const data = await res.json() as { ok: boolean; webhook?: string; description?: string; error?: string };
+      if (data.ok) {
+        setConnectResult(`✓ Webhook set to ${data.webhook}`);
+      } else {
+        setConnectResult(`✕ ${data.error ?? data.description ?? "Failed"}`);
+      }
+    } catch {
+      setConnectResult("✕ Request failed");
+    } finally {
+      setConnecting(false);
+    }
+  }
+
+  const configured = botStatus?.ok;
+
+  return (
+    <section className="rounded-[20px] glass card-shadow p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Telegram bot</div>
+        {botStatus && (
+          <span className={`rounded-full px-3 py-1 text-[10px] font-medium ${configured ? "bg-[#eaf3de] text-[#3b6d11]" : "bg-[#f8f6f1] text-[#9a9a8a]"}`}>
+            {configured ? `✓ @${botStatus.bot?.username ?? "connected"}` : "Not configured"}
+          </span>
+        )}
+      </div>
+
+      {configured ? (
+        <div className="space-y-3">
+          <p className="text-sm leading-6 text-[#514d47]">
+            Your bot <strong>@{botStatus?.bot?.username}</strong> is connected. Message it on Telegram to get gap updates, revenue status, and ask A anything.
+          </p>
+          <button
+            type="button"
+            onClick={connectWebhook}
+            disabled={connecting}
+            className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {connecting ? "Reconnecting…" : "Reconnect webhook"}
+          </button>
+          {connectResult && (
+            <p className="text-[11px] text-[#6b6b65] font-mono">{connectResult}</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm leading-6 text-[#514d47]">
+            Connect a Telegram bot to chat with A, get gap alerts, and check your catalog status from anywhere.
+          </p>
+          <div className="rounded-lg bg-[#f8f6f1] px-4 py-3 text-[11px] text-[#514d47] space-y-1.5">
+            <p><strong>Setup:</strong></p>
+            <p>1. Message @BotFather on Telegram and create a bot</p>
+            <p>2. Add <code className="bg-white px-1 rounded text-[#111]">TELEGRAM_BOT_TOKEN</code> to Vercel env vars</p>
+            <p>3. Redeploy, then click "Connect webhook" below</p>
+          </div>
+          <button
+            type="button"
+            onClick={connectWebhook}
+            disabled={connecting || !botStatus}
+            className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {connecting ? "Connecting…" : "Connect webhook"}
+          </button>
+          {connectResult && (
+            <p className="text-[11px] text-[#6b6b65] font-mono">{connectResult}</p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
