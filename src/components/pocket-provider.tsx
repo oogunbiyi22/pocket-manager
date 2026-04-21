@@ -157,6 +157,7 @@ type PocketContextValue = {
   activeProject: Project;
   profile: PocketProfile;
   signedIn: boolean;
+  isDemo: boolean;
   events: PocketEvent[];
   moneyEntries: CreatorMoneyEntry[];
   createProject: (input: CreateProjectInput) => string | null;
@@ -196,6 +197,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
   const [platformConnections, setPlatformConnections] = useState<PlatformConnection[]>([]);
   const [profile, setProfile] = useState<PocketProfile>(getDefaultProfile);
   const [signedIn, setSignedIn] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const [events, setEvents] = useState<PocketEvent[]>([]);
   const [moneyEntries, setMoneyEntries] = useState<CreatorMoneyEntry[]>([]);
 
@@ -242,11 +244,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         window.localStorage.removeItem(MONEY_STORAGE_KEY);
       }
 
+      let loadedSongs: SongCatalogItem[] = [];
       try {
         const rawSongs = window.localStorage.getItem(SONGS_STORAGE_KEY);
         if (rawSongs) {
           const parsed = JSON.parse(rawSongs) as SongCatalogItem[];
-          setSongs(Array.isArray(parsed) ? parsed : []);
+          loadedSongs = Array.isArray(parsed) ? parsed : [];
+          setSongs(loadedSongs);
         }
       } catch {
         window.localStorage.removeItem(SONGS_STORAGE_KEY);
@@ -260,6 +264,14 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         window.localStorage.removeItem(PLATFORMS_STORAGE_KEY);
+      }
+
+      // Guest with no saved catalog → load demo data so the product is explorable
+      const sessionState = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (sessionState !== "signed-in" && loadedSongs.length === 0) {
+        setSongs(seedSongs);
+        setPlatformConnections(seedPlatformConnections);
+        setIsDemo(true);
       }
 
       setHydrated(true);
@@ -276,6 +288,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) {
         if (!unmounted) {
           setSignedIn(true);
+          setIsDemo(false);
           window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
         }
 
@@ -407,6 +420,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       activeProject,
       profile,
       signedIn,
+      isDemo,
       events,
       moneyEntries,
       createProject(input) {
@@ -1271,7 +1285,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         });
       },
     };
-  }, [events, moneyEntries, platformConnections, profile, projects, signedIn, songs]);
+  }, [events, isDemo, moneyEntries, platformConnections, profile, projects, signedIn, songs]);
 
   return <PocketContext.Provider value={value}>{children}</PocketContext.Provider>;
 }

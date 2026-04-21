@@ -123,10 +123,39 @@ export function AppShell({
   const [pocketOpen, setPocketOpen] = useState(false);
   const [aOpen, setAOpen] = useState(false);
   const activeNav = getActiveSurface(pathname);
-  const { signedIn, profile } = usePocket();
+  const { signedIn, isDemo, profile } = usePocket();
 
   return (
     <div className="min-h-screen" style={{ color: "var(--text-primary)" }}>
+
+      {/* ── Demo mode banner ────────────────────────────────────── */}
+      {isDemo && (
+        <div style={{
+          background: "linear-gradient(90deg, rgba(168,85,247,0.12) 0%, rgba(0,212,255,0.1) 100%)",
+          borderBottom: "0.5px solid rgba(0,212,255,0.15)",
+          padding: "7px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontFamily: "monospace", letterSpacing: "0.05em" }}>
+            Exploring demo catalog
+          </span>
+          <Link
+            href="/sign-in"
+            style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: "var(--cyan)",
+              letterSpacing: "0.04em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Sign in to save your catalog →
+          </Link>
+        </div>
+      )}
 
       {/* ── HUD header bar ──────────────────────────────────────── */}
       <header
@@ -177,7 +206,7 @@ export function AppShell({
             })}
           </nav>
 
-          {/* Right — identity orb */}
+          {/* Right — identity orb / sign-in CTA */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
             {signedIn ? (
               <Link
@@ -201,20 +230,37 @@ export function AppShell({
                 {profile.artistName?.[0]?.toUpperCase() ?? "A"}
               </Link>
             ) : (
-              <Link
-                href="/sign-in"
-                className="press"
-                style={{
-                  padding: "6px 16px",
-                  borderRadius: 10,
-                  fontSize: 12,
-                  border: "0.5px solid rgba(255,255,255,0.1)",
-                  color: "rgba(255,255,255,0.4)",
-                  background: "rgba(255,255,255,0.03)",
-                }}
-              >
-                Sign in
-              </Link>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Link
+                  href="/sign-in?mode=sign-up"
+                  className="press"
+                  style={{
+                    padding: "6px 16px",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.25), rgba(0,212,255,0.2))",
+                    border: "0.5px solid rgba(0,212,255,0.25)",
+                    color: "var(--cyan)",
+                  }}
+                >
+                  Get started free
+                </Link>
+                <Link
+                  href="/sign-in"
+                  className="press"
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    border: "0.5px solid rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.3)",
+                    background: "transparent",
+                  }}
+                >
+                  Sign in
+                </Link>
+              </div>
             )}
           </div>
         </div>

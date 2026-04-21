@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
@@ -75,7 +76,8 @@ function getTodayKey() {
 }
 
 export default function MobilePage() {
-  const { completeRevenueAction, songs, profile } = usePocket();
+  const router = useRouter();
+  const { completeRevenueAction, songs, profile, signedIn, isDemo } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const catalogReadiness = getCatalogReadinessScore(songs);
   const readinessLevel = getReadinessLevel(catalogReadiness);
@@ -121,6 +123,7 @@ export default function MobilePage() {
 
   function clearCurrentAction() {
     if (!actionIsClearable) return;
+    if (isDemo) { router.push("/sign-in"); return; }
     setClearedActions((current) =>
       current.includes(activeActionId) ? current : [...current, activeActionId],
     );
@@ -128,6 +131,7 @@ export default function MobilePage() {
 
   function completeCurrentAction() {
     if (!actionIsClearable) return;
+    if (isDemo) { router.push("/sign-in"); return; }
     completeRevenueAction(nextAction.songId, nextAction.streamType, nextAction.collectionBody);
     setClearedActions((current) => current.filter((item) => item !== activeActionId));
   }
@@ -141,13 +145,22 @@ export default function MobilePage() {
             <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#5d5a54]">Pocket Manager</div>
             <div className="text-[15px] text-[#111]">The Situation</div>
           </div>
-          <Link
-            href="/settings"
-            className="grid size-10 place-items-center rounded-full border border-black/10 bg-white text-sm font-medium text-[#111]"
-            aria-label="Open profile"
-          >
-            {profile.artistName?.[0]?.toUpperCase() ?? "?"}
-          </Link>
+          {signedIn ? (
+            <Link
+              href="/settings"
+              className="grid size-10 place-items-center rounded-full border border-black/10 bg-white text-sm font-medium text-[#111]"
+              aria-label="Open profile"
+            >
+              {profile.artistName?.[0]?.toUpperCase() ?? "A"}
+            </Link>
+          ) : (
+            <Link
+              href="/sign-in"
+              className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-medium text-[#111]"
+            >
+              Sign in
+            </Link>
+          )}
         </header>
 
         {/* Command surface — total secured */}
@@ -236,7 +249,7 @@ export default function MobilePage() {
 
         {/* Next action card */}
         <section className="rounded-[20px] glass p-5 card-shadow">
-          {songs.length === 0 ? (
+          {songs.length === 0 && !isDemo ? (
             <div className="py-2 text-center">
               <div className="text-3xl">🎵</div>
               <div className="mt-3 text-[15px] font-medium text-[var(--text-primary)]">Add your first release</div>
@@ -329,7 +342,7 @@ export default function MobilePage() {
             })}
           </div>
 
-          {songs.length === 0 ? (
+          {songs.length === 0 && !isDemo ? (
             <Link
               href="/projects/new"
               className="mt-3 flex flex-col items-center gap-2 rounded-[14px] border-[0.5px] border-dashed border-black/15 px-4 py-6 text-center press"
