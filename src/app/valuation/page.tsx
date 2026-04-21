@@ -16,18 +16,18 @@ export default function ValuationPage() {
   const drivers = [
     `${songs.length} catalog song${songs.length === 1 ? "" : "s"} tracked`,
     `${averageReadiness}/100 average readiness`,
-    `${formatMoney(confirmed)} confirmed income in local prototype data`,
+    `${formatMoney(confirmed)} confirmed income tracked`,
     `${formatMoney(estimatedGap)} estimated uncollected gap still open`,
   ];
 
   return (
-    <AppShell title="Catalog Valuation" eyebrow="Elite preview">
+    <AppShell title="Catalog Valuation" eyebrow="Catalog as asset">
       <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Catalog as asset</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Show what the catalog could become when the gaps close.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">See what your catalog is worth — and what closing the gaps would add.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This is a directional prototype estimate, not an investor offer or appraisal. Real valuation needs income history, ownership proof, growth, and market comps.
+            Estimated from income, gap potential, and readiness score. Use as a directional benchmark, not an official appraisal.
           </p>
         </section>
 

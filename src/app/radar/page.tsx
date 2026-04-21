@@ -14,13 +14,13 @@ export default function RadarPage() {
   const nextCheckpoint = selectedSong ? getNextReleaseRadarCheckpoint(selectedSong) : null;
 
   return (
-    <AppShell title="Release Radar" eyebrow="Phase 9 preview">
+    <AppShell title="Release Radar" eyebrow="Release countdown">
       <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Release countdown</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Know what has to happen before the song drops.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Know exactly what needs to happen before the song drops.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This prototype calculates the checklist from release dates. Push delivery and background checkpoint jobs come later with the V5 backend.
+            Milestones are calculated from your release date — registration, metadata, promo, and distribution checks timed automatically.
           </p>
         </section>
 

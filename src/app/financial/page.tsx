@@ -37,7 +37,7 @@ export default function FinancialPage() {
             `${song.title} | ${song.territory} | confirmed ${formatMoney(getSongConfirmedIncome(song))} | missing ${formatGapEstimate(getSongEstimatedGap(song))}`,
         ),
         "",
-        "PDF export, full history, and accountant email are Pro/Elite backend features in V5.",
+        "Copy and share with your accountant or financial team.",
       ].join("\n"),
     [songs, totalConfirmed, totalGap],
   );

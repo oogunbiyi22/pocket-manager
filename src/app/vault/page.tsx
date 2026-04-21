@@ -51,8 +51,8 @@ export default function VaultPage() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-          Upload, R2 storage, and full file search are backend-backed Phase 8 work. This page locks the product shape now: The Vault is protected creative memory, not a generic drive.
+        <section className="mt-5 rounded-xl border-[0.5px] border-black/10 bg-[#f5f4f0] p-4 text-sm leading-6 text-[#6b6b65]">
+          File upload and cloud storage are coming. For now, files are linked to your song projects — click any file to open its project room.
         </section>
       </main>
     </AppShell>

@@ -40,7 +40,7 @@ export default function BeatsPage() {
         `Date: ${form.date}`,
         `Expires: ${form.expires || "No expiry set"}`,
         "",
-        "This is not a legal document. V5 license PDF generation belongs to backend/export work.",
+        "This is not a legal document. Consult an attorney before use in a real deal.",
       ].join("\n")
     : "Add a song before creating a beat license.";
 
@@ -71,7 +71,7 @@ export default function BeatsPage() {
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Beat licensing manager</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Track who licensed a beat and where conflicts start.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This prototype logs licenses in local page state. Real PDF contracts, storage, and legal templates come later in V5.
+            Log leases and exclusives, spot conflicts before they happen, and generate a plain-language agreement preview.
           </p>
         </section>
 

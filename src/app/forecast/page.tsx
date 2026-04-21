@@ -16,13 +16,13 @@ export default function ForecastPage() {
   const upsideMonthly = optimizedMonthly - currentMonthly;
 
   return (
-    <AppShell title="Income Forecast" eyebrow="Phase 10 preview">
+    <AppShell title="Income Forecast" eyebrow="Revenue modeling">
       <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Forecast</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Show the money difference between current and optimized.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">See the real money difference between your current state and fully optimized.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This preview uses current local catalog gaps as a conservative scenario model. Real forecasting needs statement history, growth rates, and backend calculations.
+            Modeled from your catalog&apos;s confirmed income and estimated uncollected gaps. Fix the gaps to close the upside.
           </p>
         </section>
 
@@ -68,7 +68,7 @@ export default function ForecastPage() {
         </section>
 
         <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
-          Forecasts are directional prototype estimates. Connect real statements and platform data before treating this as financial planning.
+          Forecasts are directional estimates based on your catalog data. Not financial advice — use as a planning reference.
         </section>
 
         <Link href="/actions" className="mt-5 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">

@@ -60,13 +60,13 @@ export default function StatementsPage() {
   }
 
   return (
-    <AppShell title="Statement Reader" eyebrow="Phase 9 preview">
+    <AppShell title="Statement Reader" eyebrow="Income statements">
       <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Royalty statement reader</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Turn statement rows into catalog income clarity.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Turn royalty statements into clear income breakdowns.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This prototype parses pasted CSV rows. Real uploads, PDF parsing, distributor-specific formats, and background processing belong to the V5 backend.
+            Drop or paste your CSV export from DistroKid, TuneCore, CD Baby, ASCAP, BMI, or SoundExchange. See income by song, platform, and territory instantly.
           </p>
         </section>
 

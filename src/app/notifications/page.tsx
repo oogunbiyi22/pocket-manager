@@ -78,13 +78,13 @@ export default function NotificationsPage() {
   }
 
   return (
-    <AppShell title="Notifications" eyebrow="Phase 8 control">
+    <AppShell title="Notifications" eyebrow="Alert control">
       <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Push intelligence</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Only alerts that move the catalog forward.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            Preferences are saved locally in this prototype. Real delivery requires the V5 Expo Notifications, backend job queue, and push token work.
+            Choose what you want to hear about. Preferences are saved to your device.
           </p>
           <div className="mt-4 inline-flex rounded-full border-[0.5px] border-white/15 px-3 py-1 text-xs text-white/60">
             {enabledCount} alerts enabled

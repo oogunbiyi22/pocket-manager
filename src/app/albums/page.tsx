@@ -36,13 +36,13 @@ export default function AlbumsPage() {
   }
 
   return (
-    <AppShell title="EP / Album Builder" eyebrow="Phase 9 preview">
+    <AppShell title="EP / Album Builder" eyebrow="Release package">
       <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
         <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Release package</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Group songs into a release and see what is missing.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Bundle your songs into an EP or album and see every gap before you release.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            This prototype builds the EP/album picture from existing catalog songs. Persisted EP records, EPK export, and backend project tables come later in V5.
+            Select songs from your catalog, set release details, and get a readiness checklist — ISRC, metadata, artwork, splits, and revenue gaps all in one view.
           </p>
         </section>
 

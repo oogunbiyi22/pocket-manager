@@ -108,7 +108,7 @@ export default function ProjectDetailPage() {
         (c) => `${c.name} - ${c.role.replaceAll("_", " ")} - ${c.ownershipPercentage}% - ${c.signed ? "signed" : "unsigned"}`,
       ),
       "",
-      "This prototype preview is not a signed legal agreement.",
+      "This is an informal summary — not a legally executed split sheet.",
     ].join("\n");
   }, [song, splitTotal]);
 
