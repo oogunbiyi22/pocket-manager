@@ -1160,6 +1160,8 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       signIn(email) {
         const localName = email.split("@")[0]?.replace(/[._-]+/g, " ").trim();
         setSignedIn(true);
+        setIsDemo(false);
+        window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
         if (localName) {
           setProfile((current) => ({
             ...current,

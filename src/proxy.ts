@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Next.js Middleware — runs on every matched request before the route handler.
+ * Next.js 16 Proxy — runs on every matched request before the route handler.
+ * (Next.js 16 renamed middleware → proxy; Node.js runtime only)
  *
  * Responsibilities:
  * 1. Security headers on every response
- * 2. Block requests with clearly malicious patterns
- * 3. Auth guard — redirect unauthenticated users from protected routes
- *    (Note: true auth state lives in Supabase; this is a lightweight gate
- *     based on the presence of the Supabase session cookie.)
+ * 2. Auth guard — redirect unauthenticated users from protected routes
+ *    (lightweight gate based on presence of the Supabase session cookie)
  */
 
 // Routes that require authentication
@@ -41,42 +40,32 @@ const PROTECTED_PREFIXES = [
 ];
 
 // Public routes — never require auth
-// Note: "/" uses exact-only match to avoid matching every path (all URLs start with "/")
 const PUBLIC_PREFIXES = ["/home", "/mobile", "/sign-in", "/onboarding", "/terms", "/privacy", "/api", "/auth", "/a"];
 
 function isProtected(pathname: string): boolean {
-  // Root landing page is always public
   if (pathname === "/") return false;
   if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + "?"))) return false;
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 function addSecurityHeaders(response: NextResponse): NextResponse {
-  // Prevent MIME-type sniffing
   response.headers.set("X-Content-Type-Options", "nosniff");
-  // Deny framing (clickjacking protection)
   response.headers.set("X-Frame-Options", "DENY");
-  // Disable browser XSS filter (modern browsers use CSP instead)
   response.headers.set("X-XSS-Protection", "0");
-  // Referrer policy — don't leak URL in cross-origin requests
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  // Permissions policy — disable powerful APIs we don't use
   response.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), interest-cohort=()",
   );
-  // HSTS — 1 year, include subdomains
   response.headers.set(
     "Strict-Transport-Security",
     "max-age=31536000; includeSubDomains",
   );
-  // Content Security Policy — allow our known origins
-  // Note: framer-motion uses inline styles; we allow 'unsafe-inline' for styles only
   response.headers.set(
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires these
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
@@ -93,14 +82,15 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check for Supabase session cookie (lightweight auth gate)
-  // Supabase SSR sets a cookie like sb-<project>-auth-token
-  // We check for its existence — the actual token is validated server-side
   if (isProtected(pathname)) {
     const cookies = request.cookies;
-    const hasSession = [...cookies.getAll()].some(
-      (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"),
-    );
+    // Supabase SSR sets cookies named: sb-<project-ref>-auth-token
+    // For large JWTs it chunks them: sb-<ref>-auth-token.0, sb-<ref>-auth-token.1, etc.
+    // Accept any of these patterns so chunked tokens don't cause false logouts.
+    const hasSession = [...cookies.getAll()].some((c) => {
+      if (!c.name.startsWith("sb-")) return false;
+      return c.name.endsWith("-auth-token") || c.name.includes("-auth-token.");
+    });
 
     if (!hasSession) {
       const url = request.nextUrl.clone();
@@ -111,19 +101,12 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // Pass through with security headers
   const response = NextResponse.next();
   return addSecurityHeaders(response);
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, manifest files, icons
-     */
     "/((?!_next/static|_next/image|favicon.ico|icon-|manifest).*)",
   ],
 };
