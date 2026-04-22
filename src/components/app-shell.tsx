@@ -123,49 +123,20 @@ export function AppShell({
   const [pocketOpen, setPocketOpen] = useState(false);
   const [aOpen, setAOpen] = useState(false);
   const activeNav = getActiveSurface(pathname);
-  const { signedIn, isDemo, profile } = usePocket();
+  const { signedIn, profile } = usePocket();
 
   return (
     <div className="min-h-screen" style={{ color: "var(--text-primary)" }}>
-
-      {/* ── Demo mode banner ────────────────────────────────────── */}
-      {isDemo && (
-        <div style={{
-          background: "linear-gradient(90deg, rgba(168,85,247,0.12) 0%, rgba(0,212,255,0.1) 100%)",
-          borderBottom: "0.5px solid rgba(0,212,255,0.15)",
-          padding: "7px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontFamily: "monospace", letterSpacing: "0.05em" }}>
-            Exploring demo catalog
-          </span>
-          <Link
-            href="/sign-in"
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: "var(--cyan)",
-              letterSpacing: "0.04em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Sign in to save your catalog →
-          </Link>
-        </div>
-      )}
 
       {/* ── HUD header bar ──────────────────────────────────────── */}
       <header
         className="sticky top-0 z-40 px-4 py-3 sm:px-6"
         style={{
-          background: "linear-gradient(180deg, rgba(0,0,14,0.95) 0%, rgba(3,3,15,0.85) 100%)",
+          background: "linear-gradient(180deg, rgba(13,13,11,0.97) 0%, rgba(13,13,11,0.88) 100%)",
           backdropFilter: "blur(40px) saturate(180%)",
           WebkitBackdropFilter: "blur(40px) saturate(180%)",
-          borderBottom: "0.5px solid rgba(0, 212, 255, 0.08)",
-          boxShadow: "0 1px 0 rgba(0,212,255,0.04) inset",
+          borderBottom: "0.5px solid rgba(245,244,240,0.07)",
+          boxShadow: "0 1px 0 rgba(239,159,39,0.04) inset",
         }}
       >
         <div className="mx-auto flex max-w-7xl items-center gap-4">
@@ -173,12 +144,12 @@ export function AppShell({
             <LogoWordmark size={28} />
           </Link>
 
-          {/* Desktop nav — holographic pill */}
+          {/* Desktop nav */}
           <nav
             className="hidden flex-1 justify-center gap-0.5 rounded-2xl p-1 md:flex"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "0.5px solid rgba(255,255,255,0.07)",
+              background: "rgba(245,244,240,0.03)",
+              border: "0.5px solid rgba(245,244,240,0.06)",
             }}
           >
             {NAV_ITEMS.map((item) => {
@@ -189,14 +160,14 @@ export function AppShell({
                   href={item.href}
                   className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm transition-all duration-200 press"
                   style={isActive ? {
-                    background: "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(0,212,255,0.12) 100%)",
-                    border: "0.5px solid rgba(0,212,255,0.2)",
-                    color: "var(--cyan)",
-                    boxShadow: "0 0 12px rgba(0,212,255,0.12)",
+                    background: "linear-gradient(135deg, rgba(239,159,39,0.15) 0%, rgba(200,169,122,0.10) 100%)",
+                    border: "0.5px solid rgba(239,159,39,0.22)",
+                    color: "var(--amber)",
+                    boxShadow: "0 0 12px rgba(239,159,39,0.10)",
                     fontWeight: 500,
-                    letterSpacing: "0.02em",
+                    letterSpacing: "0.01em",
                   } : {
-                    color: "rgba(255,255,255,0.35)",
+                    color: "rgba(245,244,240,0.35)",
                   }}
                 >
                   <item.Icon active={isActive} />
@@ -206,7 +177,7 @@ export function AppShell({
             })}
           </nav>
 
-          {/* Right — identity orb / sign-in CTA */}
+          {/* Right — identity / sign-in */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
             {signedIn ? (
               <Link
@@ -220,10 +191,10 @@ export function AppShell({
                   placeItems: "center",
                   fontSize: 12,
                   fontWeight: 600,
-                  background: "linear-gradient(135deg, rgba(168,85,247,0.3), rgba(0,212,255,0.3))",
-                  border: "0.5px solid rgba(0,212,255,0.3)",
-                  color: "var(--cyan)",
-                  boxShadow: "0 0 12px rgba(0,212,255,0.15)",
+                  background: "linear-gradient(135deg, rgba(239,159,39,0.25), rgba(200,169,122,0.2))",
+                  border: "0.5px solid rgba(239,159,39,0.35)",
+                  color: "var(--amber)",
+                  boxShadow: "0 0 10px rgba(239,159,39,0.12)",
                 }}
                 aria-label="Profile"
               >
@@ -239,9 +210,9 @@ export function AppShell({
                     borderRadius: 10,
                     fontSize: 12,
                     fontWeight: 500,
-                    background: "linear-gradient(135deg, rgba(168,85,247,0.25), rgba(0,212,255,0.2))",
-                    border: "0.5px solid rgba(0,212,255,0.25)",
-                    color: "var(--cyan)",
+                    background: "linear-gradient(135deg, rgba(239,159,39,0.2), rgba(200,169,122,0.15))",
+                    border: "0.5px solid rgba(239,159,39,0.3)",
+                    color: "var(--amber)",
                   }}
                 >
                   Get started free
@@ -253,8 +224,8 @@ export function AppShell({
                     padding: "6px 12px",
                     borderRadius: 10,
                     fontSize: 12,
-                    border: "0.5px solid rgba(255,255,255,0.08)",
-                    color: "rgba(255,255,255,0.3)",
+                    border: "0.5px solid rgba(245,244,240,0.08)",
+                    color: "rgba(245,244,240,0.35)",
                     background: "transparent",
                   }}
                 >
@@ -271,7 +242,7 @@ export function AppShell({
         {(title || eyebrow) && (
           <header className="mb-8">
             {eyebrow && (
-              <div className="label-upper" style={{ color: "rgba(0,212,255,0.5)", marginBottom: 6 }}>{eyebrow}</div>
+              <div className="label-upper" style={{ color: "rgba(239,159,39,0.5)", marginBottom: 6 }}>{eyebrow}</div>
             )}
             {title && (
               <h1 style={{ fontSize: "clamp(28px,5vw,42px)", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 1.1, color: "var(--text-primary)", margin: 0 }}>{title}</h1>
@@ -281,16 +252,16 @@ export function AppShell({
         {children}
       </main>
 
-      {/* ── Floating mobile tab bar — HUD control panel ──────────── */}
+      {/* ── Floating mobile tab bar ──────────────────────────────── */}
       <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
         <nav
           className="mx-3 mb-3 grid grid-cols-5 rounded-2xl px-1 py-2"
           style={{
-            background: "linear-gradient(180deg, rgba(8,8,24,0.96) 0%, rgba(3,3,15,0.98) 100%)",
+            background: "linear-gradient(180deg, rgba(13,13,11,0.97) 0%, rgba(13,13,11,0.99) 100%)",
             backdropFilter: "blur(60px) saturate(200%)",
             WebkitBackdropFilter: "blur(60px) saturate(200%)",
-            border: "0.5px solid rgba(0,212,255,0.1)",
-            boxShadow: "0 0 40px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(255,255,255,0.04) inset",
+            border: "0.5px solid rgba(245,244,240,0.08)",
+            boxShadow: "0 0 40px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(245,244,240,0.04) inset",
           }}
         >
           {NAV_ITEMS.map((item) => {
@@ -301,9 +272,9 @@ export function AppShell({
                 href={item.href}
                 className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-center transition-all duration-200 active:scale-90"
                 style={isActive ? {
-                  color: "var(--cyan)",
+                  color: "var(--amber)",
                 } : {
-                  color: "rgba(255,255,255,0.28)",
+                  color: "rgba(245,244,240,0.28)",
                 }}
               >
                 <item.Icon active={isActive} />
@@ -318,8 +289,8 @@ export function AppShell({
                     height: 2,
                     width: isActive ? 16 : 0,
                     borderRadius: 1,
-                    background: isActive ? "var(--cyan)" : "transparent",
-                    boxShadow: isActive ? "0 0 6px var(--cyan)" : "none",
+                    background: isActive ? "var(--amber)" : "transparent",
+                    boxShadow: isActive ? "0 0 6px var(--amber)" : "none",
                     transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   }}
                 />
@@ -329,7 +300,7 @@ export function AppShell({
         </nav>
       </div>
 
-      {/* ── Pocket button — plasma orb ───────────────────────────── */}
+      {/* ── Pocket button ────────────────────────────────────────── */}
       <button
         type="button"
         onClick={() => setPocketOpen(true)}
@@ -340,12 +311,12 @@ export function AppShell({
           borderRadius: "50%",
           display: "grid",
           placeItems: "center",
-          background: "linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(0,212,255,0.4) 100%)",
-          border: "0.5px solid rgba(168,85,247,0.5)",
+          background: "linear-gradient(135deg, rgba(239,159,39,0.5) 0%, rgba(200,169,122,0.4) 100%)",
+          border: "0.5px solid rgba(239,159,39,0.55)",
           color: "#fff",
           fontSize: 20,
           fontWeight: 200,
-          boxShadow: "0 0 20px rgba(168,85,247,0.4), 0 4px 16px rgba(0,0,0,0.6)",
+          boxShadow: "0 0 20px rgba(239,159,39,0.35), 0 4px 16px rgba(0,0,0,0.6)",
         }}
         aria-label="Open Pocket"
       >
@@ -378,8 +349,8 @@ export function Panel({
     <section
       className="rounded-2xl p-6"
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "0.5px solid rgba(255,255,255,0.07)",
+        background: "rgba(245,244,240,0.03)",
+        border: "0.5px solid rgba(245,244,240,0.07)",
         backdropFilter: "blur(40px)",
       }}
     >
