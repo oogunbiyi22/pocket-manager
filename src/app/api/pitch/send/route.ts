@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   if (resendKey) {
     // Send via Resend
-    const fromAddress = from ?? process.env.PITCH_FROM_EMAIL ?? "pitches@pocketmanager.online";
+    const fromAddress = from ?? process.env.PITCH_FROM_EMAIL ?? "Pocket Manager <pitches@pocketmanager.online>";
 
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         headers: {
           Authorization: `Bearer ${resendKey}`,
           "Content-Type": "application/json",
+          "User-Agent": "pocket-manager/1.0",
         },
         body: JSON.stringify({
           from: fromAddress,
@@ -67,8 +68,16 @@ export async function POST(req: NextRequest) {
       });
 
       if (!res.ok) {
-        const err = await res.text().catch(() => "");
-        console.error("[pitch/send] Resend error:", err);
+        const errText = await res.text().catch(() => "");
+        console.error("[pitch/send] Resend error:", res.status, errText);
+        // Pass Resend 429 (rate limit / quota) through with Retry-After
+        if (res.status === 429) {
+          const retryAfter = res.headers.get("retry-after") ?? "60";
+          return NextResponse.json({ error: "Email quota reached — try again shortly" }, {
+            status: 429,
+            headers: { "Retry-After": retryAfter },
+          });
+        }
         return NextResponse.json({ error: "Email delivery failed" }, { status: 502 });
       }
 

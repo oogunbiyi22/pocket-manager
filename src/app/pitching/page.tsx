@@ -403,6 +403,29 @@ export default function PitchingPage() {
                   />
                 </label>
 
+                <button
+                  type="button"
+                  disabled={importing}
+                  onClick={async () => {
+                    setImporting(true);
+                    try {
+                      const res = await fetch("/verified-curators.csv");
+                      const text = await res.text();
+                      const parsed = parseCSV(text);
+                      setCurators(parsed);
+                      setSelectedIds(new Set(parsed.slice(0, 50).map((c) => c.id)));
+                      setTab("curators");
+                    } catch {
+                      alert("Could not load verified list.");
+                    } finally {
+                      setImporting(false);
+                    }
+                  }}
+                  className="mt-4 w-full rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] py-3 text-sm font-medium text-[#854f0b] transition hover:bg-[#ef9f27]/20 disabled:opacity-50"
+                >
+                  {importing ? "Loading…" : "⚡ Load Verified Curator List (4,200+ curators)"}
+                </button>
+
                 {curators.length > 0 && (
                   <div className="mt-3 rounded-xl bg-[#eaf3de] px-4 py-3 text-sm text-[#3b6d11]">
                     ✓ {curators.length} curators imported · {curators.filter((c) => c.email.includes("@")).length} valid emails
