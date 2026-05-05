@@ -35,7 +35,19 @@ const ChatRequestSchema = z.object({
 });
 
 // ─── Model selection ────────────────────────────────────────────────────────
+// Priority: Ollama (self-hosted, free) → Claude (Pro/Elite) → Groq (free tier fallback)
 function getModel(plan?: string): LanguageModel {
+  const provider = process.env.AI_PROVIDER ?? "groq";
+
+  // Self-hosted Ollama — no rate limits, no external keys, runs locally or on own server
+  // Set AI_PROVIDER=ollama and OLLAMA_BASE_URL=http://your-server:11434/v1
+  if (provider === "ollama") {
+    const baseURL = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434/v1";
+    const modelId = process.env.AI_MODEL ?? "qwen3.5:9b";
+    return createOpenAI({ baseURL, apiKey: "ollama" })(modelId) as unknown as LanguageModel;
+  }
+
+  // Claude for Pro/Elite users (best quality, requires ANTHROPIC_API_KEY)
   if (plan === "elite" && process.env.ANTHROPIC_API_KEY) {
     return createAnthropic()("claude-sonnet-4-6") as unknown as LanguageModel;
   }
@@ -43,8 +55,7 @@ function getModel(plan?: string): LanguageModel {
     return createAnthropic()("claude-haiku-4-5-20251001") as unknown as LanguageModel;
   }
 
-  const provider = process.env.AI_PROVIDER ?? "groq";
-  const modelId = process.env.AI_MODEL ?? "llama-3.1-8b-instant";
+  const modelId = process.env.AI_MODEL ?? "llama-3.3-70b-versatile";
 
   switch (provider) {
     case "groq":
@@ -56,10 +67,7 @@ function getModel(plan?: string): LanguageModel {
     case "anthropic":
       return createAnthropic()(modelId) as unknown as LanguageModel;
     default:
-      if (process.env.GROQ_API_KEY) {
-        return createGroq({ apiKey: process.env.GROQ_API_KEY })("llama-3.1-8b-instant") as unknown as LanguageModel;
-      }
-      return createAnthropic()(modelId) as unknown as LanguageModel;
+      return createGroq({ apiKey: process.env.GROQ_API_KEY })("llama-3.3-70b-versatile") as unknown as LanguageModel;
   }
 }
 
