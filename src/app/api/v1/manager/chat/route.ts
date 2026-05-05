@@ -6,6 +6,7 @@ import { createGroq } from "@ai-sdk/groq";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { buildMusicIndustrySystemPrompt } from "@/lib/music-industry-brain";
 import {
   getRevenueGapSummary,
   getRevenueActionQueue,
@@ -35,7 +36,10 @@ const ChatRequestSchema = z.object({
 
 // ─── Model selection ────────────────────────────────────────────────────────
 function getModel(plan?: string): LanguageModel {
-  if ((plan === "pro" || plan === "elite") && process.env.ANTHROPIC_API_KEY) {
+  if (plan === "elite" && process.env.ANTHROPIC_API_KEY) {
+    return createAnthropic()("claude-sonnet-4-6") as unknown as LanguageModel;
+  }
+  if (plan === "pro" && process.env.ANTHROPIC_API_KEY) {
     return createAnthropic()("claude-haiku-4-5-20251001") as unknown as LanguageModel;
   }
 
@@ -64,9 +68,10 @@ function buildSystemPrompt(
   artistName: string,
   songs: SongCatalogItem[],
   platforms: PlatformConnection[],
+  plan?: string,
 ) {
   const summary = getRevenueGapSummary(songs);
-  const queue = getRevenueActionQueue(songs).slice(0, 3);
+  const queue = getRevenueActionQueue(songs).slice(0, 5);
   const catalogReadiness = getCatalogReadinessScore(songs);
   const readinessLevel = getReadinessLevel(catalogReadiness);
 
@@ -94,31 +99,17 @@ function buildSystemPrompt(
     .map((a, i) => `  ${i + 1}. ${a.action} via ${a.collectionBody} — "${a.songTitle}" — ${formatGapEstimate(a.estimatedValue)} — ${a.estimatedTime}`)
     .join("\n");
 
-  return `You are A — the personal music industry manager inside Pocket Manager for ${artistName}.
+  const artistContext = [
+    `CATALOG READINESS: ${catalogReadiness}% (${readinessLevel})`,
+    `CONFIRMED INCOME: ${formatMoney(summary.totalSecured)} this quarter`,
+    `ESTIMATED GAP: ${formatGapEstimate(summary.totalEstimatedGap)} uncollected across ${summary.songsWithGaps}/${summary.totalSongs} songs`,
+    songs.length ? `\nCATALOG (${songs.length} songs):\n${catalogLines}` : "",
+    queue.length ? `\nTOP PRIORITY ACTIONS:\n${queueLines}` : "",
+    connectedPlatforms.length ? `\nPLATFORMS CONNECTED: ${connectedPlatforms.join(", ")}` : "",
+    disconnectedPlatforms.length ? `PLATFORMS MISSING: ${disconnectedPlatforms.slice(0, 5).join(" | ")}` : "",
+  ].filter(Boolean).join("\n");
 
-ARTIST: ${artistName}
-CATALOG READINESS: ${catalogReadiness}% (${readinessLevel})
-TOTAL CONFIRMED: ${formatMoney(summary.totalSecured)} this quarter
-TOTAL GAP: ${formatGapEstimate(summary.totalEstimatedGap)} uncollected across ${summary.songsWithGaps} of ${summary.totalSongs} songs
-
-CATALOG (${songs.length} songs):
-${catalogLines}
-
-TOP PRIORITY ACTIONS:
-${queueLines || "  All gaps closed."}
-
-PLATFORMS CONNECTED: ${connectedPlatforms.join(", ") || "none"}
-PLATFORMS MISSING: ${disconnectedPlatforms.slice(0, 5).join(" | ") || "none"}
-
-BEHAVIOR RULES:
-- Direct, confident, music-industry-fluent. Correct terminology. No explaining basics.
-- Name the specific song, platform, dollar amount in every answer. Use the real account data above.
-- Under 4 sentences unless giving numbered action steps.
-- Never say: "Great question" / "Certainly" / "As an AI" / "I'd be happy to" / "I don't know" / "I cannot access".
-- If data is missing from the account, say exactly what's needed and where to add it.
-- You are their manager. Speak like one — direct, specific, actionable.
-- When asked about the biggest gap: name the song and the specific dollar amount.
-- When asked what to do next: give the #1 action from the queue above.`;
+  return buildMusicIndustrySystemPrompt(artistName, artistContext, "", plan ?? "free");
 }
 
 // ─── Route handler ──────────────────────────────────────────────────────────
@@ -168,7 +159,7 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: getModel(plan),
-      system: buildSystemPrompt(cleanArtistName, songs, platforms),
+      system: buildSystemPrompt(cleanArtistName, songs, platforms, plan),
       messages: messages.map((message) => ({ role: message.role, content: message.content })),
       maxOutputTokens: 400,
       temperature: 0.35,

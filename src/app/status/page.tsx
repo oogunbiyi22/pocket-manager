@@ -13,7 +13,6 @@ export default function StatusPage() {
     { label: "Supabase DB tables", status: "loading" },
     { label: "AI endpoint", status: "loading" },
     { label: "Stripe billing", status: "loading" },
-    { label: "Telegram bot", status: "loading" },
   ]);
   const [session, setSession] = useState<string>("Checking…");
 
@@ -98,15 +97,7 @@ export default function StatusPage() {
         results.push({ label: "Stripe billing", status: "error", detail: "Request failed" });
       }
 
-      // Telegram bot
-      try {
-        const res = await fetch("/api/telegram/status");
-        results.push({ label: "Telegram bot", status: res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
-      } catch {
-        results.push({ label: "Telegram bot", status: "warn", detail: "Not configured" });
-      }
-
-      setChecks(results);
+setChecks(results);
     }
     void run();
   }, []);
