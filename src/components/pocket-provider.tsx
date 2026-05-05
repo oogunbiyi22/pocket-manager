@@ -22,6 +22,7 @@ import {
   seedProjects,
   seedSongs,
   SongCatalogItem,
+  SongVaultAsset,
 } from "@/lib/backstage-data";
 import { TaskStatus } from "@/lib/backstage-data";
 
@@ -162,6 +163,7 @@ type PocketContextValue = {
   moneyEntries: CreatorMoneyEntry[];
   createProject: (input: CreateProjectInput) => string | null;
   createSong: (input: CreateSongInput) => string | null;
+  addSongAssets: (songId: string, assets: SongVaultAsset[]) => void;
   addSongCollaborator: (songId: string, input: AddCollaboratorInput) => void;
   updateSongMetadata: (songId: string, input: SongMetadataInput) => void;
   completeRevenueAction: (songId: string, streamType: string, collectionBody: string) => void;
@@ -248,7 +250,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawSongs = window.localStorage.getItem(SONGS_STORAGE_KEY);
         if (rawSongs) {
           const parsed = JSON.parse(rawSongs) as SongCatalogItem[];
-          loadedSongs = Array.isArray(parsed) ? parsed : [];
+          loadedSongs = Array.isArray(parsed) ? parsed.map(normalizeSongCatalogItem) : [];
           setSongs(loadedSongs);
         }
       } catch {
@@ -293,8 +295,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (catalogResult.status === "fulfilled" && catalogResult.value.data?.songs) {
               const remoteSongs = catalogResult.value.data.songs as SongCatalogItem[];
               if (Array.isArray(remoteSongs) && remoteSongs.length > 0) {
-                setSongs(remoteSongs);
-                window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(remoteSongs));
+                const normalizedSongs = remoteSongs.map(normalizeSongCatalogItem);
+                setSongs(normalizedSongs);
+                window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(normalizedSongs));
               }
             }
 
@@ -323,7 +326,6 @@ export function PocketProvider({ children }: { children: ReactNode }) {
       unmounted = true;
       authListener.subscription.unsubscribe();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Push songs to Supabase when they change (debounced via effect + signedIn guard)
@@ -523,6 +525,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           artworkUploaded: false,
           splitSheetSigned: false,
           revenueStreams: buildStarterRevenueStreams(distributor),
+          assets: [],
         };
 
         pushEvent({
@@ -537,6 +540,49 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         setProfile((current) => ({ ...current, currentProject: title }));
 
         return songId;
+      },
+      addSongAssets(songId, assets) {
+        if (assets.length === 0) {
+          return;
+        }
+
+        const normalizedAssets = assets.map((asset) => ({
+          ...asset,
+          id: asset.id || `${songId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          uploadedAt: asset.uploadedAt || new Date().toISOString(),
+        }));
+
+        setSongs((current) =>
+          current.map((song) => {
+            if (song.id !== songId) {
+              return song;
+            }
+
+            const existingAssets = song.assets ?? [];
+            const mergedAssets = [
+              ...normalizedAssets,
+              ...existingAssets.filter(
+                (existing) => !normalizedAssets.some((incoming) => incoming.name === existing.name && incoming.kind === existing.kind),
+              ),
+            ];
+
+            return {
+              ...song,
+              assets: mergedAssets,
+              artworkUploaded: song.artworkUploaded || normalizedAssets.some((asset) => asset.kind === "artwork"),
+            };
+          }),
+        );
+
+        normalizedAssets.forEach((asset, index) => {
+          pushEvent({
+            projectId: songId,
+            title: asset.name,
+            detail: `${asset.kind} asset filed in the vault${asset.source === "supabase" ? " and synced" : " on this device"}.`,
+            kind: "Vault",
+            emphasis: index === 0 ? "Filed" : "Uploaded",
+          });
+        });
       },
       addSongCollaborator(songId, input) {
         const collaboratorName = input.name.trim();
@@ -1150,12 +1196,13 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const localName = email.split("@")[0]?.replace(/[._-]+/g, " ").trim();
         setSignedIn(true);
         window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
-        if (localName) {
-          setProfile((current) => ({
-            ...current,
-            artistName: current.artistName || localName.replace(/\b\w/g, (char) => char.toUpperCase()),
-          }));
-        }
+        setProfile((current) => ({
+          ...current,
+          email,
+          artistName: localName
+            ? current.artistName || localName.replace(/\b\w/g, (char) => char.toUpperCase())
+            : current.artistName,
+        }));
       },
       signOut() {
         setSignedIn(false);
@@ -1165,16 +1212,17 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         if (supabase) void supabase.auth.signOut();
       },
       completeOnboarding(input) {
-        setProfile({
+        setProfile((current) => ({
+          ...current,
           artistName: input.artistName,
           role: input.role,
           vibe: input.vibe,
           currentProject: input.currentProject,
           targetWindow: input.targetWindow,
           mainGoal: input.mainGoal,
-          managerMode: input.managerMode ?? "Direct mode",
+          managerMode: input.managerMode ?? current.managerMode ?? "Direct mode",
           onboarded: true,
-        });
+        }));
       },
       updateProfile(updates) {
         setProfile((current) => ({
@@ -1210,7 +1258,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           setSignedIn(Boolean(parsed.signedIn));
           setEvents(Array.isArray(parsed.events) ? parsed.events : []);
           setMoneyEntries(Array.isArray(parsed.moneyEntries) ? parsed.moneyEntries : seedMoneyEntries);
-          setSongs(Array.isArray(parsed.songs) ? parsed.songs : seedSongs);
+          setSongs(Array.isArray(parsed.songs) ? parsed.songs.map(normalizeSongCatalogItem) : seedSongs.map(normalizeSongCatalogItem));
           setPlatformConnections(Array.isArray(parsed.platformConnections) ? mergeSeedPlatforms(parsed.platformConnections) : seedPlatformConnections);
 
           return { ok: true, message: "Pocket data imported. Your active room is restored." };
@@ -1224,7 +1272,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         setSignedIn(false);
         setEvents([]);
         setMoneyEntries(seedMoneyEntries);
-        setSongs(seedSongs);
+        setSongs(seedSongs.map(normalizeSongCatalogItem));
         setPlatformConnections(seedPlatformConnections);
       },
       resolveMissingAsset(projectId, assetName) {
@@ -1288,6 +1336,16 @@ export function usePocket() {
   }
 
   return context;
+}
+
+function normalizeSongCatalogItem(song: SongCatalogItem): SongCatalogItem {
+  const assets = Array.isArray(song.assets) ? song.assets : [];
+
+  return {
+    ...song,
+    assets,
+    artworkUploaded: song.artworkUploaded || assets.some((asset) => asset.kind === "artwork"),
+  };
 }
 
 function slugify(value: string) {

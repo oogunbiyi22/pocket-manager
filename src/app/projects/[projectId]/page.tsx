@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { AppShell } from "@/components/app-shell";
 import {
@@ -11,17 +11,15 @@ import {
   getMetadataIntelligence,
   getProjectById,
   getRevenueEstimateMethodology,
-  getSongConfirmedIncome,
-  getSongEstimatedGap,
   getSongReadinessChecklist,
   getSongReadinessScore,
   getWhatAmIMissing,
   releaseRadarMilestones,
+  SongVaultAsset,
 } from "@/lib/backstage-data";
 import { usePocket } from "@/components/pocket-provider";
 import dynamic from "next/dynamic";
 const ActionModal = dynamic(() => import("@/components/action-modal").then(m => ({ default: m.ActionModal })), { ssr: false });
-import { getPlatform } from "@/lib/platform-registry";
 
 // Map collection body names → platform registry IDs for the ActionModal
 const COLLECTION_BODY_TO_PLATFORM: Record<string, string> = {
@@ -69,12 +67,15 @@ function LargeReadinessRing({ score }: { score: number }) {
 export default function ProjectDetailPage() {
   const params = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { addSongCollaborator, completeRevenueAction, projects, songs, updateSongMetadata } = usePocket();
+  const { addSongAssets, addSongCollaborator, completeRevenueAction, projects, signedIn, songs, updateSongMetadata } = usePocket();
   const [fixModal, setFixModal] = useState<{ streamType: string; collectionBody: string } | null>(null);
   const projectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
   const song = songs.find((item) => item.id === projectId);
   const fallbackProject = getProjectById(projectId, projects);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [todayTimestamp] = useState(() => Date.now());
   const [metadataForm, setMetadataForm] = useState({
     isrc: song?.isrc ?? "",
     upc: song?.upc ?? "",
@@ -93,34 +94,31 @@ export default function ProjectDetailPage() {
   });
   const [splitSheetCopied, setSplitSheetCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [assetActionId, setAssetActionId] = useState<string | null>(null);
   const splitTotal = song?.collaborators.reduce((total, collaborator) => total + collaborator.ownershipPercentage, 0) ?? 0;
-  const unsignedSplits = song?.collaborators.filter((collaborator) => !collaborator.signed).length ?? 0;
-  const splitSheetText = useMemo(() => {
-    if (!song) return "";
-    return [
-      "Pocket Manager split sheet preview",
-      `Song: ${song.title}`,
-      `ISRC: ${song.isrc || "Needed"}`,
-      `Release date: ${song.releaseDate}`,
-      `Total split: ${splitTotal}%`,
-      "",
-      ...song.collaborators.map(
-        (c) => `${c.name} - ${c.role.replaceAll("_", " ")} - ${c.ownershipPercentage}% - ${c.signed ? "signed" : "unsigned"}`,
-      ),
-      "",
-      "This is an informal summary — not a legally executed split sheet.",
-    ].join("\n");
-  }, [song, splitTotal]);
+  const splitSheetText = !song ? "" : [
+    "Pocket Manager split sheet preview",
+    `Song: ${song.title}`,
+    `ISRC: ${song.isrc || "Needed"}`,
+    `Release date: ${song.releaseDate}`,
+    `Total split: ${splitTotal}%`,
+    "",
+    ...song.collaborators.map(
+      (c) => `${c.name} - ${c.role.replaceAll("_", " ")} - ${c.ownershipPercentage}% - ${c.signed ? "signed" : "unsigned"}`,
+    ),
+    "",
+    "This is an informal summary — not a legally executed split sheet.",
+  ].join("\n");
 
-  if (!song && !fallbackProject) {
-    router.replace("/projects");
-    return null;
-  }
+  const notFound = !song && !fallbackProject;
+  useEffect(() => {
+    if (notFound) router.replace("/projects");
+  }, [notFound, router]);
+
+  if (notFound) return null;
 
   const title = song?.title ?? fallbackProject?.name ?? "Song";
   const readinessScore = song ? getSongReadinessScore(song) : 0;
-  const estimatedGap = song ? getSongEstimatedGap(song) : 0;
-  const confirmedIncome = song ? getSongConfirmedIncome(song) : 0;
   const registrationRows = song?.revenueStreams ?? [];
   const readinessChecklist = song ? getSongReadinessChecklist(song) : [];
   const metadataIntelligence = song ? getMetadataIntelligence(song) : null;
@@ -128,9 +126,64 @@ export default function ProjectDetailPage() {
   const runwayRows = song ? getRunwayRows(song.releaseDate) : [];
   const missingItems = fallbackProject ? getWhatAmIMissing(fallbackProject) : [];
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).map((file) => file.name);
-    setUploadedFiles((current) => [...files, ...current].slice(0, 6));
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    if (!song) return;
+
+    const files = Array.from(event.target.files ?? []).filter((file) => file.size > 0);
+    if (files.length === 0) return;
+
+    setUploadError(null);
+    setUploadNotice(null);
+    setUploading(true);
+
+    try {
+      if (!signedIn) {
+        addSongAssets(song.id, files.map(buildLocalAsset));
+        setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} added to this room on this device.`);
+        return;
+      }
+
+      const supabase = getSupabase();
+      const session = supabase ? await supabase.auth.getSession() : null;
+      const token = session?.data?.session?.access_token;
+
+      if (!token) {
+        addSongAssets(song.id, files.map(buildLocalAsset));
+        setUploadError("Signed-in vault sync was unavailable, so the file was saved only on this device.");
+        setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} still got logged in the room.`);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("songId", song.id);
+      files.forEach((file) => formData.append("files", file));
+
+      const res = await fetch("/api/v1/assets", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Vault upload failed" }));
+        addSongAssets(song.id, files.map(buildLocalAsset));
+        setUploadError(`${data.error ?? "Vault upload failed"}. Saved file metadata locally instead.`);
+        setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} still got logged in the room.`);
+        return;
+      }
+
+      const data = await res.json() as { assets?: SongVaultAsset[] };
+      addSongAssets(song.id, data.assets ?? []);
+      const savedCount = data.assets?.length ?? 0;
+      setUploadNotice(`${savedCount} file${savedCount === 1 ? "" : "s"} synced to the vault.`);
+    } catch {
+      addSongAssets(song.id, files.map(buildLocalAsset));
+      setUploadError("Upload failed. The file metadata was saved locally so the room still stays organized.");
+      setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} still got logged in the room.`);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
   }
 
   function addSplit() {
@@ -157,6 +210,60 @@ export default function ProjectDetailPage() {
     await navigator.clipboard.writeText(splitSheetText);
     setSplitSheetCopied(true);
   }
+
+  async function openVaultAsset(asset: SongVaultAsset, download = false) {
+    if (asset.source !== "supabase" || !asset.storagePath) {
+      setUploadError("This file record exists in the room, but the actual file is only available on the device it was uploaded from.");
+      return;
+    }
+
+    setUploadError(null);
+    setAssetActionId(asset.id);
+
+    try {
+      const supabase = getSupabase();
+      const session = supabase ? await supabase.auth.getSession() : null;
+      const token = session?.data?.session?.access_token;
+
+      if (!token) {
+        setUploadError("Sign in again to open synced vault files.");
+        return;
+      }
+
+      const url = new URL("/api/v1/assets", window.location.origin);
+      url.searchParams.set("path", asset.storagePath);
+      if (download) url.searchParams.set("download", "1");
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Could not open file" }));
+        setUploadError(data.error ?? "Could not open file");
+        return;
+      }
+
+      const data = await res.json() as { url?: string };
+      if (!data.url) {
+        setUploadError("Could not open file");
+        return;
+      }
+
+      window.open(data.url, "_blank", "noopener,noreferrer");
+    } catch {
+      setUploadError("Could not open file right now.");
+    } finally {
+      setAssetActionId(null);
+    }
+  }
+
+  const filedAssets = song?.assets ?? [];
+  const syncedAssets = filedAssets.filter((asset) => asset.source === "supabase");
+  const requiredAssetKinds: SongVaultAsset["kind"][] = ["master", "artwork", "split", "contract"];
+  const missingCriticalKinds = requiredAssetKinds.filter((kind) => !filedAssets.some((asset) => asset.kind === kind));
+  const nextMissingKind = missingCriticalKinds[0] ?? null;
+  const orderedAssets = [...filedAssets].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
   return (
     <AppShell title={title} eyebrow="The Room">
@@ -444,15 +551,139 @@ export default function ProjectDetailPage() {
         <section className="bg-white px-5 pb-5 text-[#111]">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Files</div>
           <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+            <div className="mb-4 overflow-hidden rounded-[18px] border-[0.5px] border-black/10 bg-[#11110f] text-white">
+              <div className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Vault command</div>
+                  <div className="mt-2 text-lg font-medium text-white">Keep the release package complete and cross-device.</div>
+                  <p className="mt-1 max-w-[540px] text-sm leading-6 text-white/45">
+                    Every room should carry the real release package: master, artwork, splits, and contracts — not just notes about them.
+                  </p>
+                </div>
+                <div className="grid min-w-[240px] flex-1 gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-white/35">Filed</div>
+                    <div className="mt-1 text-lg text-white">{filedAssets.length}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-white/35">Synced</div>
+                    <div className="mt-1 text-lg text-white">{syncedAssets.length}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-white/35">Still missing</div>
+                    <div className="mt-1 text-lg text-white">{missingCriticalKinds.length}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {missingCriticalKinds.length > 0 ? (
+              <div className="mb-4 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-3 text-xs text-[#854f0b]">
+                <div className="font-medium uppercase tracking-[0.14em]">Need in this room</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {missingCriticalKinds.map((kind) => (
+                    <span key={kind} className="rounded-full border border-[#ef9f27]/25 bg-white px-2.5 py-1 uppercase tracking-[0.12em]">
+                      {kind === "split" ? "Split sheet" : kind}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 rounded-lg border border-[#97c459]/30 bg-[#eaf3de] px-3 py-3 text-xs text-[#3b6d11]">
+                Core release files are covered in this room.
+              </div>
+            )}
+
+            <div className="mb-4 grid gap-3 lg:grid-cols-[1.3fr_0.9fr]">
+              <div className="rounded-xl border-[0.5px] border-black/10 bg-white px-4 py-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-[#9a9a8a]">Manager says</div>
+                <div className="mt-2 text-sm leading-6 text-[#111]">
+                  {nextMissingKind
+                    ? `Get the ${getAssetKindLabel(nextMissingKind).toLowerCase()} into this room next so the package is harder to break during release week.`
+                    : "This room has the core release file set. From here, focus on cleaner versions, alternate artwork, and anything you might need on another device fast."}
+                </div>
+              </div>
+              <div className="rounded-xl border-[0.5px] border-black/10 bg-white px-4 py-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-[#9a9a8a]">Cross-device health</div>
+                <div className="mt-2 text-sm leading-6 text-[#111]">
+                  {syncedAssets.length === 0
+                    ? "Nothing here is safely available across devices yet. Syncing matters if you suddenly switch phones, laptops, or WiFi spots."
+                    : syncedAssets.length === filedAssets.length
+                      ? "Everything filed here is available cross-device. Good — this room is starting to behave like a real vault."
+                      : `${syncedAssets.length} of ${filedAssets.length} filed item${filedAssets.length === 1 ? " is" : "s are"} safely synced across devices.`}
+                </div>
+              </div>
+            </div>
+
             <label className="block rounded-lg border-[0.5px] border-dashed border-black/25 bg-white px-4 py-4 text-sm text-[#514d47]">
               <span className="block">Add essential files — master, stems, artwork, contracts</span>
-              <input type="file" multiple onChange={handleFileChange} className="mt-3 block w-full text-sm" />
+              <span className="mt-1 block text-[11px] text-[#9a9a8a]">
+                {signedIn ? "Uploads sync to your vault when storage is configured." : "Sign in to sync uploads across devices. For now this room will save file records on this device."}
+              </span>
+              <input type="file" multiple accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.wav,.mp3,.aiff,.zip" onChange={handleFileChange} className="mt-3 block w-full text-sm" />
             </label>
-            {[...(song?.artworkUploaded ? ["Artwork uploaded"] : []), ...uploadedFiles].map((file) => (
-              <div key={file} className="mt-2 rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-2 text-sm text-[#111]">
-                {file}
+            {uploading && <div className="mt-3 text-sm text-[#514d47]">Uploading to the vault…</div>}
+            {uploadNotice && <div className="mt-3 rounded-lg border border-[#97c459]/30 bg-[#eaf3de] px-3 py-2 text-xs text-[#3b6d11]">{uploadNotice}</div>}
+            {uploadError && <div className="mt-3 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-2 text-xs text-[#854f0b]">{uploadError}</div>}
+            {filedAssets.length === 0 ? (
+              <div className="mt-3 rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm text-[#9a9a8a]">
+                No files in this room yet.
               </div>
-            ))}
+            ) : (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {orderedAssets.map((asset) => (
+                  <div key={asset.id} className={`rounded-xl border-[0.5px] px-4 py-4 text-sm text-[#111] ${getAssetTone(asset.kind)}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-[#6d6860]">{getAssetGlyph(asset.kind)}</span>
+                          <span className="rounded-full border border-black/10 bg-white/70 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
+                            {getAssetKindLabel(asset.kind)}
+                          </span>
+                        </div>
+                        <div className="mt-3 truncate text-[15px] font-medium text-[#111]">{asset.name}</div>
+                        <div className="mt-1 text-[11px] text-[#6d6860]">
+                          {asset.sizeLabel} · {asset.source === "supabase" ? "Synced across devices" : "Saved on this device only"}
+                        </div>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${asset.source === "supabase" ? "bg-[#eaf3de] text-[#3b6d11]" : "bg-[#faeeda] text-[#854f0b]"}`}>
+                        {asset.source === "supabase" ? "Synced" : "Local only"}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      {asset.source === "supabase" && asset.storagePath ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void openVaultAsset(asset)}
+                            disabled={assetActionId === asset.id}
+                            className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#514d47] transition hover:border-black/25 disabled:opacity-50"
+                          >
+                            {assetActionId === asset.id ? "Opening…" : "Open"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void openVaultAsset(asset, true)}
+                            disabled={assetActionId === asset.id}
+                            className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#514d47] transition hover:border-black/25 disabled:opacity-50"
+                          >
+                            Download
+                          </button>
+                        </>
+                      ) : (
+                        <span className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
+                          Upload from a signed-in session to sync
+                        </span>
+                      )}
+                      <span className="rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
+                        Filed in room
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -464,7 +695,7 @@ export default function ProjectDetailPage() {
               {song.releaseDate && song.releaseDate !== "Release date needed" ? (
                 <div className="text-[11px] text-white/35">
                   {(() => {
-                    const days = Math.ceil((new Date(`${song.releaseDate}T12:00:00`).getTime() - Date.now()) / 86400000);
+                    const days = Math.ceil((new Date(`${song.releaseDate}T12:00:00`).getTime() - todayTimestamp) / 86400000);
                     return days > 0 ? `${days}d to release` : days === 0 ? "Release day" : `${Math.abs(days)}d post-release`;
                   })()}
                 </div>
@@ -886,6 +1117,69 @@ function statusClass(status: string) {
   return "bg-[#e24b4a]/15 text-[#a32d2d]";
 }
 
+function buildLocalAsset(file: File): SongVaultAsset {
+  return {
+    id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: file.name,
+    kind: inferAssetKind(file.name, file.type),
+    mimeType: file.type || "application/octet-stream",
+    sizeBytes: file.size,
+    sizeLabel: formatFileSize(file.size),
+    uploadedAt: new Date().toISOString(),
+    source: "local",
+  };
+}
+
+function getAssetKindLabel(kind: SongVaultAsset["kind"]) {
+  if (kind === "split") return "Split sheet";
+  return kind.charAt(0).toUpperCase() + kind.slice(1);
+}
+
+function getAssetGlyph(kind: SongVaultAsset["kind"]) {
+  switch (kind) {
+    case "master":
+      return "◉";
+    case "artwork":
+      return "▣";
+    case "split":
+      return "≡";
+    case "contract":
+      return "✦";
+    default:
+      return "•";
+  }
+}
+
+function getAssetTone(kind: SongVaultAsset["kind"]) {
+  switch (kind) {
+    case "master":
+      return "border-[#97c459]/30 bg-[#f4f8ec]";
+    case "artwork":
+      return "border-[#c7a6ff]/35 bg-[#f7f2ff]";
+    case "split":
+      return "border-[#ef9f27]/30 bg-[#fff6e8]";
+    case "contract":
+      return "border-[#7dc4ff]/30 bg-[#eef7ff]";
+    default:
+      return "border-black/10 bg-white";
+  }
+}
+
+function inferAssetKind(fileName: string, mimeType: string): SongVaultAsset["kind"] {
+  if (/image\//i.test(mimeType) || /cover|art|photo|image/i.test(fileName)) return "artwork";
+  if (/audio\//i.test(mimeType) || /master|wav|mp3|stem|mix/i.test(fileName)) return "master";
+  if (/split/i.test(fileName)) return "split";
+  if (/contract|agreement|license/i.test(fileName)) return "contract";
+  return "other";
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${bytes} B`;
+}
+
 function getRunwayRows(releaseDate: string) {
   const target = new Date(`${releaseDate}T12:00:00`);
 
@@ -913,11 +1207,4 @@ function getRunwayRows(releaseDate: string) {
       status,
     };
   });
-}
-
-function runwayStatusClass(status: "Done" | "Due now" | "Upcoming" | "Missed") {
-  if (status === "Done") return "bg-[#eaf3de] text-[#3b6d11]";
-  if (status === "Due now") return "bg-[#faeeda] text-[#854f0b]";
-  if (status === "Missed") return "bg-[#fcebeb] text-[#a32d2d]";
-  return "bg-white text-[#6d6860]";
 }

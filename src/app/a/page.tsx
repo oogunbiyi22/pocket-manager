@@ -46,31 +46,28 @@ export default function APage() {
   const allFixRecords = getAllFixRecords();
 
   const [draft, setDraft] = useState("");
-  const [triageVisible, setTriageVisible] = useState(false);
-  const [chatHistory, setChatHistory] = useState<SavedMessage[]>([]);
+  const [triageDismissedDay, setTriageDismissedDay] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return localStorage.getItem(TRIAGE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [triageManuallyOpen, setTriageManuallyOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState<SavedMessage[]>(() => loadChatHistory());
   const [historyVisible, setHistoryVisible] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load saved chat history on mount
-  useEffect(() => {
-    setChatHistory(loadChatHistory());
-  }, []);
-
-  // Show triage once per day if there are open gaps
-  useEffect(() => {
-    try {
-      const dismissed = localStorage.getItem(TRIAGE_KEY);
-      if (dismissed !== getTodayKey() && songs.length > 0 && summary.totalEstimatedGap > 0) {
-        setTriageVisible(true);
-      }
-    } catch {
-      setTriageVisible(false);
-    }
-  }, [songs.length, summary.totalEstimatedGap]);
+  const triageVisible = songs.length > 0
+    && summary.totalEstimatedGap > 0
+    && (triageManuallyOpen || triageDismissedDay !== getTodayKey());
 
   function dismissTriage() {
-    try { localStorage.setItem(TRIAGE_KEY, getTodayKey()); } catch { /* noop */ }
-    setTriageVisible(false);
+    const todayKey = getTodayKey();
+    try { localStorage.setItem(TRIAGE_KEY, todayKey); } catch { /* noop */ }
+    setTriageDismissedDay(todayKey);
+    setTriageManuallyOpen(false);
   }
 
   const { messages, sendMessage, status } = useChat({
@@ -109,38 +106,36 @@ export default function APage() {
     if (!clean || isStreaming) return;
     sendMessage({ text: clean });
     setDraft("");
-    setTriageVisible(false); // hide triage once conversation starts
+    setTriageManuallyOpen(false); // hide triage once conversation starts
   }
 
   // Context-aware greeting based on actual state
   function buildGreeting() {
     if (songs.length === 0) {
-      return "Hey. Before I can give you real numbers, I need to know what's in your catalog. Add your first release and I'll scan every revenue path automatically. Want me to walk you through it?";
-    }
-    if (fixSummary.completed > 0) {
-      return `You've closed ${fixSummary.completed} fix${fixSummary.completed === 1 ? "" : "es"} — that's ~$${fixSummary.totalRecovered.toFixed(0)} on its way to being collected. ${fixSummary.inProgress > 0 ? `You still have ${fixSummary.inProgress} in progress. Want to pick up where you left off?` : nextAction.estimatedValue > 0 ? `Next: ${nextAction.action} via ${nextAction.collectionBody} — about ${formatGapEstimate(nextAction.estimatedValue)}.` : ""}`;
+      return "I need your catalog before I can run the numbers. Add your first release and I'll scan every revenue path — gaps, missing registrations, and your next moves. Want me to walk you through it?";
     }
     if (staleFixes.length > 0) {
       const s = staleFixes[0];
-      return `You started a fix on ${s.platform} more than 48 hours ago and haven't confirmed it. That's ~$${s.estimatedValue.toFixed(0)} still in limbo. Want to finish that now?`;
+      return `You started a fix on ${s.platform} over 48 hours ago and haven't confirmed it. That's ~$${s.estimatedValue.toFixed(0)} still in limbo. Let's finish that now.`;
+    }
+    if (fixSummary.completed > 0) {
+      return `You've closed ${fixSummary.completed} fix${fixSummary.completed === 1 ? "" : "es"} — that's ~$${fixSummary.totalRecovered.toFixed(0)} on its way. ${fixSummary.inProgress > 0 ? `${fixSummary.inProgress} still in progress. Want to pick up where you left off?` : nextAction.estimatedValue > 0 ? `Next up: ${nextAction.action} via ${nextAction.collectionBody} — about ${formatGapEstimate(nextAction.estimatedValue)}.` : "Nothing left in the queue."}`;
     }
     if (summary.totalEstimatedGap > 0) {
-      return `${nextAction.action} via ${nextAction.collectionBody}${nextAction.songTitle ? ` for "${nextAction.songTitle}"` : ""}. That's about ${formatGapEstimate(nextAction.estimatedValue)} sitting uncollected — takes ${nextAction.estimatedTime}. Want me to walk you through it?`;
+      return `Here's your situation: ${nextAction.action} via ${nextAction.collectionBody}${nextAction.songTitle ? ` for "${nextAction.songTitle}"` : ""} — ${formatGapEstimate(nextAction.estimatedValue)} uncollected. Takes ${nextAction.estimatedTime}. Want me to walk you through it?`;
     }
-    return `Everything looks clean — no open gaps detected. You have ${songs.length} track${songs.length === 1 ? "" : "s"} being tracked. Add more releases to keep the scan going.`;
+    return `No open gaps right now. ${songs.length} track${songs.length === 1 ? "" : "s"} tracked. Your vault is the next thing to look at — make sure masters, splits, and artwork are all filed. Ask me anything.`;
   }
 
-  // Context-aware quick prompts
+  // Context-aware quick prompts — always lead with the two signature actions
   function buildQuickPrompts() {
-    const prompts: string[] = [];
     if (songs.length === 0) {
       return ["How do I add my first release?", "What is an ISRC?", "What's the biggest mistake artists make with royalties?"];
     }
+    const prompts: string[] = ["What am I missing?", "What should I do next?"];
     if (staleFixes.length > 0) prompts.push(`Remind me what I started on ${staleFixes[0].platform}`);
-    if (nextAction.estimatedValue > 0) prompts.push(`Walk me through ${nextAction.collectionBody}`);
+    else if (nextAction.estimatedValue > 0) prompts.push(`Walk me through ${nextAction.collectionBody}`);
     if (summary.totalEstimatedGap > 0) prompts.push("What is my biggest gap?");
-    if (fixSummary.inProgress > 0) prompts.push("Show me what I've started");
-    prompts.push("What should I fix next?");
     return prompts.slice(0, 4);
   }
 
@@ -164,7 +159,7 @@ export default function APage() {
               {songs.length > 0 && summary.totalEstimatedGap > 0 && !triageVisible && (
                 <button
                   type="button"
-                  onClick={() => setTriageVisible(true)}
+                  onClick={() => setTriageManuallyOpen(true)}
                   className="rounded-full border-[0.5px] border-[#ef9f27]/40 bg-[#ef9f27]/10 px-3 py-1.5 text-[10px] font-medium text-[#ef9f27] transition hover:bg-[#ef9f27]/20"
                 >
                   Triage

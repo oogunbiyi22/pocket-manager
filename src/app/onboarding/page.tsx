@@ -57,6 +57,12 @@ export default function OnboardingPage() {
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [gapRevealed, setGapRevealed] = useState(false);
 
+  useEffect(() => {
+    if (signedIn && profile.onboarded) {
+      router.replace("/home");
+    }
+  }, [profile.onboarded, router, signedIn]);
+
   function next() { setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1)); }
   function back() { setStep((s) => Math.max(s - 1, 0)); }
 
@@ -294,7 +300,7 @@ export default function OnboardingPage() {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">Step 2 of 4 · Distribution</div>
                 <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">Where is it distributed?</h2>
                 <p className="mt-3 text-sm leading-7 text-white/45">
-                  Your distributor controls your base streaming income. Without this connected, we estimate gaps but can't confirm them.
+                  Your distributor controls your base streaming income. Without this connected, we estimate gaps but can&apos;t confirm them.
                 </p>
               </div>
               <div className="grid gap-2">
@@ -341,7 +347,7 @@ export default function OnboardingPage() {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">Step 3 of 4 · PRO</div>
                 <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">Are you registered with a PRO?</h2>
                 <p className="mt-3 text-sm leading-7 text-white/45">
-                  PROs (Performing Rights Organizations) collect performance royalties every time your song is played publicly. This is separate from your distributor — and it's free.
+                  PROs (Performing Rights Organizations) collect performance royalties every time your song is played publicly. This is separate from your distributor — and it&apos;s free.
                 </p>
               </div>
               <div className="grid gap-2">
@@ -453,7 +459,7 @@ export default function OnboardingPage() {
           {step === 6 && (
             <div className="flex flex-col gap-6">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">You're ready</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">You&apos;re ready</div>
                 <h2 className="mt-4 text-[36px] font-light tracking-[-0.03em]">
                   Create your account to save everything.
                 </h2>

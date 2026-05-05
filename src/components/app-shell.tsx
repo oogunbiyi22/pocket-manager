@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ReactNode, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoWordmark } from "@/components/logo";
@@ -120,10 +120,19 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [pocketOpen, setPocketOpen] = useState(false);
   const [aOpen, setAOpen] = useState(false);
   const activeNav = getActiveSurface(pathname);
   const { signedIn, profile } = usePocket();
+
+  useEffect(() => {
+    if (!signedIn || profile.onboarded) {
+      return;
+    }
+
+    router.replace("/onboarding");
+  }, [profile.onboarded, router, signedIn]);
 
   return (
     <div className="min-h-screen" style={{ color: "var(--text-primary)" }}>

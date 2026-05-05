@@ -6,7 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 const ActionModal = dynamic(() => import("@/components/action-modal").then(m => ({ default: m.ActionModal })), { ssr: false });
 import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
-import { PLATFORM_REGISTRY, getPlatform, type PlatformEntry } from "@/lib/platform-registry";
+import { PLATFORM_REGISTRY, type PlatformEntry } from "@/lib/platform-registry";
 
 // Merge registry metadata with user's platform connections
 function usePlatformData() {

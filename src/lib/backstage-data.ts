@@ -90,6 +90,20 @@ export type ReleaseRadarCheckpoint = {
   status: "Done" | "Due now" | "Upcoming" | "Missed";
 };
 
+export type SongVaultAssetKind = "master" | "artwork" | "split" | "contract" | "other";
+
+export type SongVaultAsset = {
+  id: string;
+  name: string;
+  kind: SongVaultAssetKind;
+  mimeType: string;
+  sizeBytes: number;
+  sizeLabel: string;
+  uploadedAt: string;
+  source: "local" | "supabase";
+  storagePath?: string;
+};
+
 export type SongCatalogItem = {
   id: string;
   title: string;
@@ -117,6 +131,7 @@ export type SongCatalogItem = {
   artworkUploaded: boolean;
   splitSheetSigned: boolean;
   revenueStreams: RevenueStream[];
+  assets?: SongVaultAsset[];
 };
 
 export type PlatformConnectionStatus = "connected" | "not_connected" | "incomplete";
@@ -1317,10 +1332,6 @@ function computeActionPriority(song: SongCatalogItem, stream: RevenueStream): nu
     STATUS_BONUS[stream.status] +
     readinessBonus
   );
-}
-
-function getRevenueStreamPriority(streamType: RevenueStreamType) {
-  return STREAM_TYPE_BASE[streamType];
 }
 
 export function formatMoney(amount: number) {

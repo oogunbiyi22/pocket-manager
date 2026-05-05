@@ -48,11 +48,13 @@ export function ActionModal({
   useEffect(() => {
     if (open) {
       const existing = getFixRecord(fixId);
-      setRecord(existing);
-      setPhase(stateToPhase(existing?.state));
+      queueMicrotask(() => {
+        setRecord(existing);
+        setPhase(stateToPhase(existing?.state));
+      });
       requestAnimationFrame(() => setMounted(true));
     } else {
-      setMounted(false);
+      queueMicrotask(() => setMounted(false));
     }
   }, [open, fixId]);
 

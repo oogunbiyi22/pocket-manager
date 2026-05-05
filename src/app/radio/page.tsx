@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  Radio, Send, Clock, CheckCircle2, XCircle,
+  Send, Clock, CheckCircle2, XCircle,
   Search, ExternalLink, Music, Globe, Mail,
   Mic2, Headphones, Filter,
 } from "lucide-react";
@@ -182,10 +182,9 @@ Best,
 
 // ─── Station Card ──────────────────────────────────────────────────────────────
 
-function StationCard({ station, state, catalogSongs, onSubmitClick, onStatusChange }: {
+function StationCard({ station, state, onSubmitClick, onStatusChange }: {
   station: StationRecord;
   state: StationState;
-  catalogSongs: string[];
   onSubmitClick: (s: StationRecord) => void;
   onStatusChange: (id: string, status: SubStatus) => void;
 }) {
@@ -474,7 +473,6 @@ export default function RadioPage() {
                 key={s.id}
                 station={s}
                 state={getState(s.id)}
-                catalogSongs={catalogSongs}
                 onSubmitClick={setSubmitting}
                 onStatusChange={handleStatusChange}
               />

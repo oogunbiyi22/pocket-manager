@@ -12,6 +12,7 @@ function SignInContent() {
   const searchParams = useSearchParams();
   const { signIn: pocketSignIn } = usePocket();
   const redirectTo = searchParams.get("redirect") ?? "/home";
+  const errorHint = searchParams.get("error");
   const defaultMode = searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +20,15 @@ function SignInContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+
+  const oauthErrorMessage =
+    errorHint === "missing_code"
+      ? "Sign-in was interrupted before the provider returned a valid code. Please try again."
+      : errorHint === "not_configured"
+      ? "Auth is not configured yet. Add Supabase env vars before using sign-in."
+      : errorHint === "auth_failed"
+      ? "We couldn't finish the OAuth sign-in. Please try again."
+      : "";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,9 +83,8 @@ function SignInContent() {
         router.push("/onboarding");
         return;
       }
-      // Email confirmation required by Supabase — redirect to onboarding anyway
-      // User can confirm email later; the app still works for them
-      router.push("/onboarding");
+      setSent(true);
+      setLoading(false);
       return;
     }
 
@@ -108,7 +117,7 @@ function SignInContent() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/home`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${mode === "sign-up" ? "/onboarding" : "/home"}`,
       },
     });
     if (oauthError) {
@@ -235,8 +244,8 @@ function SignInContent() {
                 </label>
               )}
 
-              {error && (
-                <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-[13px] text-[#a32d2d]">{error}</p>
+              {(error || oauthErrorMessage) && (
+                <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-[13px] text-[#a32d2d]">{error || oauthErrorMessage}</p>
               )}
 
               <button

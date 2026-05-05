@@ -123,19 +123,20 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
   const [type, setType] = useState<PocketItem["type"]>("Note");
   const [songId, setSongId] = useState(songs[0]?.id ?? "inbox");
   const [body, setBody] = useState("");
-  const [items, setItems] = useState<PocketItem[]>([]);
+  const [items, setItems] = useState<PocketItem[]>(() => loadItems());
   const [saved, setSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setItems(loadItems());
-      setSaved(false);
-      setBody("");
+      queueMicrotask(() => {
+        setSaved(false);
+        setBody("");
+      });
       // small delay so CSS transition fires
       requestAnimationFrame(() => setMounted(true));
     } else {
-      setMounted(false);
+      queueMicrotask(() => setMounted(false));
     }
   }, [open]);
 

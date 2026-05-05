@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
@@ -421,7 +421,7 @@ function TelegramSection() {
             <p><strong>Setup:</strong></p>
             <p>1. Message @BotFather on Telegram and create a bot</p>
             <p>2. Add <code className="bg-white px-1 rounded text-[#111]">TELEGRAM_BOT_TOKEN</code> to Vercel env vars</p>
-            <p>3. Redeploy, then click "Connect webhook" below</p>
+            <p>3. Redeploy, then click &quot;Connect webhook&quot; below</p>
           </div>
           <button
             type="button"

@@ -30,7 +30,7 @@ type TwinAnalysis = {
 
 // ─── Mock twin data generator ─────────────────────────────────────────────────
 
-function generateTwins(genre: string, artistName: string): TwinArtist[] {
+function generateTwins(genre: string): TwinArtist[] {
   const genreMap: Record<string, string[]> = {
     "r&b": ["Summer Walker", "Alex Isley", "Syd", "UMI", "Masego"],
     "hip hop": ["Cordae", "JID", "IDK", "Rapsody", "Bas"],
@@ -145,7 +145,7 @@ Respond ONLY with valid JSON in this exact shape:
       const data = JSON.parse(jsonMatch[0]) as Partial<TwinAnalysis>;
 
       // Merge AI twins with our generated data for richer display
-      const generatedTwins = generateTwins(customGenre, profile.artistName ?? "Artist");
+      const generatedTwins = generateTwins(customGenre);
       const aiTwins = (data.twins ?? []).slice(0, 3).map((t, i) => ({
         ...generatedTwins[i] ?? generatedTwins[0],
         name: (t as { name?: string; insight?: string; similarity?: number }).name ?? generatedTwins[i]?.name ?? "",
@@ -162,7 +162,7 @@ Respond ONLY with valid JSON in this exact shape:
       });
     } catch {
       // Fall back to generated data
-      const twins = generateTwins(customGenre, profile.artistName ?? "Artist");
+      const twins = generateTwins(customGenre);
       setAnalysis({
         twins,
         gaps: [

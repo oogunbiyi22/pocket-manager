@@ -262,22 +262,26 @@ function RequestsTab({
 
 export default function GuildPage() {
   const { profile } = usePocket();
-  const [state, setState] = useState<GuildState>({ following: [], pendingSent: [], pendingReceived: [] });
+  const [state, setState] = useState<GuildState>(() => {
+    const s = loadState();
+    try {
+      const existing = localStorage.getItem(STORAGE_KEY);
+      if (!existing) {
+        s.pendingReceived = ["remy-sol", "lena-moore"];
+        saveState(s);
+      }
+    } catch {
+      // noop
+    }
+    return s;
+  });
   const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<"discover" | "following" | "requests">("discover");
   const [roleFilter, setRoleFilter] = useState("All");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const existing = localStorage.getItem(STORAGE_KEY);
-    const s = loadState();
-    if (!existing) {
-      // Seed pending requests for first-time users
-      s.pendingReceived = ["remy-sol", "lena-moore"];
-      saveState(s);
-    }
-    setState(s);
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   const getStatus = (id: string): FollowStatus => {

@@ -38,19 +38,21 @@ function applyTheme(resolved: "light" | "dark") {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-
-  // Hydrate from localStorage
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "system";
+    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    return stored && ["light", "dark", "system"].includes(stored) ? stored : "system";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
     const initial: Theme = stored && ["light", "dark", "system"].includes(stored) ? stored : "system";
-    setThemeState(initial);
+    return initial === "system" ? getSystemTheme() : initial;
+  });
 
-    const resolved = initial === "system" ? getSystemTheme() : initial;
-    setResolvedTheme(resolved);
-    applyTheme(resolved);
-  }, []);
+  useEffect(() => {
+    applyTheme(resolvedTheme);
+  }, [resolvedTheme]);
 
   // Listen for system preference changes
   useEffect(() => {

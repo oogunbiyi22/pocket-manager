@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Plus, MapPin, Mail, ExternalLink, ChevronRight,
   Filter, Search, Calendar, DollarSign, Clock,
@@ -309,16 +309,12 @@ function BookingDetail({ booking, onClose, onStatusChange }: {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function BookingPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>(() => loadBookings());
   const [filter, setFilter] = useState<BookingStatus | "all">("all");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<Booking | null>(null);
 
-  // Hydrate from localStorage
-  useEffect(() => {
-    setBookings(loadBookings());
-  }, []);
 
   const filtered = bookings.filter(b => {
     const matchesFilter = filter === "all" || b.status === filter;

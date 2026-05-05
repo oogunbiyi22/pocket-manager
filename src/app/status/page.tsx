@@ -94,15 +94,15 @@ export default function StatusPage() {
       try {
         const res = await fetch("/api/v1/billing/checkout", { method: "POST", body: JSON.stringify({ plan: "pro" }), headers: { "Content-Type": "application/json" } });
         results.push({ label: "Stripe billing", status: res.status === 401 || res.status === 400 || res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
-      } catch (e) {
-        results.push({ label: "Stripe billing", status: "error", detail: String(e) });
+      } catch {
+        results.push({ label: "Stripe billing", status: "error", detail: "Request failed" });
       }
 
       // Telegram bot
       try {
         const res = await fetch("/api/telegram/status");
         results.push({ label: "Telegram bot", status: res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
-      } catch (e) {
+      } catch {
         results.push({ label: "Telegram bot", status: "warn", detail: "Not configured" });
       }
 

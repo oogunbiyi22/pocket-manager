@@ -8,7 +8,6 @@ import {
   formatGapEstimate,
   formatMoney,
   getCatalogReadinessScore,
-  getNextRevenueAction,
   getReadinessLevel,
   getRevenueActionQueue,
   getRevenueGapSummary,
@@ -93,14 +92,11 @@ export default function HarvestPage() {
   const summary = getRevenueGapSummary(songs);
   const incomeCategories = deriveIncomeCategories(songs);
   const gapByType = deriveGapByType(songs);
-  const nextAction = getNextRevenueAction(songs);
   const queue = getRevenueActionQueue(songs).slice(0, 5);
   const catalogReadiness = getCatalogReadinessScore(songs);
   const readinessLevel = getReadinessLevel(catalogReadiness);
   const [doneIds, setDoneIds] = useState<string[]>([]);
 
-  const topGapSong = songs.slice().sort((a, b) => getSongEstimatedGap(b) - getSongEstimatedGap(a))[0];
-  const topGap = topGapSong ? getSongEstimatedGap(topGapSong) : 0;
   const totalOptimized = summary.totalSecured + summary.totalEstimatedGap;
 
   function markDone(id: string, songId: string, streamType: RevenueStreamType, collectionBody: string) {

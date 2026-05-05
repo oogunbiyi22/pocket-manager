@@ -103,17 +103,15 @@ const FILTER_TYPES = ["All", "Queued", "Sent", "Opened", "Placed", "Declined"] a
 
 export default function SignalPage() {
   const { songs, profile } = usePocket();
-  const [state, setState] = useState<SignalState>({ pitches: [], lastPitchRun: null });
-  const [selectedSongId, setSelectedSongId] = useState<string>("");
+  const [state, setState] = useState<SignalState>(() => loadState());
+  const [selectedSongId, setSelectedSongId] = useState<string>(() => songs[0]?.id ?? "");
   const [filter, setFilter] = useState<string>("All");
   const [launching, setLaunching] = useState(false);
   const [expandedPitch, setExpandedPitch] = useState<string | null>(null);
 
   useEffect(() => {
-    const loaded = loadState();
-    setState(loaded);
     if (songs.length > 0 && !selectedSongId) {
-      setSelectedSongId(songs[0].id);
+      queueMicrotask(() => setSelectedSongId(songs[0].id));
     }
   }, [songs, selectedSongId]);
 

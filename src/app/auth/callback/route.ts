@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   // `next` lets us send the user back to where they were (e.g. /home, /onboarding)
   const next = searchParams.get("next") ?? "/home";
+  const safeNext = next.startsWith("/") ? next : "/home";
 
   if (!code) {
     // No code — redirect to sign-in with an error hint
@@ -55,6 +56,6 @@ export async function GET(request: NextRequest) {
 
   // Session is now set — redirect to the intended page
   // Use absolute URL to ensure the redirect works in all environments
-  const redirectUrl = next.startsWith("/") ? `${origin}${next}` : `${origin}/home`;
+  const redirectUrl = `${origin}${safeNext}`;
   return NextResponse.redirect(redirectUrl);
 }

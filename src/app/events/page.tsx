@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Ticket, DollarSign, Calendar, Plus, ChevronRight,
   MapPin, Clock, CheckCircle2, AlertCircle, ExternalLink,
@@ -366,14 +366,11 @@ function EventCard({ event, onClick }: { event: ShowEvent; onClick: () => void }
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<ShowEvent[]>([]);
+  const [events, setEvents] = useState<ShowEvent[]>(() => loadEvents());
   const [tab, setTab] = useState<"upcoming" | "past" | "payouts">("upcoming");
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<ShowEvent | null>(null);
 
-  useEffect(() => {
-    setEvents(loadEvents());
-  }, []);
 
   const now = new Date();
   const upcoming = events.filter(e => new Date(e.date + "T00:00:00") >= now && e.status !== "cancelled");

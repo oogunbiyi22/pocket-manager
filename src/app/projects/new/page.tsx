@@ -157,7 +157,6 @@ export default function NewProjectPage() {
     distributor: "",
   });
   const [selectedArtwork, setSelectedArtwork] = useState<string | null>(null);
-  const [filledFromSearch, setFilledFromSearch] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
   const [mbLookup, setMbLookup] = useState<{ status: "idle" | "loading" | "found" | "not-found"; result?: MBResult }>({ status: "idle" });
@@ -173,7 +172,6 @@ export default function NewProjectPage() {
       territory: f.territory || "United States",
     }));
     setSelectedArtwork(artworkUrl(track.artworkUrl100, 300));
-    setFilledFromSearch(true);
   }, []);
 
   async function lookupIsrc(raw: string) {

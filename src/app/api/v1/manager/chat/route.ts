@@ -8,7 +8,6 @@ import { z } from "zod";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import {
   getRevenueGapSummary,
-  getNextRevenueAction,
   getRevenueActionQueue,
   getCatalogReadinessScore,
   getReadinessLevel,
@@ -67,7 +66,6 @@ function buildSystemPrompt(
   platforms: PlatformConnection[],
 ) {
   const summary = getRevenueGapSummary(songs);
-  const nextAction = getNextRevenueAction(songs);
   const queue = getRevenueActionQueue(songs).slice(0, 3);
   const catalogReadiness = getCatalogReadinessScore(songs);
   const readinessLevel = getReadinessLevel(catalogReadiness);
@@ -168,14 +166,13 @@ export async function POST(req: NextRequest) {
       ? parsed.data.platforms as PlatformConnection[]
       : [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = streamText({
       model: getModel(plan),
       system: buildSystemPrompt(cleanArtistName, songs, platforms),
-      messages: messages as any,
+      messages: messages.map((message) => ({ role: message.role, content: message.content })),
       maxOutputTokens: 400,
       temperature: 0.35,
-    } as any);
+    });
 
     return result.toTextStreamResponse();
   } catch (err) {

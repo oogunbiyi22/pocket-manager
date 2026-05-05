@@ -70,7 +70,7 @@ function ChatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
       requestAnimationFrame(() => setMounted(true));
       setTimeout(() => inputRef.current?.focus(), 350);
     } else {
-      setMounted(false);
+      queueMicrotask(() => setMounted(false));
     }
   }, [open]);
 
@@ -251,8 +251,10 @@ export function DraggableAButton({ onOpen }: { onOpen: () => void }) {
 
   useEffect(() => {
     const saved = loadPosition();
-    if (saved) setPosition(saved);
-    setReady(true);
+    queueMicrotask(() => {
+      if (saved) setPosition(saved);
+      setReady(true);
+    });
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
