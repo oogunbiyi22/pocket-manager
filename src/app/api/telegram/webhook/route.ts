@@ -1,8 +1,12 @@
 /**
  * Telegram webhook — receives messages from your bot.
  * Set via: https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://pocketmanager.online/api/telegram/webhook
+ *
+ * Uses Claude Sonnet directly for all free-text AI replies.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { generateText } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 
 type TelegramUpdate = {
   update_id: number;
@@ -22,6 +26,25 @@ async function sendMessage(chatId: number, text: string, token: string) {
   });
 }
 
+async function askClaude(userMessage: string, artistName: string): Promise<string> {
+  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const { text } = await generateText({
+    model: anthropic("claude-sonnet-4-6"),
+    maxOutputTokens: 400,
+    system: `You are A — the personal music industry manager for ${artistName}, operating via their Pocket Manager Telegram bot.
+
+Be direct, sharp, and music-industry fluent. Under 4 sentences unless giving numbered steps.
+Never say: "Great question" / "Certainly" / "As an AI" / "I'd be happy to".
+Speak like a real manager texting the truth — specific, actionable, no fluff.
+If asked about catalog, revenue, or stats, tell them to check pocketmanager.online for live data.
+If asked for next steps or what to do, give the most practical move for an independent artist right now.`,
+    messages: [{ role: "user", content: userMessage }],
+  });
+
+  return text.trim();
+}
+
 export async function POST(request: NextRequest) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return NextResponse.json({ ok: false }, { status: 503 });
@@ -38,68 +61,47 @@ export async function POST(request: NextRequest) {
 
   const chatId = msg.chat.id;
   const text = msg.text.trim().toLowerCase();
+  const rawText = msg.text.trim();
   const firstName = msg.from?.first_name ?? "Artist";
 
   // Command routing
   if (text === "/start" || text === "/help") {
-    await sendMessage(chatId, `Hey ${firstName} 👋\n\nI'm your Pocket Manager bot. Here's what I can do:\n\n*/status* — catalog readiness + revenue gap\n*/gaps* — your top uncollected revenue items\n*/next* — what to do right now\n*/income* — current income breakdown\n\nMore commands coming. Ship fast, collect everything.`, token);
+    await sendMessage(chatId, `Hey ${firstName} 👋\n\nI'm your Pocket Manager AI manager. Talk to me like you'd talk to your manager — or use these commands:\n\n*/status* — catalog readiness + revenue gaps\n*/gaps* — your top uncollected revenue items\n*/next* — what to do right now\n*/income* — income breakdown\n\nOr just ask me anything. I'm on Claude Sonnet.`, token);
     return NextResponse.json({ ok: true });
   }
 
   if (text === "/status") {
-    await sendMessage(chatId, `📊 *Catalog Status*\n\nConnect your catalog at pocketmanager.online to get live stats here. Once connected, this command shows your readiness score and gap total.`, token);
+    await sendMessage(chatId, `📊 *Catalog Status*\n\nOpen pocketmanager.online/harvest for your live readiness score and revenue gap total. Ask me what to do about any gap and I'll tell you.`, token);
     return NextResponse.json({ ok: true });
   }
 
   if (text === "/gaps" || text === "/next") {
-    await sendMessage(chatId, `💰 *Revenue Gaps*\n\nVisit pocketmanager.online/harvest to see your full gap queue and take action on uncollected royalties.`, token);
+    await sendMessage(chatId, `💰 *Revenue Gaps*\n\nYour gap queue is at pocketmanager.online/harvest. Ask me which platform to hit first and why — I'll give you the move.`, token);
     return NextResponse.json({ ok: true });
   }
 
   if (text === "/income") {
-    await sendMessage(chatId, `💵 *Income Summary*\n\nVisit pocketmanager.online/financial for your full income breakdown by stream type.`, token);
+    await sendMessage(chatId, `💵 *Income*\n\nFull breakdown at pocketmanager.online/financial. Ask me how to increase any stream and I'll give you a specific next step.`, token);
     return NextResponse.json({ ok: true });
   }
 
-  // AI manager fallback — forward to A
+  // Claude Sonnet for all free-text messages
+  if (!process.env.ANTHROPIC_API_KEY) {
+    await sendMessage(chatId, `Manager brain is offline — ANTHROPIC_API_KEY not set. Open pocketmanager.online to manage your release.`, token);
+    return NextResponse.json({ ok: true });
+  }
+
   try {
-    const aiRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000" : "http://localhost:3000"}/api/v1/manager/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: msg.text }],
-        artistName: firstName,
-        songs: [],
-        platforms: [],
-        plan: "free",
-      }),
-    });
-
-    if (aiRes.ok) {
-      const reader = aiRes.body?.getReader();
-      if (reader) {
-        let reply = "";
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          // Extract text from AI SDK stream format
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("0:")) {
-              try { reply += JSON.parse(line.slice(2)); } catch { /* skip */ }
-            }
-          }
-        }
-        if (reply.trim()) {
-          await sendMessage(chatId, reply.trim(), token);
-          return NextResponse.json({ ok: true });
-        }
-      }
+    const reply = await askClaude(rawText, firstName);
+    if (reply) {
+      await sendMessage(chatId, reply, token);
+    } else {
+      await sendMessage(chatId, `Open pocketmanager.online for your full manager dashboard and action queue.`, token);
     }
-  } catch { /* fallback below */ }
+  } catch (err) {
+    console.error("[telegram] Claude error:", err instanceof Error ? err.message : "unknown");
+    await sendMessage(chatId, `Couldn't reach the manager brain right now. Try again in a moment or open pocketmanager.online.`, token);
+  }
 
-  await sendMessage(chatId, `Got it. Open pocketmanager.online to take action — or try /help for available commands.`, token);
   return NextResponse.json({ ok: true });
 }
