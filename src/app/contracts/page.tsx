@@ -8,19 +8,56 @@ const starterContract = `Producer grants Artist an exclusive license in perpetui
 Producer waives audit rights and agrees that royalties may be recouped from all income.
 No reversion clause is included.`;
 
+type RiskLevel = "Low" | "Medium" | "High" | "Critical";
+
 type ContractFlag = {
   label: string;
-  risk: "Low" | "Medium" | "High";
+  risk: RiskLevel;
   excerpt: string;
   plainEnglish: string;
   attorneyQuestion: string;
 };
 
+type AIAnalysis = {
+  summary: string;
+  overallRisk: RiskLevel;
+  flags: ContractFlag[];
+  positives: string[];
+  nextSteps: string[];
+};
+
 export default function ContractsPage() {
   const [contractType, setContractType] = useState("Producer agreement");
   const [contractText, setContractText] = useState(starterContract);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const flags = useMemo(() => scanContract(contractText), [contractText]);
-  const risk = flags.some((flag) => flag.risk === "High") ? "High" : flags.some((flag) => flag.risk === "Medium") ? "Medium" : "Low";
+  const risk: RiskLevel = flags.some((flag) => flag.risk === "High") ? "High" : flags.some((flag) => flag.risk === "Medium") ? "Medium" : "Low";
+
+  async function runAiScan() {
+    setAiLoading(true);
+    setAiError(null);
+    setAiAnalysis(null);
+    try {
+      const res = await fetch("/api/v1/contracts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: contractText, contractType }),
+      });
+      const data = await res.json() as { analysis?: AIAnalysis; error?: string };
+      if (!res.ok || data.error) {
+        setAiError(data.error ?? "Analysis failed");
+      } else if (data.analysis) {
+        setAiAnalysis(data.analysis);
+      }
+    } catch {
+      setAiError("Network error — please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   return (
     <AppShell title="Contract Scanner" eyebrow="Legal awareness">
@@ -55,24 +92,62 @@ export default function ContractsPage() {
               </label>
               <textarea
                 value={contractText}
-                onChange={(event) => setContractText(event.target.value)}
+                onChange={(event) => { setContractText(event.target.value); setAiAnalysis(null); }}
                 className="mt-4 min-h-80 w-full rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3 text-sm leading-6 text-[#111] outline-none"
               />
+              <button
+                onClick={runAiScan}
+                disabled={aiLoading || contractText.length < 50}
+                className="mt-4 w-full rounded-xl bg-[#0a0a0a] px-4 py-3 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {aiLoading ? "Analyzing…" : "AI Deep Scan"}
+              </button>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <Metric label="Type" value={contractType} />
-              <Metric label="Risk" value={risk} />
-              <Metric label="Flags" value={`${flags.length}`} />
+              <Metric label="Risk" value={aiAnalysis?.overallRisk ?? risk} />
+              <Metric label="Flags" value={`${(aiAnalysis?.flags ?? flags).length}`} />
             </div>
 
+            {aiError && (
+              <div className="rounded-xl border-[0.5px] border-[#fcebeb] bg-[#fcebeb] p-3 text-sm text-[#a32d2d]">{aiError}</div>
+            )}
+
+            {aiAnalysis && (
+              <>
+                <section className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">AI Summary</div>
+                  <p className="mt-3 text-sm leading-6 text-[#514d47]">{aiAnalysis.summary}</p>
+                </section>
+                {aiAnalysis.positives.length > 0 && (
+                  <section className="rounded-xl border-[0.5px] border-[#eaf3de] bg-[#eaf3de] p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#3b6d11]">Artist-Friendly Clauses</div>
+                    <ul className="mt-3 space-y-1">
+                      {aiAnalysis.positives.map((p, i) => <li key={i} className="text-sm leading-5 text-[#3b6d11]">• {p}</li>)}
+                    </ul>
+                  </section>
+                )}
+                {aiAnalysis.nextSteps.length > 0 && (
+                  <section className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next Steps</div>
+                    <ol className="mt-3 space-y-1">
+                      {aiAnalysis.nextSteps.map((s, i) => <li key={i} className="text-sm leading-5 text-[#514d47]">{i + 1}. {s}</li>)}
+                    </ol>
+                  </section>
+                )}
+              </>
+            )}
+
             <section className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Flagged clauses</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">
+                {aiAnalysis ? "AI-Detected Flags" : "Quick-Scan Flags"}
+              </div>
               <div className="mt-3 space-y-3">
-                {flags.length ? (
-                  flags.map((flag) => (
+                {(aiAnalysis?.flags ?? flags).length ? (
+                  (aiAnalysis?.flags ?? flags).map((flag) => (
                     <article key={`${flag.label}-${flag.excerpt}`} className="rounded-lg border-[0.5px] border-black/10 bg-white p-3 text-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div className="text-[#111]">{flag.label}</div>
@@ -85,7 +160,7 @@ export default function ContractsPage() {
                   ))
                 ) : (
                   <div className="rounded-lg border-[0.5px] border-dashed border-black/20 bg-white p-3 text-sm text-[#6b6b65]">
-                    No basic rule-based flags found in this text.
+                    {aiAnalysis ? "No risky clauses detected." : "No quick-scan flags found. Run AI Deep Scan for full analysis."}
                   </div>
                 )}
               </div>
@@ -161,6 +236,7 @@ function getExcerpt(text: string, pattern: RegExp) {
 }
 
 function riskClass(risk: ContractFlag["risk"]) {
+  if (risk === "Critical") return "bg-[#1a0000] text-[#ff4d4d]";
   if (risk === "High") return "bg-[#fcebeb] text-[#a32d2d]";
   if (risk === "Medium") return "bg-[#faeeda] text-[#854f0b]";
   return "bg-[#eaf3de] text-[#3b6d11]";

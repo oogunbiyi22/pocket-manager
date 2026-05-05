@@ -576,6 +576,42 @@ INSERT INTO public.sync_companies (name, city, country, accepting, placement_cre
 ON CONFLICT DO NOTHING;
 
 -- ═══════════════════════════════════════════════════════════════════════════════
+-- STORAGE: vault-assets bucket
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'vault-assets',
+  'vault-assets',
+  false,
+  52428800,  -- 50MB per file
+  ARRAY['audio/mpeg','audio/wav','audio/flac','audio/aac','audio/ogg','audio/mp4',
+        'application/pdf','application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg','image/png','image/gif','image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Row-level security: users can only access their own vault files
+CREATE POLICY "vault_user_read" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'vault-assets' AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "vault_user_insert" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'vault-assets' AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "vault_user_delete" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'vault-assets' AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ═══════════════════════════════════════════════════════════════════════════════
 -- END OF MIGRATION
 -- Run in Supabase: SQL Editor → paste → Run
 -- ═══════════════════════════════════════════════════════════════════════════════
