@@ -142,7 +142,8 @@ function SongSearch({ onSelect }: { onSelect: (track: ItunesTrack) => void }) {
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const { createSong } = usePocket();
+  const { createSong, profile, songs } = usePocket();
+  const atFreeLimit = profile.plan === "free" && songs.length >= 3;
   const [form, setForm] = useState({
     title: "",
     isrc: "",
@@ -350,17 +351,29 @@ export default function NewProjectPage() {
           )}
 
           {/* CTA */}
-          <button
-            type="button"
-            onClick={submitSong}
-            disabled={!form.title.trim()}
-            className="mt-5 w-full rounded-xl bg-[#0a0a0a] py-3.5 text-sm font-medium text-white transition hover:bg-black/80 disabled:opacity-40"
-          >
-            {form.title.trim() ? `Add "${form.title}" to catalog →` : "Enter a song title to continue"}
-          </button>
-          <p className="mt-2 text-center text-[11px] text-[#9a9a8a]">
-            You can add ISRC, genre, and splits from inside the song room after saving.
-          </p>
+          {atFreeLimit ? (
+            <div className="mt-5 rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] px-4 py-4 text-center">
+              <p className="text-sm font-medium text-[#854f0b]">Free plan is capped at 3 songs.</p>
+              <p className="mt-1 text-xs text-[#854f0b]/70">Upgrade to Pro to add unlimited releases and unlock the full action queue.</p>
+              <a href="/settings" className="mt-3 inline-block rounded-lg bg-[#0a0a0a] px-5 py-2 text-sm font-medium text-white">
+                Upgrade to Pro →
+              </a>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={submitSong}
+                disabled={!form.title.trim()}
+                className="mt-5 w-full rounded-xl bg-[#0a0a0a] py-3.5 text-sm font-medium text-white transition hover:bg-black/80 disabled:opacity-40"
+              >
+                {form.title.trim() ? `Add "${form.title}" to catalog →` : "Enter a song title to continue"}
+              </button>
+              <p className="mt-2 text-center text-[11px] text-[#9a9a8a]">
+                You can add ISRC, genre, and splits from inside the song room after saving.
+              </p>
+            </>
+          )}
         </section>
       </main>
     </AppShell>

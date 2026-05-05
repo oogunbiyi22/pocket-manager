@@ -111,7 +111,7 @@ export default function SettingsPage() {
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Artist profile</div>
               <h2 className="mt-3 text-4xl font-light tracking-[-0.03em]">{profile.artistName}</h2>
               <p className="mt-3 text-sm leading-6 text-white/60">
-                {profile.role} · Free tier · 3-song starter catalog
+                {profile.role} · {profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Free"} · {profile.plan === "free" ? "3-song starter catalog" : "Unlimited catalog"}
               </p>
             </div>
             <div className="rounded-xl border-[0.5px] border-white/15 px-4 py-3 text-right">
@@ -122,7 +122,7 @@ export default function SettingsPage() {
         </section>
 
         <section className="grid gap-3 sm:grid-cols-3">
-          <ProfileMetric label="Songs tracked" value={`${summary.totalSongs}/3`} />
+          <ProfileMetric label="Songs tracked" value={profile.plan === "free" ? `${summary.totalSongs}/3` : `${summary.totalSongs}`} />
           <ProfileMetric label="Platforms ready" value={`${connected}/${platformConnections.length}`} />
           <ProfileMetric label="Gaps closed" value={`${gapsClosed}`} />
         </section>
@@ -168,19 +168,28 @@ export default function SettingsPage() {
         <section className="space-y-3">
           <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Subscription</div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {PLANS.map((plan) => (
+            {PLANS.map((plan) => {
+              const isActive = profile.plan === plan.id;
+              const isHigher = (plan.id === "elite" && profile.plan === "pro") || (plan.id === "pro" && profile.plan === "elite");
+              return (
               <div
                 key={plan.id}
                 className={`overflow-hidden rounded-[20px] ${
+                  isActive
+                    ? "ring-2 ring-[#97c459]"
+                    : ""
+                } ${
                   plan.highlight
                     ? "glass-dark card-shadow-dark text-white"
                     : "glass card-shadow text-[#111]"
                 }`}
               >
                 <div className="px-4 py-4">
-                  {plan.highlight && (
+                  {isActive ? (
+                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#97c459]">Current plan</div>
+                  ) : plan.highlight && !isHigher ? (
                     <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#ef9f27]">Most popular</div>
-                  )}
+                  ) : null}
                   <div className="text-[11px] font-medium uppercase tracking-[0.2em] opacity-50">{plan.name}</div>
                   <div className="mt-2 flex items-baseline gap-0.5">
                     <span className="text-[32px] font-light leading-none">{plan.price}</span>
@@ -195,7 +204,7 @@ export default function SettingsPage() {
                     ))}
                   </ul>
                 </div>
-                {plan.cta && (
+                {plan.cta && !isActive && (
                   <div className={`border-t px-4 py-3 ${plan.highlight ? "border-white/10" : "border-black/10"}`}>
                     <button
                       type="button"
@@ -212,7 +221,8 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
           <p className="mt-3 text-[11px] text-[#9a9a8a]">
             Cancel anytime. 7-day free trial on Pro. No card needed during trial.

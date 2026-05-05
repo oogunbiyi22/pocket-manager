@@ -490,6 +490,10 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
+        if (profile.plan === "free" && songs.length >= 3) {
+          return null;
+        }
+
         const distributor = input.distributor || "Not connected";
         const hasDistributor = distributor !== "Not sure yet" && distributor !== "Not connected";
         const territory = input.territory?.trim() || "United States";
