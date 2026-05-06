@@ -12,35 +12,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Routes that require authentication
 const PROTECTED_PREFIXES = [
-  "/work",
-  "/harvest",
-  "/signal",
-  "/profile",
-  "/settings",
-  "/projects",
-  "/platforms",
-  "/notifications",
-  "/studio",
-  "/epk",
-  "/guild",
-  "/vault",
-  "/radar",
-  "/albums",
-  "/beats",
-  "/contracts",
-  "/statements",
-  "/financial",
-  "/forecast",
-  "/valuation",
-  "/actions",
-  "/capture",
-  "/drop",
-  "/pitch-kits",
-  "/sync",
+  "/work", "/harvest", "/signal", "/profile", "/settings", "/projects",
+  "/platforms", "/notifications", "/studio", "/epk", "/guild", "/vault",
+  "/radar", "/albums", "/beats", "/contracts", "/statements", "/financial",
+  "/forecast", "/valuation", "/actions", "/capture", "/drop", "/pitch-kits",
+  "/sync", "/pitching", "/career-twin", "/booking", "/events", "/venues",
+  "/radio", "/home", "/mobile", "/pocket", "/a",
 ];
 
 // Public routes — never require auth
-const PUBLIC_PREFIXES = ["/home", "/mobile", "/sign-in", "/onboarding", "/terms", "/privacy", "/api", "/auth", "/a"];
+const PUBLIC_PREFIXES = ["/sign-in", "/onboarding", "/terms", "/privacy", "/api", "/auth", "/status"];
 
 function isProtected(pathname: string): boolean {
   if (pathname === "/") return false;
