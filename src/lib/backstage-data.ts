@@ -301,7 +301,7 @@ export const projects: Project[] = [
   },
 ];
 
-export const seedProjects = projects;
+export const seedProjects: Project[] = [];
 
 export const seedMoneyEntries: CreatorMoneyEntry[] = [
   {
@@ -342,145 +342,22 @@ export const seedMoneyEntries: CreatorMoneyEntry[] = [
   },
 ];
 
-export const seedSongs: SongCatalogItem[] = [
-  {
-    id: "late-nights",
-    title: "Late Nights",
-    isrc: "QZPMB2400011",
-    releaseDate: "2026-05-03",
-    streams: 340000,
-    territory: "United States",
-    collaborators: [
-      { name: "Badman", role: "master_owner", ownershipPercentage: 60, signed: true },
-      { name: "Milo Keys", role: "producer", ownershipPercentage: 25, signed: false },
-      { name: "J. Night", role: "writer", ownershipPercentage: 15, signed: true },
-    ],
-    distributionPlatforms: ["DistroKid", "Spotify", "Apple Music"],
-    metadataComplete: true,
-    artworkUploaded: false,
-    splitSheetSigned: false,
-    revenueStreams: [
-      {
-        streamType: "streaming",
-        label: "Streaming royalties",
-        collectionBody: "DistroKid",
-        status: "collecting",
-        actualAmount: 120,
-        estimatedGap: 0,
-        reason: "Distributor collection is active.",
-        action: "Review distributor statement",
-        rateNote: "Confirmed collected amount from distributor statement.",
-      },
-      {
-        streamType: "digital_performance",
-        label: "Digital performance royalties",
-        collectionBody: "SoundExchange",
-        status: "not_registered",
-        actualAmount: 0,
-        estimatedGap: 68,
-        reason: "Not registered on SoundExchange.",
-        action: "Register now",
-        rateNote: "Conservative estimate from non-interactive digital performance collection path.",
-      },
-      {
-        streamType: "performance_royalty",
-        label: "Performance royalties (writer)",
-        collectionBody: "BMI",
-        status: "not_registered",
-        actualAmount: 0,
-        estimatedGap: 42,
-        reason: "Song not logged with PRO.",
-        action: "Add to BMI repertoire",
-        rateNote: "Conservative estimate based on public performance collection opportunity.",
-      },
-      {
-        streamType: "mechanical",
-        label: "Mechanical royalties",
-        collectionBody: "The MLC",
-        status: "incomplete",
-        actualAmount: 0,
-        estimatedGap: 31,
-        reason: "Mechanical royalty path is not fully connected.",
-        action: "Connect MLC path",
-        rateNote: "Rounded down estimate for digital mechanical collection.",
-      },
-      {
-        streamType: "youtube",
-        label: "YouTube Content ID",
-        collectionBody: "YouTube",
-        status: "not_registered",
-        actualAmount: 0,
-        estimatedGap: 24,
-        reason: "Master is not claimed for Content ID.",
-        action: "Claim Content ID",
-        rateNote: "Low conservative estimate for user-generated video usage risk.",
-      },
-    ],
-  },
-  {
-    id: "neon-heart",
-    title: "Neon Heart",
-    isrc: "QZPMB2400012",
-    releaseDate: "2026-05-24",
-    streams: 126000,
-    territory: "United States",
-    collaborators: [
-      { name: "Badman", role: "master_owner", ownershipPercentage: 70, signed: true },
-      { name: "Wave Lab", role: "producer", ownershipPercentage: 30, signed: true },
-    ],
-    distributionPlatforms: ["TuneCore", "Spotify"],
-    metadataComplete: false,
-    artworkUploaded: true,
-    splitSheetSigned: true,
-    revenueStreams: [
-      {
-        streamType: "streaming",
-        label: "Streaming royalties",
-        collectionBody: "TuneCore",
-        status: "collecting",
-        actualAmount: 54,
-        estimatedGap: 0,
-        reason: "Distributor collection is active.",
-        action: "Review distributor statement",
-        rateNote: "Confirmed collected amount from distributor statement.",
-      },
-      {
-        streamType: "digital_performance",
-        label: "Digital performance royalties",
-        collectionBody: "SoundExchange",
-        status: "not_registered",
-        actualAmount: 0,
-        estimatedGap: 26,
-        reason: "Not registered on SoundExchange.",
-        action: "Register now",
-        rateNote: "Conservative estimate from non-interactive digital performance collection path.",
-      },
-      {
-        streamType: "performance_royalty",
-        label: "Performance royalties (writer)",
-        collectionBody: "ASCAP",
-        status: "registered_not_collecting",
-        actualAmount: 0,
-        estimatedGap: 12,
-        reason: "Registration exists, but metadata is incomplete.",
-        action: "Complete metadata",
-        rateNote: "Rounded down estimate because registration exists but is blocked by metadata.",
-      },
-    ],
-  },
-];
+// IDs that belonged to old demo/seed songs — used to purge stale data from localStorage
+export const DEMO_SONG_IDS = new Set(["late-nights", "neon-heart"]);
+
+export const seedSongs: SongCatalogItem[] = [];
 
 export const seedPlatformConnections: PlatformConnection[] = [
-  { id: "distrokid", name: "DistroKid", group: "Distributor", status: "connected", method: "OAuth or statement import", missingStep: "Connected" },
-  { id: "tunecore", name: "TuneCore", group: "Distributor", status: "incomplete", method: "OAuth or manual", missingStep: "Upload latest statement" },
+  { id: "distrokid", name: "DistroKid", group: "Distributor", status: "not_connected", method: "OAuth or statement import", missingStep: "Connect account" },
+  { id: "tunecore", name: "TuneCore", group: "Distributor", status: "not_connected", method: "OAuth or manual", missingStep: "Connect account" },
   { id: "cdbaby", name: "CD Baby", group: "Distributor", status: "not_connected", method: "OAuth or manual", missingStep: "Connect account" },
-  { id: "ascap", name: "ASCAP", group: "PRO", status: "incomplete", method: "Manual verification + ISRC lookup", missingStep: "Verify repertoire" },
+  { id: "ascap", name: "ASCAP", group: "PRO", status: "not_connected", method: "Manual verification + ISRC lookup", missingStep: "Register as member" },
   { id: "bmi", name: "BMI", group: "PRO", status: "not_connected", method: "Manual verification + ISRC lookup", missingStep: "Register works" },
   { id: "sesac", name: "SESAC", group: "PRO", status: "not_connected", method: "Manual verification", missingStep: "Verify affiliation" },
   { id: "soundexchange", name: "SoundExchange", group: "Digital Performance", status: "not_connected", method: "Manual verification + ISRC lookup", missingStep: "Register recordings" },
   { id: "mlc", name: "The MLC", group: "Publishing", status: "not_connected", method: "Manual verification", missingStep: "Connect mechanical path" },
   { id: "youtube", name: "YouTube", group: "Content ID", status: "not_connected", method: "OAuth", missingStep: "Claim master recordings" },
-  { id: "spotify", name: "Spotify for Artists", group: "Analytics", status: "connected", method: "OAuth", missingStep: "Connected" },
+  { id: "spotify", name: "Spotify for Artists", group: "Analytics", status: "not_connected", method: "OAuth", missingStep: "Connect analytics" },
   { id: "apple_music", name: "Apple Music for Artists", group: "Analytics", status: "not_connected", method: "OAuth", missingStep: "Connect analytics" },
 ];
 
@@ -685,7 +562,7 @@ export const roomTemplatePreviews = [
 export const quickActions = [
   ["/projects/new", "Create creative room"],
   ["/manager", "Ask AI manager"],
-  ["/projects/late-nights", "Open active project"],
+  ["/work", "Open catalog"],
   ["/settings", "Set your personal operating mode"],
 ];
 
@@ -2102,18 +1979,11 @@ export function getAssetActionLinks(project: Project) {
 }
 
 export function getCollaborationPockets(project: Project) {
-  const defaults =
-    project.name === "Late Nights"
-      ? [
-          { role: "Designer", name: "Cover artist lane", status: "Needs approval handoff" },
-          { role: "Photographer", name: "Press photo select", status: "Waiting on shortlist" },
-          { role: "Engineer", name: "Master package", status: "Ready to finalize" },
-        ]
-      : [
-          { role: "Videographer", name: "Visualizer direction", status: "Needs concept lock" },
-          { role: "Designer", name: "Neon world assets", status: "In progress" },
-          { role: "Producer", name: "BTS clip support", status: "Needs scheduling" },
-        ];
+  const defaults = [
+    { role: "Engineer", name: `${project.name} — mix notes`, status: "Pending review" },
+    { role: "Designer", name: "Cover art direction", status: "Needs concept lock" },
+    { role: "Photographer", name: "Press photo select", status: "Waiting on shortlist" },
+  ];
 
   return defaults.map((item) => ({
     ...item,
@@ -2241,18 +2111,20 @@ export function getRevenueBrain(project: Project) {
 }
 
 export function getSongWorld(project: Project) {
-  const world = project.name === "Late Nights"
+  const nameHint = project.name.toLowerCase();
+  const isNocturnal = /night|late|dark|soul|r&b|trap|ambient|jazz|lo-fi|slow/.test(nameHint);
+  const world = isNocturnal
     ? {
-        visual: "Night-drive visuals, sodium glow, blurred city motion, low-light confidence.",
-        pitch: "Frame it as a late-night record with cinematic mood and intimacy, not generic chill.",
+        visual: "Night-drive visuals, low-light confidence, cinematic mood.",
+        pitch: "Frame it as an intimate record with mood and replay value, not generic background music.",
         caption: "Speak in short, cool lines that feel lived-in, not over-explained.",
-        rollout: "Lean into nocturnal mood, studio fragments, and one-line hooks that feel like scenes.",
+        rollout: "Lean into nocturnal energy, studio fragments, and one-line hooks that feel like scenes.",
       }
     : {
-        visual: "Neon-tinted pop visuals, brighter color rhythm, clean motion, hopeful tension.",
-        pitch: "Frame it as a melodic release with replay value and strong visual world potential.",
-        caption: "Use cleaner, brighter, slightly more open language without losing edge.",
-        rollout: "Build a color-led sequence and keep the energy forward instead of overly mysterious.",
+        visual: "Clean, high-contrast visuals with strong color identity and forward motion.",
+        pitch: "Frame it as a release with replay value, emotional hook, and strong visual world potential.",
+        caption: "Use clear, direct language with enough edge to feel intentional.",
+        rollout: "Build a sequence that earns attention before the drop — tease before deliver.",
       };
 
   return world;

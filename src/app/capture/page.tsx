@@ -69,7 +69,7 @@ export default function CapturePage() {
 
   return (
     <AppShell title="Pocket" eyebrow="Fast capture">
-      <main className="mx-auto max-w-3xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#141412] text-white">
+      <main className="mx-auto max-w-3xl overflow-hidden rounded-[24px] border-[0.5px] border-white/[0.08] bg-[#141412] text-white">
         <section className="flex items-center justify-between border-b-[0.5px] border-white/10 bg-[#0d0d0b] px-5 py-4">
           <div>
             <div className="text-[15px] font-medium text-white">Pocket</div>
@@ -88,7 +88,7 @@ export default function CapturePage() {
                 type="button"
                 onClick={() => setType(item.label)}
                 className={`rounded-xl border-[0.5px] px-3 py-4 text-center text-sm ${
-                  type === item.label ? "border-[#534ab7] bg-[#eeedfe] text-[#534ab7]" : "border-white/10 bg-[#1e1e1b] text-white/65"
+                  type === item.label ? "border-[#534ab7] bg-[#534ab7]/20 text-[#7c6fef]" : "border-white/10 bg-[#1e1e1b] text-white/65"
                 }`}
               >
                 <span className="block text-xl leading-none">{item.icon}</span>
@@ -115,7 +115,7 @@ export default function CapturePage() {
             </div>
           </div>
 
-          <button type="button" onClick={saveCapture} className="h-[52px] rounded-xl bg-white px-5 py-3 text-sm font-medium text-[#0d0d0b]">
+          <button type="button" onClick={saveCapture} className="h-[52px] rounded-xl bg-white/10 px-5 py-3 text-sm font-medium text-white">
             Pocket it
           </button>
         </section>
@@ -141,22 +141,22 @@ export default function CapturePage() {
           </section>
         )}
 
-        <section className="bg-white px-5 py-5 text-[#111]">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Inbox</div>
+        <section className="bg-[#141412] px-5 py-5 text-white/90">
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Inbox</div>
           <div className="space-y-3">
             {items.length ? (
               items.map((item) => {
                 const song = songs.find((candidate) => candidate.id === item.songId);
 
                 return (
-                  <div key={item.id} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4 text-sm">
+                  <div key={item.id} className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4 text-sm">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="font-medium text-[#111]">{item.type}</div>
-                      <div className="text-xs text-[#6b6b65]">{item.songId === "vault" ? "The Vault" : song?.title ?? "Inbox"}</div>
+                      <div className="font-medium text-white/90">{item.type}</div>
+                      <div className="text-xs text-white/50">{item.songId === "vault" ? "The Vault" : song?.title ?? "Inbox"}</div>
                     </div>
-                    <p className="mt-2 leading-6 text-[#514d47]">{item.body}</p>
+                    <p className="mt-2 leading-6 text-white/60">{item.body}</p>
                     {song ? (
-                      <Link href={`/projects/${song.id}`} className="mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-3 py-2 text-xs text-[#111]">
+                      <Link href={`/projects/${song.id}`} className="mt-3 inline-flex rounded-lg border-[0.5px] border-white/[0.08] px-3 py-2 text-xs text-white/70">
                         Open Room
                       </Link>
                     ) : null}
@@ -164,7 +164,7 @@ export default function CapturePage() {
                 );
               })
             ) : (
-              <div className="rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-4 text-sm text-[#6b6b65]">
+              <div className="rounded-xl border-[0.5px] border-dashed border-white/10 bg-white/[0.04] p-4 text-sm text-white/50">
                 No captures yet.
               </div>
             )}

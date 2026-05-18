@@ -264,7 +264,7 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
               type="button"
               onClick={pocket}
               disabled={!body.trim()}
-              className="h-[52px] rounded-xl bg-white px-5 py-3 text-sm font-medium text-[#0d0d0b] disabled:opacity-40"
+              className="h-[52px] rounded-xl bg-white/10 px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
             >
               {saved ? "Pocketed ✓" : "Pocket it"}
             </button>

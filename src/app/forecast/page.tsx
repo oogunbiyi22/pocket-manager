@@ -17,8 +17,8 @@ export default function ForecastPage() {
 
   return (
     <AppShell title="Income Forecast" eyebrow="Revenue modeling">
-      <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+      <main className="mx-auto max-w-4xl rounded-[24px] border-[0.5px] border-white/10 glass p-5 text-white/90">
+        <section className="rounded-xl border-[0.5px] border-white/10 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Forecast</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">See the real money difference between your current state and fully optimized.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
@@ -32,8 +32,8 @@ export default function ForecastPage() {
           <Metric label="Monthly upside" value={formatGapEstimate(upsideMonthly)} />
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Scenarios</div>
+        <section className="mt-5 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Scenarios</div>
           <div className="mt-4 space-y-3">
             {periods.map((months) => {
               const current = currentMonthly * months;
@@ -41,24 +41,24 @@ export default function ForecastPage() {
               const upside = optimized - current;
 
               return (
-                <div key={months} className="rounded-xl border-[0.5px] border-black/10 bg-white p-4 text-sm">
+                <div key={months} className="rounded-xl border-[0.5px] border-white/8 glass p-4 text-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[15px] font-medium text-[#111]">{months} month forecast</div>
-                      <div className="mt-1 text-xs text-[#6b6b65]">At current registration vs fully optimized</div>
+                      <div className="text-[15px] font-medium text-white/90">{months} month forecast</div>
+                      <div className="mt-1 text-xs text-white/50">At current registration vs fully optimized</div>
                     </div>
-                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#854f0b]">
+                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#f0a832]">
                       {formatGapEstimate(upside)} upside
                     </span>
                   </div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-lg bg-[#f8f6f1] px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-[#6b6b65]">Current</div>
-                      <div className="mt-1 text-[#111]">{formatMoney(current)}</div>
+                    <div className="rounded-lg bg-white/5 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">Current</div>
+                      <div className="mt-1 text-white/90">{formatMoney(current)}</div>
                     </div>
-                    <div className="rounded-lg bg-[#f8f6f1] px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-[#6b6b65]">Fully optimized</div>
-                      <div className="mt-1 text-[#111]">{formatMoney(optimized)}</div>
+                    <div className="rounded-lg bg-white/5 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">Fully optimized</div>
+                      <div className="mt-1 text-white/90">{formatMoney(optimized)}</div>
                     </div>
                   </div>
                 </div>
@@ -67,7 +67,7 @@ export default function ForecastPage() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
+        <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#f0a832]">
           Forecasts are directional estimates based on your catalog data. Not financial advice — use as a planning reference.
         </section>
 
@@ -81,9 +81,9 @@ export default function ForecastPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6b6b65]">{label}</div>
-      <div className="mt-2 text-xl font-normal text-[#111]">{value}</div>
+    <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className="mt-2 text-xl font-normal text-white/90">{value}</div>
     </div>
   );
 }

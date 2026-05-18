@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 
-const starterContract = `Producer grants Artist an exclusive license in perpetuity throughout the universe.
-Producer waives audit rights and agrees that royalties may be recouped from all income.
-No reversion clause is included.`;
+const starterContract = ``;
 
 type RiskLevel = "Low" | "Medium" | "High" | "Critical";
 
@@ -61,8 +59,8 @@ export default function ContractsPage() {
 
   return (
     <AppShell title="Contract Scanner" eyebrow="Legal awareness">
-      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-white/10 glass p-5 text-white/90">
+        <section className="rounded-xl border-[0.5px] border-white/10 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Legal awareness</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Spot clauses that deserve an attorney&apos;s attention before you sign.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
@@ -70,20 +68,20 @@ export default function ContractsPage() {
           </p>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-[#fcebeb] bg-[#fcebeb] p-4 text-sm leading-6 text-[#a32d2d]">
+        <section className="mt-5 rounded-xl border-[0.5px] border-[#f05c5c]/20 bg-[#f05c5c]/10 p-4 text-sm leading-6 text-[#f05c5c]">
           This is not legal advice. Consult an entertainment attorney before signing.
         </section>
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-4">
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Contract text</div>
-              <label className="mt-4 block text-sm text-[#514d47]">
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Contract text</div>
+              <label className="mt-4 block text-sm text-white/60">
                 <span className="mb-2 block">Type</span>
                 <select
                   value={contractType}
                   onChange={(event) => setContractType(event.target.value)}
-                  className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                  className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                 >
                   {["Producer agreement", "Split sheet", "Management deal", "Record deal", "Sync deal"].map((type) => (
                     <option key={type}>{type}</option>
@@ -93,7 +91,8 @@ export default function ContractsPage() {
               <textarea
                 value={contractText}
                 onChange={(event) => { setContractText(event.target.value); setAiAnalysis(null); }}
-                className="mt-4 min-h-80 w-full rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3 text-sm leading-6 text-[#111] outline-none"
+                placeholder="Paste your contract text here — producer agreement, management deal, split sheet, sync deal, or anything else you need reviewed."
+                className="mt-4 min-h-80 w-full rounded-xl border-[0.5px] border-white/10 bg-white/8 px-4 py-3 text-sm leading-6 text-white/90 outline-none placeholder:text-white/25"
               />
               <button
                 onClick={runAiScan}
@@ -113,53 +112,53 @@ export default function ContractsPage() {
             </div>
 
             {aiError && (
-              <div className="rounded-xl border-[0.5px] border-[#fcebeb] bg-[#fcebeb] p-3 text-sm text-[#a32d2d]">{aiError}</div>
+              <div className="rounded-xl border-[0.5px] border-[#f05c5c]/20 bg-[#f05c5c]/10 p-3 text-sm text-[#f05c5c]">{aiError}</div>
             )}
 
             {aiAnalysis && (
               <>
-                <section className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">AI Summary</div>
-                  <p className="mt-3 text-sm leading-6 text-[#514d47]">{aiAnalysis.summary}</p>
+                <section className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">AI Summary</div>
+                  <p className="mt-3 text-sm leading-6 text-white/60">{aiAnalysis.summary}</p>
                 </section>
                 {aiAnalysis.positives.length > 0 && (
-                  <section className="rounded-xl border-[0.5px] border-[#eaf3de] bg-[#eaf3de] p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#3b6d11]">Artist-Friendly Clauses</div>
+                  <section className="rounded-xl border-[0.5px] border-[#eaf3de] bg-[#5fcf7e]/10 p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5fcf7e]">Artist-Friendly Clauses</div>
                     <ul className="mt-3 space-y-1">
-                      {aiAnalysis.positives.map((p, i) => <li key={i} className="text-sm leading-5 text-[#3b6d11]">• {p}</li>)}
+                      {aiAnalysis.positives.map((p, i) => <li key={i} className="text-sm leading-5 text-[#5fcf7e]">• {p}</li>)}
                     </ul>
                   </section>
                 )}
                 {aiAnalysis.nextSteps.length > 0 && (
-                  <section className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Next Steps</div>
+                  <section className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Next Steps</div>
                     <ol className="mt-3 space-y-1">
-                      {aiAnalysis.nextSteps.map((s, i) => <li key={i} className="text-sm leading-5 text-[#514d47]">{i + 1}. {s}</li>)}
+                      {aiAnalysis.nextSteps.map((s, i) => <li key={i} className="text-sm leading-5 text-white/60">{i + 1}. {s}</li>)}
                     </ol>
                   </section>
                 )}
               </>
             )}
 
-            <section className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">
+            <section className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
                 {aiAnalysis ? "AI-Detected Flags" : "Quick-Scan Flags"}
               </div>
               <div className="mt-3 space-y-3">
                 {(aiAnalysis?.flags ?? flags).length ? (
                   (aiAnalysis?.flags ?? flags).map((flag) => (
-                    <article key={`${flag.label}-${flag.excerpt}`} className="rounded-lg border-[0.5px] border-black/10 bg-white p-3 text-sm">
+                    <article key={`${flag.label}-${flag.excerpt}`} className="rounded-lg border-[0.5px] border-white/8 glass p-3 text-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="text-[#111]">{flag.label}</div>
+                        <div className="text-white/90">{flag.label}</div>
                         <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${riskClass(flag.risk)}`}>{flag.risk}</span>
                       </div>
-                      <div className="mt-3 rounded-lg bg-[#f8f6f1] p-3 text-xs leading-5 text-[#514d47]">{flag.excerpt}</div>
-                      <p className="mt-3 text-sm leading-6 text-[#514d47]">{flag.plainEnglish}</p>
-                      <p className="mt-2 text-xs leading-5 text-[#854f0b]">Ask your attorney: {flag.attorneyQuestion}</p>
+                      <div className="mt-3 rounded-lg bg-white/5 p-3 text-xs leading-5 text-white/60">{flag.excerpt}</div>
+                      <p className="mt-3 text-sm leading-6 text-white/60">{flag.plainEnglish}</p>
+                      <p className="mt-2 text-xs leading-5 text-[#f0a832]">Ask your attorney: {flag.attorneyQuestion}</p>
                     </article>
                   ))
                 ) : (
-                  <div className="rounded-lg border-[0.5px] border-dashed border-black/20 bg-white p-3 text-sm text-[#6b6b65]">
+                  <div className="rounded-lg border-[0.5px] border-dashed border-white/12 glass p-3 text-sm text-white/50">
                     {aiAnalysis ? "No risky clauses detected." : "No quick-scan flags found. Run AI Deep Scan for full analysis."}
                   </div>
                 )}
@@ -237,16 +236,16 @@ function getExcerpt(text: string, pattern: RegExp) {
 
 function riskClass(risk: ContractFlag["risk"]) {
   if (risk === "Critical") return "bg-[#1a0000] text-[#ff4d4d]";
-  if (risk === "High") return "bg-[#fcebeb] text-[#a32d2d]";
-  if (risk === "Medium") return "bg-[#faeeda] text-[#854f0b]";
-  return "bg-[#eaf3de] text-[#3b6d11]";
+  if (risk === "High") return "bg-[#f05c5c]/10 text-[#f05c5c]";
+  if (risk === "Medium") return "bg-[#faeeda] text-[#f0a832]";
+  return "bg-[#5fcf7e]/10 text-[#5fcf7e]";
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6b6b65]">{label}</div>
-      <div className="mt-2 text-xl font-normal text-[#111]">{value}</div>
+    <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className="mt-2 text-xl font-normal text-white/90">{value}</div>
     </div>
   );
 }

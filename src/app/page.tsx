@@ -49,21 +49,27 @@ const PILLARS = [
   },
 ];
 
-const SOCIAL_PROOF = [
+const HOW_IT_WORKS = [
   {
-    quote: "It actually thinks like a manager. Told me my SoundExchange registration was missing and walked me through fixing it in 10 minutes.",
-    name: "Marcus T.",
-    context: "Producer, Atlanta",
+    step: "01",
+    title: "Add your catalog",
+    body: "Drop in a song title, ISRC, and release date. Pocket maps every royalty path — PRO, SoundExchange, The MLC, YouTube Content ID — and flags what's uncollected.",
+    color: "rgba(255,179,0,0.4)",
+    glow: "rgba(255,179,0,0.1)",
   },
   {
-    quote: "The pitch email it generated for my track matched the playlist's vibe exactly. Got a reply the same day.",
-    name: "Anya S.",
-    context: "Independent R&B artist, Toronto",
+    step: "02",
+    title: "Close the Gap",
+    body: "The Gap Engine shows you exactly which registrations are missing, ranks them by dollar value, and gives you step-by-step guides to fix each one.",
+    color: "rgba(0,212,255,0.4)",
+    glow: "rgba(0,212,255,0.1)",
   },
   {
-    quote: "I had three releases with no split sheets filed. Vault caught that. Now I sleep better.",
-    name: "Devon K.",
-    context: "Songwriter & producer, Los Angeles",
+    step: "03",
+    title: "Build momentum",
+    body: "Pitch to curators with auto-generated emails, book venues with direct contacts, plan releases with the Radar, and let A handle strategy questions 24/7.",
+    color: "rgba(16,240,144,0.4)",
+    glow: "rgba(16,240,144,0.1)",
   },
 ];
 
@@ -346,22 +352,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Social proof */}
+      {/* How it works */}
       <section style={{ borderTop: "0.5px solid rgba(255,255,255,0.04)", padding: "80px 20px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 16 }}>From the community</div>
-            <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff" }}>Artists who stopped guessing.</h2>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 16 }}>How it works</div>
+            <h2 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 200, letterSpacing: "-0.04em", color: "#fff" }}>Under 2 minutes to your first Gap.</h2>
           </div>
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-            {SOCIAL_PROOF.map((p, i) => (
-              <div key={p.name} style={{ borderRadius: 20, padding: 24, border: "0.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, width: 100, height: 100, background: `radial-gradient(ellipse, ${["rgba(0,212,255,0.08)", "rgba(168,85,247,0.08)", "rgba(16,240,144,0.06)"][i]} 0%, transparent 70%)` }} />
-                <p style={{ fontSize: 15, fontWeight: 300, lineHeight: 1.7, color: "rgba(255,255,255,0.6)", fontStyle: "italic", marginBottom: 20 }}>&ldquo;{p.quote}&rdquo;</p>
-                <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "monospace", marginTop: 2 }}>{p.context}</div>
-                </div>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            {HOW_IT_WORKS.map((step) => (
+              <div key={step.step} style={{ borderRadius: 20, padding: 28, border: "0.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, right: 0, width: 160, height: 160, background: `radial-gradient(ellipse, ${step.glow} 0%, transparent 70%)`, pointerEvents: "none" }} />
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "monospace", color: step.color, marginBottom: 16 }}>{step.step}</div>
+                <div style={{ fontSize: 20, fontWeight: 300, color: "#fff", marginBottom: 12 }}>{step.title}</div>
+                <p style={{ fontSize: 13, lineHeight: 1.75, color: "rgba(255,255,255,0.35)" }}>{step.body}</p>
               </div>
             ))}
           </div>

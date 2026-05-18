@@ -109,20 +109,20 @@ function useMoneyHealth() {
 function StatusIndicator({ status }: { status: ItemStatus }) {
   if (status === "done") {
     return (
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#eaf3de] text-[11px] font-bold text-[#3b6d11]">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#5fcf7e]/10 text-[11px] font-bold text-[#5fcf7e]">
         ✓
       </span>
     );
   }
   if (status === "needs_attention") {
     return (
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#faeeda] text-[11px] font-bold text-[#854f0b]">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#faeeda] text-[11px] font-bold text-[#f0a832]">
         !
       </span>
     );
   }
   return (
-    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-[11px] text-[#9a9a8a]">
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-[11px] text-white/50">
       –
     </span>
   );
@@ -195,7 +195,7 @@ export function MoneyHealth() {
                   <div className="flex items-center gap-2">
                     <div className="text-[15px] font-medium text-[var(--text-primary)]">{item.label}</div>
                     {item.status === "needs_attention" && (
-                      <span className="rounded-full bg-[#faeeda] px-2 py-0.5 text-[10px] font-semibold text-[#854f0b]">
+                      <span className="rounded-full bg-[#faeeda] px-2 py-0.5 text-[10px] font-semibold text-[#f0a832]">
                         Incomplete
                       </span>
                     )}

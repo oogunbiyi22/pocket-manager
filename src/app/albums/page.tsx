@@ -37,8 +37,8 @@ export default function AlbumsPage() {
 
   return (
     <AppShell title="EP / Album Builder" eyebrow="Release package">
-      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-white/[0.08] bg-[#141412] p-5 text-white/90">
+        <section className="rounded-xl border-[0.5px] border-white/[0.08] bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Release package</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Bundle your songs into an EP or album and see every gap before you release.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
@@ -48,38 +48,38 @@ export default function AlbumsPage() {
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="space-y-4">
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Release details</div>
-              <label className="mt-4 block text-sm text-[#514d47]">
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Release details</div>
+              <label className="mt-4 block text-sm text-white/60">
                 <span className="mb-2 block">Title</span>
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                  className="h-12 w-full rounded-lg border-[0.5px] border-white/[0.08] bg-white/8 px-3 text-sm text-white/90 outline-none"
                 />
               </label>
-              <label className="mt-3 block text-sm text-[#514d47]">
+              <label className="mt-3 block text-sm text-white/60">
                 <span className="mb-2 block">UPC</span>
                 <input
                   value={upc}
                   onChange={(event) => setUpc(event.target.value)}
                   placeholder="Needed before distribution"
-                  className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                  className="h-12 w-full rounded-lg border-[0.5px] border-white/[0.08] bg-white/8 px-3 text-sm text-white/90 outline-none"
                 />
               </label>
-              <label className="mt-3 block text-sm text-[#514d47]">
+              <label className="mt-3 block text-sm text-white/60">
                 <span className="mb-2 block">Release date</span>
                 <input
                   type="date"
                   value={releaseDate}
                   onChange={(event) => setReleaseDate(event.target.value)}
-                  className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                  className="h-12 w-full rounded-lg border-[0.5px] border-white/[0.08] bg-white/8 px-3 text-sm text-white/90 outline-none"
                 />
               </label>
             </div>
 
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Tracks</div>
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Tracks</div>
               <div className="mt-3 space-y-2">
                 {songs.map((song) => (
                   <button
@@ -87,7 +87,7 @@ export default function AlbumsPage() {
                     type="button"
                     onClick={() => toggleSong(song.id)}
                     className={`flex w-full items-center justify-between rounded-lg border-[0.5px] px-3 py-3 text-left text-sm ${
-                      selectedSongIds.includes(song.id) ? "border-black/25 bg-[#0a0a0a] text-white" : "border-black/15 bg-white text-[#111]"
+                      selectedSongIds.includes(song.id) ? "border-white/15 bg-[#7c6fef] text-white" : "border-white/[0.08] bg-white/[0.06] text-white/85"
                     }`}
                   >
                     <span>{song.title}</span>
@@ -98,11 +98,11 @@ export default function AlbumsPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border-[0.5px] border-black/15 bg-[#fafaf8] p-5">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Release preview</div>
-            <div className="mt-4 border-b-[0.5px] border-black/15 pb-4">
-              <h3 className="text-4xl font-normal tracking-[-0.03em] text-[#111]">{title || "Untitled release"}</h3>
-              <p className="mt-2 text-sm text-[#6b6b65]">
+          <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.04] p-5">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Release preview</div>
+            <div className="mt-4 border-b-[0.5px] border-white/[0.08] pb-4">
+              <h3 className="text-4xl font-normal tracking-[-0.03em] text-white/85">{title || "Untitled release"}</h3>
+              <p className="mt-2 text-sm text-white/50">
                 {selectedSongs.length} track{selectedSongs.length === 1 ? "" : "s"} · {releaseDate || "Release date needed"} · UPC {upc || "needed"}
               </p>
             </div>
@@ -115,13 +115,13 @@ export default function AlbumsPage() {
 
             <div className="mt-5 space-y-3">
               {selectedSongs.map((song, index) => (
-                <Link key={song.id} href={`/projects/${song.id}`} className="block rounded-xl border-[0.5px] border-black/15 bg-white p-4 text-sm">
+                <Link key={song.id} href={`/projects/${song.id}`} className="block rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.06] p-4 text-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[#111]">{index + 1}. {song.title}</div>
-                      <div className="mt-1 text-xs text-[#6b6b65]">{song.isrc || "ISRC needed"} · {song.releaseDate}</div>
+                      <div className="text-white/85">{index + 1}. {song.title}</div>
+                      <div className="mt-1 text-xs text-white/50">{song.isrc || "ISRC needed"} · {song.releaseDate}</div>
                     </div>
-                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#854f0b]">
+                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#f0a832]">
                       {formatGapEstimate(getSongEstimatedGap(song))}
                     </span>
                   </div>
@@ -129,9 +129,9 @@ export default function AlbumsPage() {
               ))}
             </div>
 
-            <div className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">What is missing</div>
-              <div className="mt-3 space-y-2 text-sm text-[#514d47]">
+            <div className="mt-5 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.06] p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">What is missing</div>
+              <div className="mt-3 space-y-2 text-sm text-white/60">
                 {missingItems.length ? missingItems.slice(0, 8).map((item) => <div key={item}>{item}</div>) : <div>This release package is clean in the prototype checklist.</div>}
               </div>
             </div>
@@ -144,9 +144,9 @@ export default function AlbumsPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6b6b65]">{label}</div>
-      <div className="mt-2 text-xl font-normal text-[#111]">{value}</div>
+    <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.06] p-4">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className="mt-2 text-xl font-normal text-white/85">{value}</div>
     </div>
   );
 }

@@ -86,25 +86,25 @@ function SongSearch({ onSelect }: { onSelect: (track: ItunesTrack) => void }) {
   return (
     <div className="relative">
       <div className="relative">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9a9a8a]" />
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50" />
         <input
           value={query}
           onChange={e => handleChange(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Search Spotify, Apple Music, iTunes…"
-          className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] pl-9 pr-10 py-3 text-[#111] text-sm outline-none transition focus:border-black/35"
+          className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 pl-9 pr-10 py-3 text-white/90 text-sm outline-none transition focus:border-[#7c6fef]/50"
         />
-        {loading && <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9a9a8a] animate-spin" />}
+        {loading && <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 animate-spin" />}
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-50 top-full mt-1.5 w-full overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white shadow-xl">
+        <div className="absolute z-50 top-full mt-1.5 w-full overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-[#14141f] shadow-xl shadow-black/60">
           {results.map(track => (
             <button
               key={track.trackId}
               type="button"
               onClick={() => pick(track)}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-[#f5f4f0]"
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-white/5"
             >
               {track.artworkUrl100 ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -114,18 +114,18 @@ function SongSearch({ onSelect }: { onSelect: (track: ItunesTrack) => void }) {
                   className="size-10 shrink-0 rounded-lg object-cover"
                 />
               ) : (
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f0ede8]">
-                  <Music size={16} className="text-[#9a9a8a]" />
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/5">
+                  <Music size={16} className="text-white/50" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-[#111]">{track.trackName}</div>
-                <div className="truncate text-xs text-[#6b6b65]">
+                <div className="truncate text-sm font-medium text-white/90">{track.trackName}</div>
+                <div className="truncate text-xs text-white/50">
                   {track.artistName} · {track.collectionName}
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-xs text-[#9a9a8a]">{track.primaryGenreName}</div>
+                <div className="text-xs text-white/50">{track.primaryGenreName}</div>
                 {track.trackTimeMillis && (
                   <div className="text-xs text-[#b8b5ae]">{durationLabel(track.trackTimeMillis)}</div>
                 )}
@@ -234,7 +234,7 @@ export default function NewProjectPage() {
 
   return (
     <AppShell title="Add Song" eyebrow="Catalog">
-      <main className="mx-auto max-w-3xl space-y-4 text-[#111]">
+      <main className="mx-auto max-w-3xl space-y-4 text-white/90">
 
         {/* Hero */}
         <section className="overflow-hidden rounded-[24px] bg-[#0a0a0a] px-5 py-6 text-white">
@@ -245,19 +245,19 @@ export default function NewProjectPage() {
           </p>
         </section>
 
-        <section className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5">
+        <section className="rounded-[24px] border-[0.5px] border-white/10 glass p-5">
 
           {/* Smart search — always first */}
           <SongSearch onSelect={handleItunesSelect} />
 
           {/* Artwork + fill confirmation */}
           {selectedArtwork && (
-            <div className="mt-3 flex items-center gap-4 rounded-xl border-[0.5px] border-[#97c459]/40 bg-[#eaf3de] p-3">
+            <div className="mt-3 flex items-center gap-4 rounded-xl border-[0.5px] border-[#5fcf7e]/30 bg-[#5fcf7e]/10 p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={selectedArtwork} alt="Album artwork" className="size-14 shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-[#111]">{form.title}</div>
-                <div className="mt-0.5 text-xs text-[#3b6d11]">
+                <div className="truncate text-sm font-medium text-white/90">{form.title}</div>
+                <div className="mt-0.5 text-xs text-[#5fcf7e]">
                   <Check size={10} className="mr-1 inline" />
                   Auto-filled from Apple Music · {form.genre}{form.releaseDate ? ` · ${form.releaseDate}` : ""}
                 </div>
@@ -271,7 +271,7 @@ export default function NewProjectPage() {
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Song title (required)"
-              className="w-full rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] text-sm outline-none transition focus:border-black/35"
+              className="w-full rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 py-3 text-white/90 text-sm outline-none transition focus:border-[#7c6fef]/50"
             />
           </div>
 
@@ -279,33 +279,33 @@ export default function NewProjectPage() {
           <button
             type="button"
             onClick={() => setShowDetails(v => !v)}
-            className="mt-3 flex w-full items-center justify-between rounded-xl border-[0.5px] border-black/10 bg-[#f8f6f1] px-4 py-2.5 text-[12px] text-[#6b6b65] transition hover:bg-[#f0ede8]"
+            className="mt-3 flex w-full items-center justify-between rounded-xl border-[0.5px] border-white/8 bg-white/5 px-4 py-2.5 text-[12px] text-white/50 transition hover:bg-white/5"
           >
             <span>{showDetails ? "Hide details" : "Add details — ISRC, genre, mood, BPM, distributor"}</span>
-            <span className="text-[#9a9a8a]">{showDetails ? "▲" : "▼"}</span>
+            <span className="text-white/50">{showDetails ? "▲" : "▼"}</span>
           </button>
 
           {showDetails && (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {/* ISRC with MB lookup */}
               <div className="sm:col-span-2">
-                <label className="block text-sm text-[#514d47]">
-                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">ISRC</span>
+                <label className="block text-sm text-white/60">
+                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">ISRC</span>
                   <div className="relative">
                     <input
                       value={form.isrc}
                       onChange={e => handleIsrcChange(e.target.value)}
                       placeholder="US-ABC-24-00001 (auto-looks up MusicBrainz)"
-                      className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-2.5 text-sm text-[#111] outline-none transition focus:border-black/35"
+                      className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50"
                     />
                     {mbLookup.status === "loading" && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#9a9a8a]">Looking up…</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50">Looking up…</span>
                     )}
                   </div>
                   {mbLookup.status === "found" && mbLookup.result && (
-                    <div className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-3 py-2 text-xs">
-                      <span className="text-[#3b6d11]">{mbLookup.result.title}{mbLookup.result.artist ? ` · ${mbLookup.result.artist}` : ""}</span>
-                      <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#3b6d11]">Use →</button>
+                    <div className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border-[0.5px] border-[#5fcf7e]/50 bg-[#5fcf7e]/10 px-3 py-2 text-xs">
+                      <span className="text-[#5fcf7e]">{mbLookup.result.title}{mbLookup.result.artist ? ` · ${mbLookup.result.artist}` : ""}</span>
+                      <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#5fcf7e]">Use →</button>
                     </div>
                   )}
                 </label>
@@ -323,24 +323,24 @@ export default function NewProjectPage() {
                 ["Territory", "territory", "e.g. United States", "text"],
               ] as const).map(([label, key, placeholder, type]) => (
                 <label key={key} className="block">
-                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">{label}</span>
+                  <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">{label}</span>
                   <input
                     type={type}
                     value={form[key as keyof typeof form]}
                     onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                     placeholder={placeholder}
-                    className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-2.5 text-sm text-[#111] outline-none transition focus:border-black/35"
+                    className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50"
                   />
                 </label>
               ))}
 
               {/* Distributor */}
               <div className="sm:col-span-2">
-                <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Distributor</span>
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.15em] text-white/50">Distributor</span>
                 <select
                   value={form.distributor}
                   onChange={e => setForm(f => ({ ...f, distributor: e.target.value }))}
-                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-2.5 text-sm text-[#111] outline-none transition focus:border-black/35"
+                  className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50"
                 >
                   {["", "DistroKid", "TuneCore", "CD Baby", "ONErpm", "UnitedMasters", "Amuse", "Stem", "Other", "Not sure yet"].map(item => (
                     <option key={item} value={item}>{item || "Select distributor…"}</option>
@@ -353,8 +353,8 @@ export default function NewProjectPage() {
           {/* CTA */}
           {atFreeLimit ? (
             <div className="mt-5 rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] px-4 py-4 text-center">
-              <p className="text-sm font-medium text-[#854f0b]">Free plan is capped at 3 songs.</p>
-              <p className="mt-1 text-xs text-[#854f0b]/70">Upgrade to Pro to add unlimited releases and unlock the full action queue.</p>
+              <p className="text-sm font-medium text-[#f0a832]">Free plan is capped at 3 songs.</p>
+              <p className="mt-1 text-xs text-[#f0a832]/70">Upgrade to Pro to add unlimited releases and unlock the full action queue.</p>
               <a href="/settings" className="mt-3 inline-block rounded-lg bg-[#0a0a0a] px-5 py-2 text-sm font-medium text-white">
                 Upgrade to Pro →
               </a>
@@ -369,7 +369,7 @@ export default function NewProjectPage() {
               >
                 {form.title.trim() ? `Add "${form.title}" to catalog →` : "Enter a song title to continue"}
               </button>
-              <p className="mt-2 text-center text-[11px] text-[#9a9a8a]">
+              <p className="mt-2 text-center text-[11px] text-white/50">
                 You can add ISRC, genre, and splits from inside the song room after saving.
               </p>
             </>

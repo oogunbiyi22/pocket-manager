@@ -276,7 +276,7 @@ export default function PitchingPage() {
 
   return (
     <AppShell title="Playlist Pitching Engine" eyebrow="Signal">
-      <main className="mx-auto max-w-6xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] text-[#111]">
+      <main className="mx-auto max-w-6xl overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-white/5 text-white/90">
 
         {/* Hero */}
         <section className="bg-[#0a0a0a] px-5 py-6 text-white">
@@ -298,7 +298,7 @@ export default function PitchingPage() {
         </section>
 
         {/* Tabs */}
-        <div className="flex border-b-[0.5px] border-black/10 bg-white">
+        <div className="flex border-b-[0.5px] border-white/8 bg-[#0d0d0b]">
           {([
             ["import", "1. Setup"],
             ["curators", `2. Curators${curators.length > 0 ? ` (${curators.length})` : ""}`],
@@ -308,7 +308,7 @@ export default function PitchingPage() {
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`px-5 py-3 text-[12px] font-medium transition ${tab === key ? "border-b-2 border-[#0a0a0a] text-[#111]" : "text-[#9a9a8a] hover:text-[#111]"}`}
+              className={`px-5 py-3 text-[12px] font-medium transition ${tab === key ? "border-b-2 border-[#0a0a0a] text-white/90" : "text-white/50 hover:text-white/90"}`}
             >
               {label}
             </button>
@@ -320,17 +320,17 @@ export default function PitchingPage() {
           <section className="grid gap-5 p-5 lg:grid-cols-2">
             {/* Song selector */}
             <div className="space-y-4">
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Song to pitch</div>
+              <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Song to pitch</div>
                 {songs.length === 0 ? (
-                  <p className="mt-3 text-sm text-[#9a9a8a]">
+                  <p className="mt-3 text-sm text-white/50">
                     <Link href="/projects/new" className="underline">Add a release</Link> first.
                   </p>
                 ) : (
                   <select
                     value={songId}
                     onChange={(e) => setSongId(e.target.value)}
-                    className="mt-3 h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-3 text-sm text-[#111] outline-none"
+                    className="mt-3 h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-3 text-sm text-white/90 outline-none"
                   >
                     {songs.map((s) => (
                       <option key={s.id} value={s.id}>{s.title}</option>
@@ -344,9 +344,9 @@ export default function PitchingPage() {
                       ["Mood", activeSong.mood],
                       ["ISRC", activeSong.isrc],
                     ].map(([label, val]) => (
-                      <div key={label} className="rounded-lg bg-[#f8f6f1] px-2 py-1.5">
-                        <div className="text-[#9a9a8a]">{label}</div>
-                        <div className={`mt-0.5 truncate font-medium ${val ? "text-[#111]" : "text-[#e24b4a]"}`}>{val ?? "missing"}</div>
+                      <div key={label} className="rounded-lg bg-white/5 px-2 py-1.5">
+                        <div className="text-white/50">{label}</div>
+                        <div className={`mt-0.5 truncate font-medium ${val ? "text-white/90" : "text-[#e24b4a]"}`}>{val ?? "missing"}</div>
                       </div>
                     ))}
                   </div>
@@ -354,9 +354,9 @@ export default function PitchingPage() {
               </div>
 
               {/* Emotional story */}
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Emotional story</div>
-                <p className="mt-2 text-[11px] leading-5 text-[#9a9a8a]">
+              <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Emotional story</div>
+                <p className="mt-2 text-[11px] leading-5 text-white/50">
                   How did you feel when you made this song? Write it raw. This becomes the DNA of every pitch — written in your exact voice.
                 </p>
                 <textarea
@@ -364,36 +364,36 @@ export default function PitchingPage() {
                   onChange={(e) => setEmotionalStory(e.target.value)}
                   placeholder="e.g. I made this at 3am after a conversation I wasn't supposed to have. The beat felt like the moment right before you say something you can't take back..."
                   rows={5}
-                  className="mt-3 w-full rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-sm leading-6 text-[#111] outline-none placeholder:text-[#b0b0a8] focus:border-black/30"
+                  className="mt-3 w-full rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/90 outline-none placeholder:text-[#b0b0a8] focus:border-[#7c6fef]/50"
                 />
               </div>
 
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Your reply-to email</div>
+              <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Your reply-to email</div>
                 <input
                   value={artistContact}
                   onChange={(e) => setArtistContact(e.target.value)}
                   placeholder="your@email.com"
                   type="email"
-                  className="mt-3 h-11 w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-3 text-sm text-[#111] outline-none focus:border-black/30"
+                  className="mt-3 h-11 w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-3 text-sm text-white/90 outline-none focus:border-[#7c6fef]/50"
                 />
               </div>
             </div>
 
             {/* CSV import */}
             <div className="space-y-4">
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Import curator list</div>
-                <p className="mt-2 text-[11px] leading-5 text-[#9a9a8a]">
+              <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Import curator list</div>
+                <p className="mt-2 text-[11px] leading-5 text-white/50">
                   Export your Google Sheet as CSV (File → Download → CSV). Your sheet should have columns for: <strong>email, name, playlist, genre, platform, followers</strong>. Extra columns (notes, success_rate, type) are picked up automatically.
                 </p>
 
-                <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-[1.5px] border-dashed border-black/15 bg-[#f8f6f1] py-10 transition hover:border-black/30">
+                <label className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-[1.5px] border-dashed border-white/10 bg-white/5 py-10 transition hover:border-white/15">
                   <div className="text-3xl">📄</div>
-                  <div className="text-sm font-medium text-[#111]">
+                  <div className="text-sm font-medium text-white/90">
                     {importing ? "Parsing…" : "Drop CSV or click to upload"}
                   </div>
-                  <div className="text-[11px] text-[#9a9a8a]">Supports any spreadsheet exported as CSV</div>
+                  <div className="text-[11px] text-white/50">Supports any spreadsheet exported as CSV</div>
                   <input
                     ref={fileRef}
                     type="file"
@@ -421,20 +421,20 @@ export default function PitchingPage() {
                       setImporting(false);
                     }
                   }}
-                  className="mt-4 w-full rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] py-3 text-sm font-medium text-[#854f0b] transition hover:bg-[#ef9f27]/20 disabled:opacity-50"
+                  className="mt-4 w-full rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] py-3 text-sm font-medium text-[#f0a832] transition hover:bg-[#ef9f27]/20 disabled:opacity-50"
                 >
                   {importing ? "Loading…" : "⚡ Load Verified Curator List (4,200+ curators)"}
                 </button>
 
                 {curators.length > 0 && (
-                  <div className="mt-3 rounded-xl bg-[#eaf3de] px-4 py-3 text-sm text-[#3b6d11]">
+                  <div className="mt-3 rounded-xl bg-[#5fcf7e]/10 px-4 py-3 text-sm text-[#5fcf7e]">
                     ✓ {curators.length} curators imported · {curators.filter((c) => c.email.includes("@")).length} valid emails
                   </div>
                 )}
               </div>
 
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Expected CSV columns</div>
+              <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Expected CSV columns</div>
                 <div className="mt-3 grid grid-cols-2 gap-1.5">
                   {[
                     ["email", "required"],
@@ -447,9 +447,9 @@ export default function PitchingPage() {
                     ["success_rate", "optional"],
                     ["notes", "optional"],
                   ].map(([col, req]) => (
-                    <div key={col} className="flex items-center justify-between rounded-lg bg-[#f8f6f1] px-2.5 py-1.5">
-                      <code className="text-[11px] text-[#111]">{col}</code>
-                      <span className={`text-[10px] ${req === "required" ? "text-[#e24b4a]" : req === "recommended" ? "text-[#854f0b]" : "text-[#9a9a8a]"}`}>{req}</span>
+                    <div key={col} className="flex items-center justify-between rounded-lg bg-white/5 px-2.5 py-1.5">
+                      <code className="text-[11px] text-white/90">{col}</code>
+                      <span className={`text-[10px] ${req === "required" ? "text-[#e24b4a]" : req === "recommended" ? "text-[#f0a832]" : "text-white/50"}`}>{req}</span>
                     </div>
                   ))}
                 </div>
@@ -472,24 +472,24 @@ export default function PitchingPage() {
         {tab === "curators" && (
           <section className="p-5">
             {curators.length === 0 ? (
-              <div className="rounded-xl border-[0.5px] border-dashed border-black/15 py-16 text-center text-sm text-[#9a9a8a]">
+              <div className="rounded-xl border-[0.5px] border-dashed border-white/10 py-16 text-center text-sm text-white/50">
                 <div className="text-3xl">📋</div>
                 <div className="mt-3">No curators yet.</div>
-                <button type="button" onClick={() => setTab("import")} className="mt-3 text-[#854f0b] underline underline-offset-2">Import your CSV →</button>
+                <button type="button" onClick={() => setTab("import")} className="mt-3 text-[#f0a832] underline underline-offset-2">Import your CSV →</button>
               </div>
             ) : (
               <>
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-[#111]">
+                    <div className="text-sm font-medium text-white/90">
                       {scoredCurators.length} curators · sorted by fit for &ldquo;{activeSong?.title}&rdquo;
                     </div>
-                    <div className="mt-0.5 text-[11px] text-[#9a9a8a]">{selectedIds.size} selected for pitching</div>
+                    <div className="mt-0.5 text-[11px] text-white/50">{selectedIds.size} selected for pitching</div>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={selectTop50} className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-[12px] text-[#111] hover:bg-[#f5f4f0]">Top 50</button>
-                    <button type="button" onClick={selectAll} className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-[12px] text-[#111] hover:bg-[#f5f4f0]">All</button>
-                    <button type="button" onClick={clearSelection} className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-[12px] text-[#9a9a8a] hover:bg-[#f5f4f0]">Clear</button>
+                    <button type="button" onClick={selectTop50} className="rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-[12px] text-white/90 hover:bg-white/5">Top 50</button>
+                    <button type="button" onClick={selectAll} className="rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-[12px] text-white/90 hover:bg-white/5">All</button>
+                    <button type="button" onClick={clearSelection} className="rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-[12px] text-white/50 hover:bg-white/5">Clear</button>
                     <button
                       type="button"
                       onClick={generateAll}
@@ -508,7 +508,7 @@ export default function PitchingPage() {
                     return (
                       <div
                         key={curator.id}
-                        className={`flex items-center gap-3 rounded-xl border-[0.5px] px-4 py-3 transition ${isSelected ? "border-black/20 bg-white" : "border-black/8 bg-[#f8f6f1] opacity-60"}`}
+                        className={`flex items-center gap-3 rounded-xl border-[0.5px] px-4 py-3 transition ${isSelected ? "border-white/20 bg-white/[0.12]" : "border-white/[0.06] bg-white/5 opacity-60"}`}
                       >
                         <input
                           type="checkbox"
@@ -517,31 +517,31 @@ export default function PitchingPage() {
                           className="h-4 w-4 shrink-0 accent-[#0a0a0a]"
                         />
                         <div className="flex w-10 flex-col items-center shrink-0">
-                          <div className="text-[13px] font-medium text-[#111]">{curator.fit ?? 50}</div>
-                          <div className="text-[9px] text-[#9a9a8a]">fit</div>
+                          <div className="text-[13px] font-medium text-white/90">{curator.fit ?? 50}</div>
+                          <div className="text-[9px] text-white/50">fit</div>
                         </div>
                         <div className="h-7 w-px bg-black/[0.06] shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[13px] font-medium text-[#111] truncate">{curator.playlistName}</span>
+                            <span className="text-[13px] font-medium text-white/90 truncate">{curator.playlistName}</span>
                             {curator.platform && (
-                              <span className="rounded-full border-[0.5px] border-black/10 px-2 py-0.5 text-[10px] text-[#6b6b65]">{curator.platform}</span>
+                              <span className="rounded-full border-[0.5px] border-white/8 px-2 py-0.5 text-[10px] text-white/50">{curator.platform}</span>
                             )}
                             {curator.genre && (
-                              <span className="rounded-full bg-[#f0efe8] px-2 py-0.5 text-[10px] text-[#514d47]">{curator.genre}</span>
+                              <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-white/60">{curator.genre}</span>
                             )}
                           </div>
-                          <div className="mt-0.5 text-[11px] text-[#9a9a8a] truncate">
+                          <div className="mt-0.5 text-[11px] text-white/50 truncate">
                             {curator.name} · {curator.email}
                             {curator.followers ? ` · ${curator.followers} followers` : ""}
                           </div>
                         </div>
                         {pitch && (
                           <div className="shrink-0">
-                            {pitch.status === "generating" && <span className="text-[11px] text-[#9a9a8a]">writing…</span>}
-                            {pitch.status === "ready" && <span className="rounded-full bg-[#eaf3de] px-2 py-0.5 text-[10px] text-[#3b6d11]">Ready</span>}
+                            {pitch.status === "generating" && <span className="text-[11px] text-white/50">writing…</span>}
+                            {pitch.status === "ready" && <span className="rounded-full bg-[#5fcf7e]/10 px-2 py-0.5 text-[10px] text-[#5fcf7e]">Ready</span>}
                             {pitch.status === "sent" && <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] text-white">Sent ✓</span>}
-                            {pitch.status === "error" && <span className="rounded-full bg-[#fcebeb] px-2 py-0.5 text-[10px] text-[#a32d2d]">Error</span>}
+                            {pitch.status === "error" && <span className="rounded-full bg-[#f05c5c]/10 px-2 py-0.5 text-[10px] text-[#f05c5c]">Error</span>}
                           </div>
                         )}
                       </div>
@@ -557,10 +557,10 @@ export default function PitchingPage() {
         {tab === "pitches" && (
           <section className="p-5">
             {readyCount === 0 ? (
-              <div className="rounded-xl border-[0.5px] border-dashed border-black/15 py-16 text-center text-sm text-[#9a9a8a]">
+              <div className="rounded-xl border-[0.5px] border-dashed border-white/10 py-16 text-center text-sm text-white/50">
                 <div className="text-3xl">✉️</div>
                 <div className="mt-3">No pitches generated yet.</div>
-                <button type="button" onClick={() => setTab("curators")} className="mt-3 text-[#854f0b] underline underline-offset-2">
+                <button type="button" onClick={() => setTab("curators")} className="mt-3 text-[#f0a832] underline underline-offset-2">
                   Select curators and generate →
                 </button>
               </div>
@@ -568,8 +568,8 @@ export default function PitchingPage() {
               <>
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-[#111]">{readyCount} pitches ready · {sentCount} sent</div>
-                    <div className="mt-0.5 text-[11px] text-[#9a9a8a]">Review each pitch before sending, or send all at once.</div>
+                    <div className="text-sm font-medium text-white/90">{readyCount} pitches ready · {sentCount} sent</div>
+                    <div className="mt-0.5 text-[11px] text-white/50">Review each pitch before sending, or send all at once.</div>
                   </div>
                   <button
                     type="button"
@@ -628,52 +628,52 @@ function PitchCard({
 
   const statusLabel = {
     idle: null,
-    generating: <span className="text-[11px] text-[#9a9a8a]">Generating…</span>,
-    ready: <span className="rounded-full bg-[#eaf3de] px-2 py-0.5 text-[10px] text-[#3b6d11]">Ready to send</span>,
-    sending: <span className="text-[11px] text-[#9a9a8a]">Sending…</span>,
+    generating: <span className="text-[11px] text-white/50">Generating…</span>,
+    ready: <span className="rounded-full bg-[#5fcf7e]/10 px-2 py-0.5 text-[10px] text-[#5fcf7e]">Ready to send</span>,
+    sending: <span className="text-[11px] text-white/50">Sending…</span>,
     sent: <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] text-white">Sent ✓</span>,
-    error: <span className="rounded-full bg-[#fcebeb] px-2 py-0.5 text-[10px] text-[#a32d2d]">{pitch.error ?? "Error"}</span>,
+    error: <span className="rounded-full bg-[#f05c5c]/10 px-2 py-0.5 text-[10px] text-[#f05c5c]">{pitch.error ?? "Error"}</span>,
   }[pitch.status];
 
   return (
-    <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-white">
+    <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-white/[0.05]">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[#f8f6f1] transition"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[13px] font-medium text-[#111] truncate">{curator.name}</span>
-            <span className="text-[11px] text-[#9a9a8a] truncate">{curator.playlistName}</span>
+            <span className="text-[13px] font-medium text-white/90 truncate">{curator.name}</span>
+            <span className="text-[11px] text-white/50 truncate">{curator.playlistName}</span>
           </div>
           {pitch.subject && (
-            <div className="mt-0.5 truncate text-[11px] text-[#6b6b65]">Subj: {pitch.subject}</div>
+            <div className="mt-0.5 truncate text-[11px] text-white/50">Subj: {pitch.subject}</div>
           )}
         </div>
         {statusLabel}
-        <span className="shrink-0 text-[#9a9a8a]">{expanded ? "▲" : "▼"}</span>
+        <span className="shrink-0 text-white/50">{expanded ? "▲" : "▼"}</span>
       </button>
 
       {expanded && (
-        <div className="border-t-[0.5px] border-black/8 p-4 space-y-3">
+        <div className="border-t-[0.5px] border-white/[0.06] p-4 space-y-3">
           <label className="block">
-            <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Subject</div>
+            <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.15em] text-white/50">Subject</div>
             <input
               value={pitch.subject}
               onChange={(e) => onEdit("subject", e.target.value)}
               disabled={pitch.status === "sent"}
-              className="h-10 w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-3 text-sm text-[#111] outline-none focus:border-black/30 disabled:opacity-50"
+              className="h-10 w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-3 text-sm text-white/90 outline-none focus:border-[#7c6fef]/50 disabled:opacity-50"
             />
           </label>
           <label className="block">
-            <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Body</div>
+            <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.15em] text-white/50">Body</div>
             <textarea
               value={pitch.body}
               onChange={(e) => onEdit("body", e.target.value)}
               disabled={pitch.status === "sent"}
               rows={8}
-              className="w-full rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-sm leading-6 text-[#111] outline-none focus:border-black/30 disabled:opacity-50"
+              className="w-full rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/90 outline-none focus:border-[#7c6fef]/50 disabled:opacity-50"
             />
           </label>
           <div className="flex flex-wrap gap-2">
@@ -690,13 +690,13 @@ function PitchCard({
             <button
               type="button"
               onClick={onRegenerate}
-              className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111] hover:bg-[#f5f4f0] transition"
+              className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/90 hover:bg-white/5 transition"
             >
               Regenerate
             </button>
             <a
               href={`mailto:${curator.email}?subject=${encodeURIComponent(pitch.subject)}&body=${encodeURIComponent(pitch.body)}`}
-              className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#514d47] hover:bg-[#f5f4f0] transition"
+              className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/60 hover:bg-white/5 transition"
             >
               Open in Mail
             </a>

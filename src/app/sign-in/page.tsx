@@ -132,8 +132,8 @@ function SignInContent() {
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md overflow-hidden rounded-[28px] glass card-shadow p-8 text-center">
           <div className="text-3xl">{isForgot ? "🔑" : "✉️"}</div>
-          <h2 className="mt-4 text-xl font-medium text-[#111]">Check your email</h2>
-          <p className="mt-2 text-sm leading-6 text-[#6b6b65]">
+          <h2 className="mt-4 text-xl font-medium text-white/90">Check your email</h2>
+          <p className="mt-2 text-sm leading-6 text-white/50">
             {isForgot
               ? <>We sent a password reset link to <strong>{email}</strong>.</>
               : <>We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.</>
@@ -142,7 +142,7 @@ function SignInContent() {
           <button
             type="button"
             onClick={() => { setSent(false); setMode("sign-in"); }}
-            className="mt-6 text-sm text-[#111] underline underline-offset-2"
+            className="mt-6 text-sm text-white/90 underline underline-offset-2"
           >
             Back to sign in
           </button>
@@ -185,7 +185,7 @@ function SignInContent() {
                     type="button"
                     onClick={() => socialAuth("google")}
                     disabled={loading}
-                    className="flex h-11 items-center justify-center gap-2.5 rounded-xl border-[0.5px] border-black/15 bg-white text-sm font-medium text-[#111] transition hover:bg-[#f4f1eb] disabled:opacity-50"
+                    className="flex h-11 items-center justify-center gap-2.5 rounded-xl border-[0.5px] border-white/10 bg-white text-sm font-medium text-white/90 transition hover:bg-white/15 disabled:opacity-50"
                   >
                     <svg viewBox="0 0 24 24" className="size-4">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -198,7 +198,7 @@ function SignInContent() {
                 </div>
                 <div className="my-5 flex items-center gap-3">
                   <div className="h-px flex-1 bg-black/10" />
-                  <span className="text-xs text-[#9a9a8a]">or</span>
+                  <span className="text-xs text-white/50">or</span>
                   <div className="h-px flex-1 bg-black/10" />
                 </div>
               </>
@@ -206,7 +206,7 @@ function SignInContent() {
 
             {/* Form */}
             <form onSubmit={submit} className="grid gap-3">
-              <label className="block text-sm text-[#514d47]">
+              <label className="block text-sm text-white/60">
                 <span className="mb-1.5 block">Email</span>
                 <input
                   type="email"
@@ -214,19 +214,19 @@ function SignInContent() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
+                  className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-4 py-3 text-white/90 outline-none transition focus:border-[#7c6fef]/50"
                 />
               </label>
 
               {!isForgot && (
-                <label className="block text-sm text-[#514d47]">
+                <label className="block text-sm text-white/60">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span>Password</span>
                     {mode === "sign-in" && (
                       <button
                         type="button"
                         onClick={() => { setMode("forgot"); setError(""); }}
-                        className="text-xs text-[#9a9a8a] hover:text-[#111] transition"
+                        className="text-xs text-white/50 hover:text-white/90 transition"
                       >
                         Forgot password?
                       </button>
@@ -239,13 +239,13 @@ function SignInContent() {
                     placeholder="••••••••"
                     minLength={6}
                     required
-                    className="w-full rounded-lg border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-[#111] outline-none transition focus:border-black/35"
+                    className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-4 py-3 text-white/90 outline-none transition focus:border-[#7c6fef]/50"
                   />
                 </label>
               )}
 
               {(error || oauthErrorMessage) && (
-                <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-[13px] text-[#a32d2d]">{error || oauthErrorMessage}</p>
+                <p className="rounded-lg bg-[#f05c5c]/10 px-3 py-2 text-[13px] text-[#f05c5c]">{error || oauthErrorMessage}</p>
               )}
 
               <button
@@ -264,12 +264,12 @@ function SignInContent() {
             </form>
 
             {/* Mode toggle */}
-            <div className="mt-5 text-center text-sm text-[#6b6b65]">
+            <div className="mt-5 text-center text-sm text-white/50">
               {mode === "sign-in" ? (
                 <>
                   No account?{" "}
                   <button type="button" onClick={() => { setMode("sign-up"); setError(""); }}
-                    className="font-medium text-[#111] underline-offset-2 hover:underline">
+                    className="font-medium text-white/90 underline-offset-2 hover:underline">
                     Sign up free
                   </button>
                 </>
@@ -277,7 +277,7 @@ function SignInContent() {
                 <>
                   {mode === "forgot" ? "Remember it? " : "Already have an account? "}
                   <button type="button" onClick={() => { setMode("sign-in"); setError(""); }}
-                    className="font-medium text-[#111] underline-offset-2 hover:underline">
+                    className="font-medium text-white/90 underline-offset-2 hover:underline">
                     Sign in
                   </button>
                 </>
@@ -286,7 +286,7 @@ function SignInContent() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-[#9a9a8a]">
+        <p className="mt-6 text-center text-xs text-white/50">
           By continuing, you agree to the{" "}
           <Link href="/terms" className="underline underline-offset-2">Terms</Link>
           {" "}and{" "}
@@ -299,7 +299,7 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="size-6 rounded-full border-2 border-black/20 border-t-black/60 animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="size-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" /></div>}>
       <SignInContent />
     </Suspense>
   );

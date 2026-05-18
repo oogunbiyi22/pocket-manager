@@ -61,7 +61,7 @@ function SmallRing({ score }: { score: number }) {
   const color = score >= 70 ? "#97c459" : score >= 40 ? "#ef9f27" : "#e24b4a";
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" className="shrink-0">
-      <circle cx="20" cy="20" r={r} fill="none" stroke="#e8e7e2" strokeWidth="3" />
+      <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
       <circle cx="20" cy="20" r={r} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round"
         strokeDasharray={`${fill} ${circ}`} transform="rotate(-90 20 20)" />
       <text x="20" y="20" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="500" fill={color}>
@@ -76,10 +76,10 @@ function ForecastBar({ label, value, max, color }: { label: string; value: numbe
   return (
     <div className="grid gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[11px] text-[#6b6b65]">{label}</span>
-        <span className="text-[13px] font-normal text-[#111]">{formatMoney(value)}</span>
+        <span className="text-[11px] text-white/50">{label}</span>
+        <span className="text-[13px] font-normal text-white/90">{formatMoney(value)}</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-black/8">
+      <div className="h-2 overflow-hidden rounded-full bg-white/8">
         <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ backgroundColor: color, width: `${pct}%` }} />
       </div>
     </div>
@@ -108,7 +108,7 @@ export default function HarvestPage() {
 
   return (
     <AppShell title="Harvest" eyebrow="The business">
-      <main className="mx-auto max-w-4xl space-y-4 text-[#111]">
+      <main className="mx-auto max-w-4xl space-y-4 text-white/90">
 
         {/* Command surface */}
         <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-6 text-white">
@@ -130,29 +130,67 @@ export default function HarvestPage() {
               </span>
             </div>
           ) : (
-            <div className="mt-4 rounded-xl border-[0.5px] border-[#97c459]/30 bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
+            <div className="mt-4 rounded-xl border-[0.5px] border-[#5fcf7e]/30 bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
               Catalog fully optimized · no open gaps
             </div>
           )}
         </section>
 
+        {/* Pre-catalog tasks — show before first song is added */}
+        {songs.length === 0 && (
+          <section className="rounded-[24px] glass card-shadow px-5 py-5">
+            <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Before your first release</div>
+            <p className="mb-4 text-[13px] text-white/50 leading-5">Every dollar depends on these being set up. Do them once.</p>
+            <div className="space-y-2">
+              {([
+                { label: "Register with a PRO", sub: "ASCAP, BMI, SOCAN, or PRS — collect performance royalties from radio, TV, live, and streaming", href: "/harvest", urgent: true },
+                { label: "Get your ISRC prefix", sub: "US-only: apply via RIAA ($95) or free through your distributor. Required for every release.", href: "/projects/new", urgent: true },
+                { label: "Register with SoundExchange", sub: "Collect digital performance royalties (Spotify, Pandora, satellite radio). Free, fast.", href: "/platforms", urgent: true },
+                { label: "Set up publishing administration", sub: "Songtrust ($250 one-time) or DistroKid Sync collects your mechanical royalties globally", href: "/publishing", urgent: false },
+                { label: "Choose your distributor", sub: "DistroKid, TuneCore, or CD Baby — gets your music on DSPs and claims your streaming revenue", href: "/platforms", urgent: false },
+              ] as { label: string; sub: string; href: string; urgent: boolean }[]).map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="flex items-start gap-3 rounded-[14px] border-[0.5px] border-white/8 px-4 py-3 transition hover:bg-white/5 press"
+                >
+                  <div className={`mt-1 size-2 shrink-0 rounded-full ${item.urgent ? "bg-[#f05c5c]" : "bg-white/20"}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] text-white/90">{item.label}</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-white/40">{item.sub}</div>
+                  </div>
+                  <span className="mt-1 shrink-0 text-[11px] text-[#7c6fef]">→</span>
+                </Link>
+              ))}
+            </div>
+            <Link
+              href="/projects/new"
+              className="mt-4 block rounded-xl btn-electric py-3 text-center text-sm font-medium press"
+            >
+              Add your first release →
+            </Link>
+          </section>
+        )}
+
         {/* 2×2 income grid */}
+        {songs.length > 0 && (
         <section className="grid grid-cols-2 gap-3">
           {incomeCategories.map((cat) => (
             <Link key={cat.label} href="/financial"
               className="rounded-[20px] glass card-shadow px-5 py-4 press">
-              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9a9a8a]">{cat.label}</div>
-              <div className="mt-2 text-[24px] font-light text-[#0d0d0b]">{formatMoney(cat.value)}</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/50">{cat.label}</div>
+              <div className="mt-2 text-[24px] font-light text-white/90">{formatMoney(cat.value)}</div>
             </Link>
           ))}
         </section>
+        )}
 
         {/* Gap queue — top 5 actions inline */}
         {visibleQueue.length > 0 && (
           <section className="rounded-[24px] glass card-shadow px-5 py-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Gap queue</div>
-              <Link href="/actions" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Gap queue</div>
+              <Link href="/actions" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#f0a832]">
                 Full queue →
               </Link>
             </div>
@@ -161,7 +199,7 @@ export default function HarvestPage() {
                 <div
                   key={item.id}
                   className={`overflow-hidden rounded-[14px] transition ${
-                    i === 0 ? "bg-[#faeeda]" : "glass-subtle"
+                    i === 0 ? "bg-[#f0a832]/10" : "glass-subtle"
                   }`}
                 >
                   <div className="flex items-start gap-3 px-4 py-3">
@@ -172,30 +210,30 @@ export default function HarvestPage() {
                             #1
                           </span>
                         )}
-                        <span className="text-[11px] text-[#9a9a8a]">{item.songTitle}</span>
+                        <span className="text-[11px] text-white/50">{item.songTitle}</span>
                       </div>
-                      <div className="mt-1 text-[15px] font-normal text-[#111]">
+                      <div className="mt-1 text-[15px] font-normal text-white/90">
                         {item.action} via {item.collectionBody}
                       </div>
-                      <div className="mt-1 text-[11px] text-[#6b6b65]">{item.estimatedTime}</div>
+                      <div className="mt-1 text-[11px] text-white/50">{item.estimatedTime}</div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className="text-[15px] font-normal text-[#854f0b]">
+                      <div className="text-[15px] font-normal text-[#f0a832]">
                         {formatGapEstimate(item.estimatedValue)}
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 border-t border-black/[0.06] px-4 py-2.5">
+                  <div className="flex gap-2 border-t border-white/8 px-4 py-2.5">
                     <Link
                       href={`/projects/${item.songId}`}
-                      className="rounded-lg bg-[#0a0a0a] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#242424]"
+                      className="rounded-lg btn-electric px-3 py-1.5 text-xs font-medium transition"
                     >
                       Start
                     </Link>
                     <button
                       type="button"
                       onClick={() => markDone(item.id, item.songId, item.streamType as RevenueStreamType, item.collectionBody)}
-                      className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-xs text-[#6b6b65] transition hover:bg-black/[0.04]"
+                      className="rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-xs text-white/50 transition hover:bg-white/5"
                     >
                       Mark done
                     </button>
@@ -209,17 +247,17 @@ export default function HarvestPage() {
         {/* Gap breakdown by stream type */}
         {gapByType.length > 0 && (
           <section className="rounded-[24px] glass card-shadow px-5 py-5">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Gap by type</div>
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Gap by type</div>
             <div className="overflow-hidden rounded-[14px] glass-subtle">
               {gapByType.map((row, i) => (
                 <div
                   key={row.type}
                   className={`flex items-center justify-between gap-3 px-4 py-3 text-sm ${
-                    i < gapByType.length - 1 ? "border-b-[0.5px] border-black/10" : ""
+                    i < gapByType.length - 1 ? "border-b-[0.5px] border-white/8" : ""
                   }`}
                 >
-                  <span className="text-[#111]">{row.label}</span>
-                  <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#854f0b]">
+                  <span className="text-white/90">{row.label}</span>
+                  <span className="rounded-full bg-[#f0a832]/10 px-3 py-1 text-[11px] font-medium text-[#f0a832]">
                     {formatGapEstimate(row.gap)}
                   </span>
                 </div>
@@ -230,12 +268,12 @@ export default function HarvestPage() {
 
         {/* Income forecast */}
         <section className="rounded-[24px] glass card-shadow px-5 py-5">
-          <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Income forecast</div>
+          <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Income forecast</div>
           <div className="space-y-3">
             <ForecastBar label="Secured this quarter" value={summary.totalSecured} max={totalOptimized} color="#97c459" />
             <ForecastBar label="Fully optimized potential" value={totalOptimized} max={totalOptimized} color="#ef9f27" />
           </div>
-          <p className="mt-3 text-xs text-[#9a9a8a]">
+          <p className="mt-3 text-xs text-white/50">
             Closing all gaps adds {formatGapEstimate(summary.totalEstimatedGap)} across {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}.
           </p>
         </section>
@@ -254,12 +292,12 @@ export default function HarvestPage() {
                   className="flex items-center gap-3 rounded-[14px] glass-subtle px-4 py-3 press">
                   <SmallRing score={readiness} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[15px] font-normal text-[#111]">{song.title}</div>
-                    <div className="mt-0.5 text-[11px] text-[#6b6b65]">
+                    <div className="truncate text-[15px] font-normal text-white/90">{song.title}</div>
+                    <div className="mt-0.5 text-[11px] text-white/50">
                       {formatMoney(collected)} collected{!optimized ? ` · ${formatGapEstimate(gap)} missing` : ""}
                     </div>
                   </div>
-                  <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${optimized ? "bg-[#eaf3de] text-[#3b6d11]" : "bg-[#fcebeb] text-[#a32d2d]"}`}>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${optimized ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : "bg-[#f05c5c]/10 text-[#f05c5c]"}`}>
                     {optimized ? "Full" : "Gap"}
                   </span>
                 </Link>
@@ -280,8 +318,8 @@ export default function HarvestPage() {
           ].map((area) => (
             <Link key={area.href} href={area.href}
               className="rounded-[20px] glass card-shadow p-5 press">
-              <div className="text-[14px] font-medium text-[#111]">{area.title}</div>
-              <p className="mt-1.5 text-sm leading-6 text-[#6b6b65]">{area.body}</p>
+              <div className="text-[14px] font-medium text-white/90">{area.title}</div>
+              <p className="mt-1.5 text-sm leading-6 text-white/50">{area.body}</p>
             </Link>
           ))}
         </section>

@@ -38,7 +38,7 @@ function ReadinessRing({ score }: { score: number }) {
   const color = score >= 70 ? "#97c459" : score >= 40 ? "#ef9f27" : "#e24b4a";
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" className="shrink-0">
-      <circle cx="20" cy="20" r={r} fill="none" stroke="#e8e7e2" strokeWidth="3" />
+      <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
       <circle
         cx="20"
         cy="20"
@@ -92,7 +92,7 @@ export default function MobilePage() {
 
   // Manager brief: context-aware note based on real state
   const managerBrief = useMemo(() => {
-    if (songs.length === 0) return "Add your first release and I'll scan every revenue path — gaps, missing registrations, and next moves.";
+    if (songs.length === 0) return "Add your first release and Pocket Manager scans every revenue path automatically — gaps, missing registrations, and next moves.";
     if (summary.totalEstimatedGap > 0 && actionQueue[0]) {
       return `${summary.songsWithGaps} song${summary.songsWithGaps === 1 ? "" : "s"} with open gaps. Biggest move: ${actionQueue[0].action} via ${actionQueue[0].collectionBody} — about ${formatGapEstimate(actionQueue[0].estimatedValue)}.`;
     }
@@ -102,18 +102,18 @@ export default function MobilePage() {
 
   return (
     <AppShell title="" eyebrow="">
-      <main className="mx-auto max-w-md space-y-4 text-[#111]">
+      <main className="mx-auto max-w-md space-y-4 text-white/90">
 
         {/* Top row */}
         <header className="flex items-center justify-between px-1 pt-2">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#5d5a54]">Pocket Manager</div>
-            <div className="text-[15px] text-[#111]">Your situation</div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Pocket Manager</div>
+            <div className="text-[15px] text-white/90">Your situation</div>
           </div>
           {signedIn ? (
             <Link
               href="/settings"
-              className="grid size-10 place-items-center rounded-full border border-black/10 bg-white text-sm font-medium text-[#111]"
+              className="grid size-10 place-items-center rounded-full border border-white/15 bg-white/10 text-sm font-medium text-white/90"
               aria-label="Open profile"
             >
               {profile.artistName?.[0]?.toUpperCase() ?? "A"}
@@ -121,7 +121,7 @@ export default function MobilePage() {
           ) : (
             <Link
               href="/sign-in"
-              className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-medium text-[#111]"
+              className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white/90"
             >
               Sign in
             </Link>
@@ -179,16 +179,30 @@ export default function MobilePage() {
         {songs.length > 0 && summary.totalEstimatedGap > 0 && (
           <Link
             href="/harvest"
-            className="flex items-center justify-between gap-3 rounded-[18px] bg-[#faeeda] px-5 py-4 press card-shadow"
+            className="flex items-center justify-between gap-3 rounded-[18px] border border-[#f0a832]/25 bg-[#f0a832]/10 px-5 py-4 press card-shadow"
           >
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#854f0b]/60">The Gap</div>
-              <span className="text-sm font-medium text-[#854f0b]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0a832]/60">The Gap</div>
+              <span className="text-sm font-medium text-[#f0a832]">
                 {formatGapEstimate(summary.totalEstimatedGap)} uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}
               </span>
             </div>
-            <span className="shrink-0 rounded-full bg-[#854f0b] px-3 py-1 text-[11px] font-semibold text-white">Fix →</span>
+            <span className="shrink-0 rounded-full bg-[#f0a832] px-3 py-1 text-[11px] font-semibold text-[#080810]">Fix →</span>
           </Link>
+        )}
+
+        {/* Active goal — surfaces what they told us in onboarding */}
+        {(profile.mainGoal || profile.targetWindow) && (
+          <section className="rounded-[20px] glass-electric px-5 py-4 card-shadow">
+            <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#7c6fef]/70">Active goal</div>
+            <div className="mt-1.5 text-[15px] text-white/90">{profile.mainGoal || "No goal set"}</div>
+            {profile.targetWindow && (
+              <div className="mt-1 text-[11px] text-white/40">Target window: {profile.targetWindow}</div>
+            )}
+            <Link href="/settings" className="mt-3 block text-[11px] text-[#7c6fef] hover:text-[#9080ff] transition">
+              Update goal →
+            </Link>
+          </section>
         )}
 
         {/* Top 3 priorities */}
@@ -205,13 +219,13 @@ export default function MobilePage() {
                   href={action.songId ? `/projects/${action.songId}` : "/harvest"}
                   className="flex items-start gap-3 rounded-[14px] glass-subtle px-4 py-3 press"
                 >
-                  <span className="shrink-0 mt-0.5 text-[11px] font-bold text-[#9a9a8a]">#{i + 1}</span>
+                  <span className="shrink-0 mt-0.5 text-[11px] font-bold text-white/50">#{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-medium text-[var(--text-primary)] truncate">{action.action} · {action.collectionBody}</div>
-                    {action.songTitle && <div className="text-[11px] text-[#9a9a8a] mt-0.5">{action.songTitle}</div>}
+                    {action.songTitle && <div className="text-[11px] text-white/50 mt-0.5">{action.songTitle}</div>}
                   </div>
                   {action.estimatedValue > 0 && (
-                    <span className="shrink-0 rounded-full bg-[#faeeda] px-2.5 py-1 text-[10px] font-semibold text-[#854f0b]">
+                    <span className="shrink-0 rounded-full bg-[#faeeda] px-2.5 py-1 text-[10px] font-semibold text-[#f0a832]">
                       {formatGapEstimate(action.estimatedValue)}
                     </span>
                   )}
@@ -232,33 +246,44 @@ export default function MobilePage() {
               <ReadinessRing score={getSongReadinessScore(activeSong)} />
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-medium text-[var(--text-primary)] truncate">{activeSong.title}</div>
-                <div className="text-[11px] text-[#9a9a8a] mt-0.5">
+                <div className="text-[11px] text-white/50 mt-0.5">
                   {activeSong.releaseDate ? `Released ${activeSong.releaseDate}` : "Release date not set"}
                 </div>
               </div>
-              <span className="text-[#9a9a8a] text-sm">→</span>
+              <span className="text-white/50 text-sm">→</span>
             </Link>
             <Link
               href="/work"
-              className="mt-2 block text-center text-[11px] text-[#9a9a8a] hover:text-[#111] transition py-2"
+              className="mt-2 block text-center text-[11px] text-white/50 hover:text-white/90 transition py-2"
             >
               View all releases →
             </Link>
           </section>
         ) : (
-          <section className="rounded-[20px] glass p-5 card-shadow">
-            <div className="py-2 text-center">
-              <div className="text-3xl">🎵</div>
-              <div className="mt-3 text-[15px] font-medium text-[var(--text-primary)]">Add your first release</div>
-              <p className="mt-2 text-sm leading-6 text-[#9a9a8a]">
-                Once you add a song, Pocket Manager scans every revenue path and shows you exactly what to fix.
-              </p>
-              <Link
-                href="/projects/new"
-                className="mt-5 block rounded-xl bg-[var(--bg-dark)] px-4 py-3.5 text-center text-sm font-medium text-white press"
-              >
-                Add release →
-              </Link>
+          <section className="rounded-[20px] glass-dark p-5 card-shadow-dark">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Manager startup plan</div>
+            <div className="mt-3 space-y-2">
+              {[
+                { step: "1", label: "Add your first release", sub: "Title, ISRC, distributor — unlock the full system", href: "/projects/new", done: false },
+                { step: "2", label: "Register with a PRO", sub: "ASCAP, BMI, PRS, or SOCAN — collect performance royalties", href: "/harvest", done: false },
+                { step: "3", label: "Set up publishing admin", sub: "SoundExchange, DistroKid Sync, or Songtrust for mechanicals", href: "/publishing", done: false },
+                { step: "4", label: "Connect your platforms", sub: "Spotify, Apple Music, DistroKid — track what's paying", href: "/platforms", done: false },
+              ].map((item) => (
+                <Link
+                  key={item.step}
+                  href={item.href}
+                  className="flex items-start gap-3 rounded-[14px] border-[0.5px] border-white/8 px-4 py-3 transition hover:bg-white/5 press"
+                >
+                  <div className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-white/20 text-[10px] font-medium text-white/40">
+                    {item.step}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] text-white/90">{item.label}</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-white/40">{item.sub}</div>
+                  </div>
+                  <div className="mt-1 shrink-0 text-[11px] text-[#7c6fef]">→</div>
+                </Link>
+              ))}
             </div>
           </section>
         )}
@@ -286,7 +311,7 @@ export default function MobilePage() {
                     <ReadinessRing score={readiness} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] text-[var(--text-primary)]">{song.title}</div>
-                      <div className="mt-0.5 text-[11px] text-[#9a9a8a]">{song.isrc ?? "No ISRC"}</div>
+                      <div className="mt-0.5 text-[11px] text-white/50">{song.isrc ?? "No ISRC"}</div>
                     </div>
                   </Link>
                 );

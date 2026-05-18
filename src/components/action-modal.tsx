@@ -13,7 +13,9 @@ type ActionModalProps = {
   streamType?: string;
   open: boolean;
   onClose: () => void;
-  onComplete?: () => void;
+  onComplete?: (verifiedValue?: string) => void;
+  /** If set, user must paste this value (e.g. ISRC, IPI number) to confirm completion */
+  verificationField?: { label: string; placeholder: string; pattern?: RegExp };
 };
 
 type Phase = "guide" | "started" | "confirm" | "done";
@@ -34,6 +36,7 @@ export function ActionModal({
   open,
   onClose,
   onComplete,
+  verificationField,
 }: ActionModalProps) {
   const p: Partial<PlatformEntry> = platformId
     ? (getPlatform(platformId) ?? customPlatform ?? {})
@@ -44,6 +47,7 @@ export function ActionModal({
   const [phase, setPhase] = useState<Phase>("guide");
   const [record, setRecord] = useState<FixRecord | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [verificationInput, setVerificationInput] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -66,11 +70,13 @@ export function ActionModal({
   }
 
   function handleDone() {
+    if (verificationField && !verificationInput.trim()) return;
+    if (verificationField?.pattern && !verificationField.pattern.test(verificationInput.trim())) return;
     const rec = completeFix(fixId);
     setRecord(rec);
     setPhase("done");
-    onComplete?.();
-    setTimeout(() => { onClose(); setPhase("guide"); }, 1600);
+    onComplete?.(verificationInput.trim() || undefined);
+    setTimeout(() => { onClose(); setPhase("guide"); setVerificationInput(""); }, 1600);
   }
 
   function handleSkip() {
@@ -214,14 +220,36 @@ export function ActionModal({
                 <div className="mt-4 rounded-2xl border border-white/[0.1] bg-white/[0.04] p-4">
                   <p className="text-sm leading-6 text-white/75">{p.confirmPrompt ?? "You completed all required steps on the platform."}</p>
                 </div>
+
+                {/* Verification input — required for verifiable fixes */}
+                {verificationField && (
+                  <div className="mt-4">
+                    <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 mb-1.5">
+                      {verificationField.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={verificationInput}
+                      onChange={(e) => setVerificationInput(e.target.value)}
+                      placeholder={verificationField.placeholder}
+                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-mono text-white placeholder:text-white/25 outline-none focus:border-[#5fcf7e]/30"
+                    />
+                    <p className="mt-1 text-[11px] text-white/30">This value is saved to your song record as proof of completion.</p>
+                  </div>
+                )}
+
                 {estimatedValue > 0 && (
                   <div className="mt-4 text-center text-xs text-white/35">
                     Estimated revenue recovery: <span className="text-[#97c459]">~${estimatedValue.toFixed(0)}</span>
                   </div>
                 )}
-                <button type="button" onClick={handleDone}
-                  className="mt-5 w-full rounded-2xl bg-[#97c459] py-4 text-sm font-semibold text-[#0d0d0b] transition hover:opacity-90 active:scale-[0.98]">
-                  Yes, mark as complete ✓
+                <button
+                  type="button"
+                  onClick={handleDone}
+                  disabled={Boolean(verificationField && !verificationInput.trim())}
+                  className="mt-5 w-full rounded-2xl bg-[#97c459] py-4 text-sm font-semibold text-[#0d0d0b] transition hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {verificationField && !verificationInput.trim() ? `Enter ${verificationField.label} to confirm` : "Yes, mark as complete ✓"}
                 </button>
                 <button type="button" onClick={() => setPhase("started")}
                   className="mt-3 w-full text-center text-[13px] text-white/35 hover:text-white/55 transition">

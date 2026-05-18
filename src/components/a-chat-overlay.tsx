@@ -53,6 +53,8 @@ function ChatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
       api: "/api/v1/manager/chat",
       body: {
         artistName: profile.artistName ?? "Artist",
+        managerName: profile.managerName ?? "REMY",
+        page: "overlay",
         songs,
         platforms: platformConnections,
         plan: profile.plan ?? "free",

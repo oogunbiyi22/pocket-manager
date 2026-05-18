@@ -16,11 +16,9 @@ import {
   PlatformConnection,
   PlatformConnectionStatus,
   Project,
+  DEMO_SONG_IDS,
   RevenueStream,
-  seedMoneyEntries,
   seedPlatformConnections,
-  seedProjects,
-  seedSongs,
   SongCatalogItem,
   SongVaultAsset,
 } from "@/lib/backstage-data";
@@ -33,6 +31,7 @@ const EVENTS_STORAGE_KEY = "pocket-manager-events";
 const MONEY_STORAGE_KEY = "pocket-manager-money";
 const SONGS_STORAGE_KEY = "pocket-manager-songs";
 const PLATFORMS_STORAGE_KEY = "pocket-manager-platforms";
+const WORKSPACE_TABLE = "user_workspace_state";
 
 type CreateProjectInput = {
   name: string;
@@ -127,6 +126,7 @@ type PocketProfile = ProfileInput & {
   plan?: "free" | "pro" | "elite";
   stripeCustomerId?: string;
   spotifyArtistId?: string;
+  managerName?: string;
 };
 
 type PocketSnapshot = {
@@ -208,7 +208,8 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawProjects = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
         if (rawProjects) {
           const parsed = JSON.parse(rawProjects) as Project[];
-          setProjects(Array.isArray(parsed) ? parsed : []);
+          // Strip old demo projects
+          setProjects(Array.isArray(parsed) ? parsed.filter((p) => !DEMO_SONG_IDS.has(p.id)) : []);
         }
       } catch {
         window.localStorage.removeItem(PROJECTS_STORAGE_KEY);
@@ -250,7 +251,10 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         const rawSongs = window.localStorage.getItem(SONGS_STORAGE_KEY);
         if (rawSongs) {
           const parsed = JSON.parse(rawSongs) as SongCatalogItem[];
-          loadedSongs = Array.isArray(parsed) ? parsed.map(normalizeSongCatalogItem) : [];
+          // Strip any old demo songs that were previously seeded
+          loadedSongs = Array.isArray(parsed)
+            ? parsed.filter((s) => !DEMO_SONG_IDS.has(s.id)).map(normalizeSongCatalogItem)
+            : [];
           setSongs(loadedSongs);
         }
       } catch {
@@ -284,17 +288,18 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           window.localStorage.setItem(SESSION_STORAGE_KEY, "signed-in");
         }
 
-        // Pull remote songs and profile on sign-in — remote wins if newer
+        // Pull remote state on sign-in — Supabase wins for the production path.
         if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
           Promise.allSettled([
             supabase.from("user_catalogs").select("songs").eq("user_id", session.user.id).single(),
             supabase.from("profiles").select("*").eq("id", session.user.id).single(),
-          ]).then(([catalogResult, profileResult]) => {
+            supabase.from(WORKSPACE_TABLE).select("projects, events, money_entries, platform_connections").eq("user_id", session.user.id).single(),
+          ]).then(([catalogResult, profileResult, workspaceResult]) => {
             if (unmounted) return;
 
             if (catalogResult.status === "fulfilled" && catalogResult.value.data?.songs) {
               const remoteSongs = catalogResult.value.data.songs as SongCatalogItem[];
-              if (Array.isArray(remoteSongs) && remoteSongs.length > 0) {
+              if (Array.isArray(remoteSongs)) {
                 const normalizedSongs = remoteSongs.map(normalizeSongCatalogItem);
                 setSongs(normalizedSongs);
                 window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(normalizedSongs));
@@ -302,7 +307,7 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             }
 
             if (profileResult.status === "fulfilled" && profileResult.value.data) {
-              const r = profileResult.value.data as { artist_name?: string; artist_role?: string; vibe?: string; plan?: string; onboarded?: boolean; email?: string };
+              const r = profileResult.value.data as { artist_name?: string; artist_role?: string; vibe?: string; plan?: string; onboarded?: boolean; email?: string; stripe_customer_id?: string };
               setProfile((prev) => ({
                 ...prev,
                 artistName: r.artist_name ?? prev.artistName,
@@ -311,7 +316,38 @@ export function PocketProvider({ children }: { children: ReactNode }) {
                 plan: (r.plan as PocketProfile["plan"]) ?? prev.plan,
                 onboarded: r.onboarded ?? prev.onboarded,
                 email: r.email ?? session.user.email ?? prev.email,
+                stripeCustomerId: r.stripe_customer_id ?? prev.stripeCustomerId,
               }));
+            }
+
+            if (workspaceResult.status === "fulfilled" && workspaceResult.value.data) {
+              const remoteWorkspace = workspaceResult.value.data as {
+                projects?: Project[];
+                events?: PocketEvent[];
+                money_entries?: CreatorMoneyEntry[];
+                platform_connections?: PlatformConnection[];
+              };
+
+              if (Array.isArray(remoteWorkspace.projects)) {
+                setProjects(remoteWorkspace.projects);
+                window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(remoteWorkspace.projects));
+              }
+
+              if (Array.isArray(remoteWorkspace.events)) {
+                setEvents(remoteWorkspace.events);
+                window.localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(remoteWorkspace.events));
+              }
+
+              if (Array.isArray(remoteWorkspace.money_entries)) {
+                setMoneyEntries(remoteWorkspace.money_entries);
+                window.localStorage.setItem(MONEY_STORAGE_KEY, JSON.stringify(remoteWorkspace.money_entries));
+              }
+
+              if (Array.isArray(remoteWorkspace.platform_connections)) {
+                const mergedPlatforms = mergeSeedPlatforms(remoteWorkspace.platform_connections);
+                setPlatformConnections(mergedPlatforms);
+                window.localStorage.setItem(PLATFORMS_STORAGE_KEY, JSON.stringify(mergedPlatforms));
+              }
             }
           }).catch(() => { /* silently fail — local data remains */ });
         }
@@ -372,6 +408,26 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     window.localStorage.setItem(MONEY_STORAGE_KEY, JSON.stringify(moneyEntries));
   }, [hydrated, moneyEntries]);
+
+  useEffect(() => {
+    if (!hydrated || !signedIn) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    void supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
+      const uid = result.data?.session?.user?.id;
+      if (!uid) return;
+
+      void supabase.from(WORKSPACE_TABLE).upsert({
+        user_id: uid,
+        projects,
+        events,
+        money_entries: moneyEntries,
+        platform_connections: platformConnections,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+    }).catch(() => {});
+  }, [hydrated, signedIn, projects, events, moneyEntries, platformConnections]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1261,9 +1317,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           setProfile({ ...getDefaultProfile(), ...(parsed.profile ?? {}) });
           setSignedIn(Boolean(parsed.signedIn));
           setEvents(Array.isArray(parsed.events) ? parsed.events : []);
-          setMoneyEntries(Array.isArray(parsed.moneyEntries) ? parsed.moneyEntries : seedMoneyEntries);
-          setSongs(Array.isArray(parsed.songs) ? parsed.songs.map(normalizeSongCatalogItem) : seedSongs.map(normalizeSongCatalogItem));
-          setPlatformConnections(Array.isArray(parsed.platformConnections) ? mergeSeedPlatforms(parsed.platformConnections) : seedPlatformConnections);
+          setMoneyEntries(Array.isArray(parsed.moneyEntries) ? parsed.moneyEntries : []);
+          setSongs(Array.isArray(parsed.songs) ? parsed.songs.map(normalizeSongCatalogItem) : []);
+          setPlatformConnections(Array.isArray(parsed.platformConnections) ? mergeSeedPlatforms(parsed.platformConnections) : mergeSeedPlatforms([]));
 
           return { ok: true, message: "Pocket data imported. Your active room is restored." };
         } catch {
@@ -1271,12 +1327,12 @@ export function PocketProvider({ children }: { children: ReactNode }) {
         }
       },
       resetPocketData() {
-        setProjects(seedProjects);
+        setProjects([]);
         setProfile(getDefaultProfile());
         setSignedIn(false);
         setEvents([]);
-        setMoneyEntries(seedMoneyEntries);
-        setSongs(seedSongs.map(normalizeSongCatalogItem));
+        setMoneyEntries([]);
+        setSongs([]);
         setPlatformConnections(seedPlatformConnections);
       },
       resolveMissingAsset(projectId, assetName) {
@@ -1491,12 +1547,12 @@ function streamMatchesPlatform(stream: RevenueStream, platform: PlatformConnecti
 
 function getDefaultProfile(): PocketProfile {
   return {
-    artistName: "Badman",
-    role: "Independent artist",
-    vibe: "Dark cinematic release-first lane",
-    currentProject: "Late Nights",
-    targetWindow: "Next 30 days",
-    mainGoal: "Release on time and stay organized daily.",
+    artistName: "",
+    role: "",
+    vibe: "",
+    currentProject: "",
+    targetWindow: "",
+    mainGoal: "",
     managerMode: "Direct mode",
     onboarded: false,
   };

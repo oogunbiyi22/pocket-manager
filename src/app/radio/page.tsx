@@ -7,7 +7,6 @@ import {
   Mic2, Headphones, Filter,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { getSupabase } from "@/lib/supabase";
 import { usePocket } from "@/components/pocket-provider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -325,14 +324,15 @@ export default function RadioPage() {
   useEffect(() => {
     setStateMap(loadState());
     async function load() {
-      const sb = getSupabase();
-      if (!sb) { setLoading(false); return; }
-      const { data } = await sb
-        .from("radio_stations")
-        .select("*")
-        .order("weekly_listeners", { ascending: false });
-      setStations((data as StationRecord[]) ?? []);
-      setLoading(false);
+      try {
+        const res = await fetch("/api/v1/radio-stations");
+        const data = await res.json() as { stations?: StationRecord[] };
+        setStations(data.stations ?? []);
+      } catch {
+        setStations([]);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);

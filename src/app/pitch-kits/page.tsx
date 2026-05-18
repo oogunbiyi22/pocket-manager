@@ -166,7 +166,7 @@ export default function PitchKitsPage() {
   const { profile, songs } = usePocket();
   const [songId, setSongId] = useState(songs[0]?.id ?? "");
   const [recipient, setRecipient] = useState<Recipient>("Playlist curator");
-  const [contact, setContact] = useState("booking@pocketmanager.app");
+  const [contact, setContact] = useState(profile.email ?? "");
   const [copied, setCopied] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const [tab, setTab] = useState<"pitch" | "playlists">("pitch");
@@ -196,7 +196,7 @@ export default function PitchKitsPage() {
 
   return (
     <AppShell title="Pitch Kit" eyebrow="Signal">
-      <main className="mx-auto max-w-5xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#f5f4f0] text-[#111]">
+      <main className="mx-auto max-w-5xl overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-white/5 text-white/90">
         <section className="bg-[#0a0a0a] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Outreach package</div>
           <h2 className="mt-3 text-[40px] font-light leading-none tracking-[-0.03em]">Turn catalog data into a focused pitch.</h2>
@@ -206,13 +206,13 @@ export default function PitchKitsPage() {
         </section>
 
         {/* Tabs */}
-        <div className="flex border-b-[0.5px] border-black/10 bg-white">
+        <div className="flex border-b-[0.5px] border-white/8 bg-[#0d0d0b]">
           {(["pitch", "playlists"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`px-5 py-3 text-[12px] font-medium capitalize transition ${tab === t ? "border-b-2 border-[#0a0a0a] text-[#111]" : "text-[#9a9a8a]"}`}
+              className={`px-5 py-3 text-[12px] font-medium capitalize transition ${tab === t ? "border-b-2 border-[#0a0a0a] text-white/90" : "text-white/50"}`}
             >
               {t === "playlists" ? `Playlist matches${song ? ` (${matchedPlaylists.length})` : ""}` : "Pitch builder"}
             </button>
@@ -222,26 +222,26 @@ export default function PitchKitsPage() {
         {tab === "pitch" ? (
           <section className="grid gap-5 p-5 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-4">
-              <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Pitch inputs</div>
-                <label className="mt-4 block text-sm text-[#514d47]">
+              <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Pitch inputs</div>
+                <label className="mt-4 block text-sm text-white/60">
                   <span className="mb-2 block">Song</span>
                   <select
                     value={songId}
                     onChange={(event) => { setSongId(event.target.value); setSelectedPlaylist(null); }}
-                    className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                    className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                   >
                     {songs.map((item) => (
                       <option key={item.id} value={item.id}>{item.title}</option>
                     ))}
                   </select>
                 </label>
-                <label className="mt-3 block text-sm text-[#514d47]">
+                <label className="mt-3 block text-sm text-white/60">
                   <span className="mb-2 block">Target</span>
                   <select
                     value={recipient}
                     onChange={(event) => { setRecipient(event.target.value as Recipient); setSelectedPlaylist(null); }}
-                    className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                    className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                   >
                     {(["Playlist curator", "Music blog", "Sync supervisor", "Label A&R", "Booking agent", "Radio programmer"] as Recipient[]).map((item) => (
                       <option key={item}>{item}</option>
@@ -249,10 +249,10 @@ export default function PitchKitsPage() {
                   </select>
                 </label>
                 {recipient === "Playlist curator" && (
-                  <label className="mt-3 block text-sm text-[#514d47]">
+                  <label className="mt-3 block text-sm text-white/60">
                     <span className="mb-2 block">
                       Playlist{" "}
-                      <button type="button" onClick={() => setTab("playlists")} className="text-[#854f0b] underline-offset-2 hover:underline">
+                      <button type="button" onClick={() => setTab("playlists")} className="text-[#f0a832] underline-offset-2 hover:underline">
                         (browse matches →)
                       </button>
                     </span>
@@ -260,10 +260,10 @@ export default function PitchKitsPage() {
                       value={selectedPlaylist ?? ""}
                       onChange={(e) => setSelectedPlaylist(e.target.value || null)}
                       placeholder="Playlist name or paste from matches tab"
-                      className="h-10 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                      className="h-10 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                     />
                     {targetPlaylist && (
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#3b6d11]">
+                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#5fcf7e]">
                         <span>{targetPlaylist.fit}% fit</span>
                         <span>·</span>
                         <span>{targetPlaylist.followers} followers</span>
@@ -273,19 +273,19 @@ export default function PitchKitsPage() {
                     )}
                   </label>
                 )}
-                <label className="mt-3 block text-sm text-[#514d47]">
+                <label className="mt-3 block text-sm text-white/60">
                   <span className="mb-2 block">Your contact</span>
                   <input
                     value={contact}
                     onChange={(event) => setContact(event.target.value)}
-                    className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                    className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                   />
                 </label>
               </div>
 
               {song ? (
-                <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Song facts used in pitch</div>
+                <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Song facts used in pitch</div>
                   <div className="mt-3 grid gap-2 text-sm">
                     <Fact label="Genre" value={song.genre ?? "—"} flag={!song.genre} />
                     <Fact label="Mood" value={song.mood ?? "—"} flag={!song.mood} />
@@ -296,7 +296,7 @@ export default function PitchKitsPage() {
                     <Fact label="Est. gap" value={formatGapEstimate(getSongEstimatedGap(song))} />
                   </div>
                   {(!song.genre || !song.mood) && (
-                    <p className="mt-3 text-[11px] text-[#854f0b]">
+                    <p className="mt-3 text-[11px] text-[#f0a832]">
                       Add genre and mood to this song for a stronger pitch →{" "}
                       <Link href={`/projects/${song.id}`} className="underline">Edit song</Link>
                     </p>
@@ -305,14 +305,14 @@ export default function PitchKitsPage() {
               ) : null}
             </div>
 
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-white p-5">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">
+            <div className="rounded-xl border-[0.5px] border-white/10 glass p-5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
                 Generated pitch
                 {recipient === "Playlist curator" && selectedPlaylist
                   ? ` — ${selectedPlaylist}`
                   : ` — ${recipient}`}
               </div>
-              <pre className="mt-4 min-h-80 whitespace-pre-wrap rounded-xl border-[0.5px] border-black/10 bg-white p-4 text-sm leading-6 text-[#514d47]">
+              <pre className="mt-4 min-h-80 whitespace-pre-wrap rounded-xl border-[0.5px] border-white/8 glass p-4 text-sm leading-6 text-white/60">
                 {pitchText}
               </pre>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -325,11 +325,11 @@ export default function PitchKitsPage() {
                 </button>
                 <a
                   href={`mailto:${contact}?subject=${encodeURIComponent(`${profile.artistName ?? "Artist"} — "${song?.title ?? "New release"}"`)}& body=${encodeURIComponent(pitchText)}`}
-                  className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]"
+                  className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/90"
                 >
                   Open in Mail →
                 </a>
-                <Link href="/epk" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#514d47]">
+                <Link href="/epk" className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/60">
                   Share EPK
                 </Link>
               </div>
@@ -339,48 +339,48 @@ export default function PitchKitsPage() {
           /* Playlist matches tab */
           <section className="p-5">
             {!song ? (
-              <div className="rounded-xl border-[0.5px] border-dashed border-black/15 p-8 text-center text-sm text-[#9a9a8a]">
+              <div className="rounded-xl border-[0.5px] border-dashed border-white/10 p-8 text-center text-sm text-white/50">
                 Add a song to see matching playlists.
               </div>
             ) : (
               <>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-[#111]">Matching playlists for &ldquo;{song.title}&rdquo;</div>
-                    <div className="mt-0.5 text-[12px] text-[#9a9a8a]">
+                    <div className="text-sm font-medium text-white/90">Matching playlists for &ldquo;{song.title}&rdquo;</div>
+                    <div className="mt-0.5 text-[12px] text-white/50">
                       Sorted by genre/mood fit · {song.genre ?? "no genre set"} · {song.mood ?? "no mood set"}
                     </div>
                   </div>
                   <select
                     value={songId}
                     onChange={(e) => setSongId(e.target.value)}
-                    className="h-9 rounded-lg border-[0.5px] border-black/15 bg-white px-2 text-sm text-[#111] outline-none"
+                    className="h-9 rounded-lg border-[0.5px] border-white/10 bg-white/8 px-2 text-sm text-white/90 outline-none"
                   >
                     {songs.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   {matchedPlaylists.map((pl) => (
-                    <div key={pl.name} className="flex items-center gap-3 rounded-xl border-[0.5px] border-black/10 bg-white px-4 py-3">
+                    <div key={pl.name} className="flex items-center gap-3 rounded-xl border-[0.5px] border-white/8 bg-white/[0.06] px-4 py-3">
                       {/* Fit bar */}
                       <div className="flex w-10 flex-col items-center">
-                        <div className="text-[14px] font-medium text-[#111]">{pl.fit}</div>
-                        <div className="text-[9px] text-[#9a9a8a]">fit</div>
+                        <div className="text-[14px] font-medium text-white/90">{pl.fit}</div>
+                        <div className="text-[9px] text-white/50">fit</div>
                       </div>
                       <div className="h-8 w-px bg-black/[0.06]" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[14px] font-medium text-[#111]">{pl.name}</span>
-                          <span className="rounded-full border-[0.5px] border-black/10 px-2 py-0.5 text-[10px] text-[#6b6b65]">{pl.platform}</span>
+                          <span className="text-[14px] font-medium text-white/90">{pl.name}</span>
+                          <span className="rounded-full border-[0.5px] border-white/8 px-2 py-0.5 text-[10px] text-white/50">{pl.platform}</span>
                         </div>
-                        <div className="mt-0.5 text-[11px] text-[#9a9a8a]">
+                        <div className="mt-0.5 text-[11px] text-white/50">
                           {pl.followers} followers · {pl.genre} · {pl.mood}
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => { setSelectedPlaylist(pl.name); setTab("pitch"); setRecipient("Playlist curator"); }}
-                        className="shrink-0 rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-[12px] text-[#111] transition hover:bg-[#f5f4f0]"
+                        className="shrink-0 rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-[12px] text-white/90 transition hover:bg-white/5"
                       >
                         Pitch this →
                       </button>
@@ -398,9 +398,9 @@ export default function PitchKitsPage() {
 
 function Fact({ label, value, flag }: { label: string; value: string; flag?: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-2">
-      <span className="text-[#6b6b65]">{label}</span>
-      <span className={flag ? "text-[#854f0b]" : "text-[#111]"}>{value}</span>
+    <div className="flex items-center justify-between rounded-lg border-[0.5px] border-white/8 bg-white/[0.06] px-3 py-2">
+      <span className="text-white/50">{label}</span>
+      <span className={flag ? "text-[#f0a832]" : "text-white/90"}>{value}</span>
     </div>
   );
 }

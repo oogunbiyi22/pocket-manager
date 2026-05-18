@@ -41,12 +41,12 @@ type PlatformWithStatus = PlatformEntry & {
 
 function StatusBadge({ status }: { status: PlatformWithStatus["status"] }) {
   const map: Record<PlatformWithStatus["status"], { label: string; className: string }> = {
-    connected: { label: "Connected", className: "bg-[#eaf3de] text-[#3b6d11]" },
-    not_connected: { label: "Not connected", className: "bg-[rgba(0,0,0,0.06)] text-[#6b6b65]" },
-    incomplete: { label: "Incomplete", className: "bg-[#faeeda] text-[#854f0b]" },
-    connecting: { label: "Connecting…", className: "bg-[#faeeda] text-[#854f0b]" },
-    error: { label: "Error", className: "bg-[#fcebeb] text-[#a32d2d]" },
-    reconnect_required: { label: "Reconnect", className: "bg-[#fcebeb] text-[#a32d2d]" },
+    connected: { label: "Connected", className: "bg-[#5fcf7e]/10 text-[#5fcf7e]" },
+    not_connected: { label: "Not connected", className: "bg-[rgba(0,0,0,0.06)] text-white/50" },
+    incomplete: { label: "Incomplete", className: "bg-[#faeeda] text-[#f0a832]" },
+    connecting: { label: "Connecting…", className: "bg-[#faeeda] text-[#f0a832]" },
+    error: { label: "Error", className: "bg-[#f05c5c]/10 text-[#f05c5c]" },
+    reconnect_required: { label: "Reconnect", className: "bg-[#f05c5c]/10 text-[#f05c5c]" },
   };
   const { label, className } = map[status] ?? map.not_connected;
   return (
@@ -153,7 +153,7 @@ export default function PlatformsPage() {
                             {platform.whyItMatters}
                           </div>
                           {!isConnected && (
-                            <div className="rounded-[12px] bg-[#faeeda] px-4 py-3 text-[13px] leading-6 text-[#854f0b]">
+                            <div className="rounded-[12px] bg-[#faeeda] px-4 py-3 text-[13px] leading-6 text-[#f0a832]">
                               <strong>Steps:</strong>
                               <ol className="mt-1 space-y-1">
                                 {platform.steps.slice(0, 3).map((step, i) => (

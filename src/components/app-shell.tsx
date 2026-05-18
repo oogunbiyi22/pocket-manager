@@ -96,7 +96,8 @@ function getActiveSurface(pathname: string): string {
     pathname.startsWith("/contracts") ||
     pathname.startsWith("/beats") ||
     pathname.startsWith("/forecast") ||
-    pathname.startsWith("/valuation")
+    pathname.startsWith("/valuation") ||
+    pathname.startsWith("/publishing")
   ) return "Harvest";
   if (
     pathname.startsWith("/profile") ||

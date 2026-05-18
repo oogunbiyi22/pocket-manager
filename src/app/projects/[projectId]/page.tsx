@@ -122,6 +122,7 @@ export default function ProjectDetailPage() {
   const registrationRows = song?.revenueStreams ?? [];
   const readinessChecklist = song ? getSongReadinessChecklist(song) : [];
   const metadataIntelligence = song ? getMetadataIntelligence(song) : null;
+  const topGapStream = [...registrationRows].sort((a, b) => b.estimatedGap - a.estimatedGap)[0];
   const blockingCount = readinessChecklist.filter((item) => !item.done).length;
   const runwayRows = song ? getRunwayRows(song.releaseDate) : [];
   const missingItems = fallbackProject ? getWhatAmIMissing(fallbackProject) : [];
@@ -148,9 +149,7 @@ export default function ProjectDetailPage() {
       const token = session?.data?.session?.access_token;
 
       if (!token) {
-        addSongAssets(song.id, files.map(buildLocalAsset));
-        setUploadError("Signed-in vault sync was unavailable, so the file was saved only on this device.");
-        setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} still got logged in the room.`);
+        setUploadError("Signed-in vault sync is unavailable right now. Please sign in again before uploading files.");
         return;
       }
 
@@ -166,9 +165,7 @@ export default function ProjectDetailPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Vault upload failed" }));
-        addSongAssets(song.id, files.map(buildLocalAsset));
-        setUploadError(`${data.error ?? "Vault upload failed"}. Saved file metadata locally instead.`);
-        setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} still got logged in the room.`);
+        setUploadError(data.error ?? "Vault upload failed");
         return;
       }
 
@@ -177,9 +174,7 @@ export default function ProjectDetailPage() {
       const savedCount = data.assets?.length ?? 0;
       setUploadNotice(`${savedCount} file${savedCount === 1 ? "" : "s"} synced to the vault.`);
     } catch {
-      addSongAssets(song.id, files.map(buildLocalAsset));
-      setUploadError("Upload failed. The file metadata was saved locally so the room still stays organized.");
-      setUploadNotice(`${files.length} file${files.length === 1 ? "" : "s"} still got logged in the room.`);
+      setUploadError("Upload failed. Nothing was saved to the vault.");
     } finally {
       setUploading(false);
       event.target.value = "";
@@ -264,10 +259,15 @@ export default function ProjectDetailPage() {
   const missingCriticalKinds = requiredAssetKinds.filter((kind) => !filedAssets.some((asset) => asset.kind === kind));
   const nextMissingKind = missingCriticalKinds[0] ?? null;
   const orderedAssets = [...filedAssets].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  const roomCommandPrompt = topGapStream?.estimatedGap
+    ? `What should I do next for \"${title}\"? Walk me through fixing ${topGapStream.collectionBody} first.`
+    : nextMissingKind
+      ? `What am I missing for \"${title}\"? Help me finish the ${getAssetKindLabel(nextMissingKind).toLowerCase()} and release package.`
+      : `Give me the next best move for \"${title}\" now that the core room is in better shape.`;
 
   return (
     <AppShell title={title} eyebrow="The Room">
-      <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#141412] text-white">
+      <main className="mx-auto max-w-4xl overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-[#141412] text-white">
 
         {/* Cover art header */}
         <section className="bg-[#1e1e1b] px-5 py-5">
@@ -308,9 +308,56 @@ export default function ProjectDetailPage() {
           </div>
         </section>
 
+        {song ? (
+          <section className="border-b-[0.5px] border-white/10 bg-[#11110f] px-5 py-5 text-white">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Finish this room</div>
+                <div className="mt-2 text-lg font-medium text-white">Keep the next move obvious.</div>
+                <p className="mt-1 max-w-[560px] text-sm leading-6 text-white/45">
+                  Pocket should tell you what to close next — not make you hunt through the room.
+                </p>
+              </div>
+              <Link
+                href={`/a?prompt=${encodeURIComponent(roomCommandPrompt)}`}
+                className="rounded-full border border-[#7c6fef]/35 bg-[#7c6fef]/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.14em] text-[#c7bfff] transition hover:bg-[#7c6fef]/20"
+              >
+                Ask A →
+              </Link>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <ActionJumpCard
+                label="Close the biggest gap"
+                value={topGapStream?.estimatedGap ? formatGapEstimate(topGapStream.estimatedGap) : "No open gap"}
+                detail={topGapStream?.estimatedGap ? `${topGapStream.collectionBody} · ${topGapStream.action}` : "Revenue registrations look covered for now."}
+                href="#revenue-streams"
+                cta={topGapStream?.estimatedGap ? "Fix revenue →" : "Review revenue →"}
+                tone={topGapStream?.estimatedGap ? "warning" : "success"}
+              />
+              <ActionJumpCard
+                label="Complete metadata"
+                value={song.metadataComplete ? "Ready" : `${metadataIntelligence?.score ?? 0}%`}
+                detail={song.metadataComplete ? "ISRC, release details, and metadata are covered." : "Finish the fields that block release readiness and smarter pitching."}
+                href="#metadata-panel"
+                cta={song.metadataComplete ? "Review metadata →" : "Finish metadata →"}
+                tone={song.metadataComplete ? "success" : "neutral"}
+              />
+              <ActionJumpCard
+                label="File the release package"
+                value={missingCriticalKinds.length === 0 ? "Covered" : `${missingCriticalKinds.length} missing`}
+                detail={missingCriticalKinds.length === 0 ? "Master, artwork, split sheet, and contract are in the room." : `Next up: ${getAssetKindLabel(nextMissingKind ?? "master")}.`}
+                href="#files-panel"
+                cta={missingCriticalKinds.length === 0 ? "Open files →" : "Upload next file →"}
+                tone={missingCriticalKinds.length === 0 ? "success" : "warning"}
+              />
+            </div>
+          </section>
+        ) : null}
+
         {/* Revenue gap table */}
         {song ? (
-          <section className="px-5 py-5">
+          <section id="revenue-streams" className="px-5 py-5">
             <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#6a6a5a]">Revenue streams</div>
             <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b]">
               {registrationRows.map((stream) => {
@@ -343,7 +390,7 @@ export default function ProjectDetailPage() {
                         <button
                           type="button"
                           onClick={() => setFixModal({ streamType: stream.streamType, collectionBody: stream.collectionBody })}
-                          className="ml-auto rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-[#0d0d0b] active:scale-95 transition"
+                          className="ml-auto rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white/90 active:scale-95 transition"
                         >
                           Fix →
                         </button>
@@ -371,37 +418,37 @@ export default function ProjectDetailPage() {
             </div>
           </section>
         ) : (
-          <section className="m-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#854f0b]">
+          <section className="m-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#f0a832]">
             Add an ISRC or connect one platform so Pocket can calculate the first estimated revenue gap.
           </section>
         )}
 
         {/* Readiness checklist + splits */}
-        <section className="grid gap-5 bg-white px-5 py-5 text-[#111] lg:grid-cols-[1fr_0.9fr]">
+        <section id="registration-checklist" className="grid gap-5 glass-subtle px-5 py-5 text-white/90 lg:grid-cols-[1fr_0.9fr]">
           {/* Checklist */}
           <div>
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Registration checklist</div>
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Registration checklist</div>
             <div className="space-y-2">
               {readinessChecklist.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center justify-between gap-3 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] px-4 py-3 text-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`text-[15px] leading-none ${item.done ? "text-[#3b6d11]" : "text-[#a32d2d]"}`}>
+                    <span className={`text-[15px] leading-none ${item.done ? "text-[#5fcf7e]" : "text-[#f05c5c]"}`}>
                       {item.done ? "✓" : "!"}
                     </span>
                     <div>
-                      <div className="text-[#111]">{item.label}</div>
+                      <div className="text-white/90">{item.label}</div>
                       <div className="mt-0.5 text-[10px] text-[#6d6860]">{item.points} pts</div>
                     </div>
                   </div>
                   {!item.done ? (
-                    <Link href={item.href} className="shrink-0 rounded-full bg-[#fcebeb] px-3 py-1 text-[11px] font-medium text-[#a32d2d]">
+                    <Link href={item.href} className="shrink-0 rounded-full bg-[#f05c5c]/10 px-3 py-1 text-[11px] font-medium text-[#f05c5c]">
                       {item.action}
                     </Link>
                   ) : (
-                    <span className="shrink-0 rounded-full bg-[#eaf3de] px-3 py-1 text-[11px] font-medium text-[#3b6d11]">Done</span>
+                    <span className="shrink-0 rounded-full bg-[#5fcf7e]/10 px-3 py-1 text-[11px] font-medium text-[#5fcf7e]">Done</span>
                   )}
                 </div>
               ))}
@@ -410,21 +457,21 @@ export default function ProjectDetailPage() {
 
           {/* Splits */}
           <div>
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Splits</div>
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Splits</div>
 
             {/* Existing collaborators */}
             {song && song.collaborators.length > 0 ? (
-              <div className="mb-3 overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1]">
+              <div className="mb-3 overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-white/[0.05]">
                 {song.collaborators.map((c, i) => (
                   <div
                     key={`${c.name}-${i}`}
-                    className="flex items-center justify-between gap-3 border-b-[0.5px] border-black/10 px-4 py-3 text-sm last:border-b-0"
+                    className="flex items-center justify-between gap-3 border-b-[0.5px] border-white/8 px-4 py-3 text-sm last:border-b-0"
                   >
                     <div>
-                      <div className="font-medium text-[#111]">{c.name}</div>
+                      <div className="font-medium text-white/90">{c.name}</div>
                       <div className="mt-0.5 text-[11px] text-[#6d6860]">{c.role.replaceAll("_", " ")} · {c.ownershipPercentage}%</div>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${c.signed ? "bg-[#eaf3de] text-[#3b6d11]" : "bg-[#faeeda] text-[#854f0b]"}`}>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${c.signed ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : "bg-[#faeeda] text-[#f0a832]"}`}>
                       {c.signed ? "Signed" : "Unsigned"}
                     </span>
                   </div>
@@ -433,20 +480,20 @@ export default function ProjectDetailPage() {
             ) : null}
 
             {/* Add split form */}
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
               <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6d6860]">Add split</div>
               <div className="mt-3 grid gap-2">
                 <input
                   value={splitForm.name}
                   onChange={(e) => setSplitForm((c) => ({ ...c, name: e.target.value }))}
                   placeholder="Collaborator name"
-                  className="rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-2 text-sm outline-none"
+                  className="rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2 text-sm outline-none"
                 />
                 <div className="grid grid-cols-[1fr_0.8fr] gap-2">
                   <select
                     value={splitForm.role}
                     onChange={(e) => setSplitForm((c) => ({ ...c, role: e.target.value as typeof splitForm.role }))}
-                    className="rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-2 text-sm outline-none"
+                    className="rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2 text-sm outline-none"
                   >
                     {["writer", "producer", "featured_artist", "master_owner"].map((role) => (
                       <option key={role} value={role}>{role.replaceAll("_", " ")}</option>
@@ -457,7 +504,7 @@ export default function ProjectDetailPage() {
                     onChange={(e) => setSplitForm((c) => ({ ...c, ownershipPercentage: e.target.value }))}
                     inputMode="decimal"
                     placeholder="%"
-                    className="rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-2 text-sm outline-none"
+                    className="rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2 text-sm outline-none"
                   />
                 </div>
                 <button type="button" onClick={addSplit} className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
@@ -466,7 +513,7 @@ export default function ProjectDetailPage() {
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-[#6d6860]">{splitTotal}% assigned</span>
-                <button type="button" onClick={copySplitSheet} className="text-xs text-[#854f0b]">
+                <button type="button" onClick={copySplitSheet} className="text-xs text-[#f0a832]">
                   {splitSheetCopied ? "Copied" : "Copy split sheet"}
                 </button>
               </div>
@@ -483,10 +530,10 @@ export default function ProjectDetailPage() {
 
         {/* Metadata intelligence */}
         {metadataIntelligence ? (
-          <section className="bg-white px-5 pb-5 text-[#111]">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Metadata</div>
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="mb-3 text-[13px] font-medium text-[#111]">{metadataIntelligence.score}% complete</div>
+          <section id="metadata-panel" className="bg-transparent px-5 pb-5 text-white/90">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Metadata</div>
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
+              <div className="mb-3 text-[13px] font-medium text-white/90">{metadataIntelligence.score}% complete</div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   ["ISRC", "isrc"],
@@ -499,13 +546,13 @@ export default function ProjectDetailPage() {
                   ["Language", "language"],
                   ["Territory", "territory"],
                 ].map(([label, key]) => (
-                  <label key={key} className="block text-sm text-[#514d47]">
-                    <span className="mb-1 block text-[11px] uppercase tracking-[0.12em] text-[#9a9a8a]">{label}</span>
+                  <label key={key} className="block text-sm text-white/60">
+                    <span className="mb-1 block text-[11px] uppercase tracking-[0.12em] text-white/50">{label}</span>
                     <input
                       type={key === "releaseDate" ? "date" : "text"}
                       value={metadataForm[key as keyof typeof metadataForm]}
                       onChange={(e) => setMetadataForm((c) => ({ ...c, [key]: e.target.value }))}
-                      className="h-10 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                      className="h-10 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                     />
                   </label>
                 ))}
@@ -525,10 +572,10 @@ export default function ProjectDetailPage() {
 
         {/* Emotional Story — pitch DNA */}
         {song && (
-          <section className="bg-white px-5 pb-5 text-[#111]">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Emotional story</div>
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <p className="mb-3 text-[11px] leading-5 text-[#9a9a8a]">
+          <section className="bg-transparent px-5 pb-5 text-white/90">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Emotional story</div>
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
+              <p className="mb-3 text-[11px] leading-5 text-white/50">
                 How did you feel when you made this song? Write it raw — this powers every pitch in your exact voice. You only write it once.
               </p>
               <EmotionalStoryField song={song} updateSongMetadata={updateSongMetadata} />
@@ -539,7 +586,7 @@ export default function ProjectDetailPage() {
                 >
                   Launch Pitching Engine →
                 </Link>
-                <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#514d47]">
+                <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/60">
                   Pitch kit
                 </Link>
               </div>
@@ -548,10 +595,10 @@ export default function ProjectDetailPage() {
         )}
 
         {/* Files */}
-        <section className="bg-white px-5 pb-5 text-[#111]">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Files</div>
-          <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-            <div className="mb-4 overflow-hidden rounded-[18px] border-[0.5px] border-black/10 bg-[#11110f] text-white">
+        <section id="files-panel" className="bg-transparent px-5 pb-5 text-white/90">
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Files</div>
+          <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
+            <div className="mb-4 overflow-hidden rounded-[18px] border-[0.5px] border-white/8 bg-[#11110f] text-white">
               <div className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">
                 <div className="min-w-0 flex-1">
                   <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Vault command</div>
@@ -578,34 +625,34 @@ export default function ProjectDetailPage() {
             </div>
 
             {missingCriticalKinds.length > 0 ? (
-              <div className="mb-4 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-3 text-xs text-[#854f0b]">
+              <div className="mb-4 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-3 text-xs text-[#f0a832]">
                 <div className="font-medium uppercase tracking-[0.14em]">Need in this room</div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {missingCriticalKinds.map((kind) => (
-                    <span key={kind} className="rounded-full border border-[#ef9f27]/25 bg-white px-2.5 py-1 uppercase tracking-[0.12em]">
+                    <span key={kind} className="rounded-full border border-[#ef9f27]/25 bg-white/10 px-2.5 py-1 uppercase tracking-[0.12em]">
                       {kind === "split" ? "Split sheet" : kind}
                     </span>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="mb-4 rounded-lg border border-[#97c459]/30 bg-[#eaf3de] px-3 py-3 text-xs text-[#3b6d11]">
+              <div className="mb-4 rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-3 text-xs text-[#5fcf7e]">
                 Core release files are covered in this room.
               </div>
             )}
 
             <div className="mb-4 grid gap-3 lg:grid-cols-[1.3fr_0.9fr]">
-              <div className="rounded-xl border-[0.5px] border-black/10 bg-white px-4 py-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-[#9a9a8a]">Manager says</div>
-                <div className="mt-2 text-sm leading-6 text-[#111]">
+              <div className="rounded-xl border-[0.5px] border-white/8 bg-white/5 px-4 py-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-white/50">Manager says</div>
+                <div className="mt-2 text-sm leading-6 text-white/90">
                   {nextMissingKind
                     ? `Get the ${getAssetKindLabel(nextMissingKind).toLowerCase()} into this room next so the package is harder to break during release week.`
                     : "This room has the core release file set. From here, focus on cleaner versions, alternate artwork, and anything you might need on another device fast."}
                 </div>
               </div>
-              <div className="rounded-xl border-[0.5px] border-black/10 bg-white px-4 py-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-[#9a9a8a]">Cross-device health</div>
-                <div className="mt-2 text-sm leading-6 text-[#111]">
+              <div className="rounded-xl border-[0.5px] border-white/8 bg-white/5 px-4 py-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-white/50">Cross-device health</div>
+                <div className="mt-2 text-sm leading-6 text-white/90">
                   {syncedAssets.length === 0
                     ? "Nothing here is safely available across devices yet. Syncing matters if you suddenly switch phones, laptops, or WiFi spots."
                     : syncedAssets.length === filedAssets.length
@@ -615,38 +662,38 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            <label className="block rounded-lg border-[0.5px] border-dashed border-black/25 bg-white px-4 py-4 text-sm text-[#514d47]">
+            <label className="block rounded-lg border-[0.5px] border-dashed border-white/12 bg-white/5 px-4 py-4 text-sm text-white/60">
               <span className="block">Add essential files — master, stems, artwork, contracts</span>
-              <span className="mt-1 block text-[11px] text-[#9a9a8a]">
+              <span className="mt-1 block text-[11px] text-white/50">
                 {signedIn ? "Uploads sync to your vault when storage is configured." : "Sign in to sync uploads across devices. For now this room will save file records on this device."}
               </span>
               <input type="file" multiple accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.wav,.mp3,.aiff,.zip" onChange={handleFileChange} className="mt-3 block w-full text-sm" />
             </label>
-            {uploading && <div className="mt-3 text-sm text-[#514d47]">Uploading to the vault…</div>}
-            {uploadNotice && <div className="mt-3 rounded-lg border border-[#97c459]/30 bg-[#eaf3de] px-3 py-2 text-xs text-[#3b6d11]">{uploadNotice}</div>}
-            {uploadError && <div className="mt-3 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-2 text-xs text-[#854f0b]">{uploadError}</div>}
+            {uploading && <div className="mt-3 text-sm text-white/60">Uploading to the vault…</div>}
+            {uploadNotice && <div className="mt-3 rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-2 text-xs text-[#5fcf7e]">{uploadNotice}</div>}
+            {uploadError && <div className="mt-3 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-2 text-xs text-[#f0a832]">{uploadError}</div>}
             {filedAssets.length === 0 ? (
-              <div className="mt-3 rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm text-[#9a9a8a]">
+              <div className="mt-3 rounded-lg border-[0.5px] border-white/8 bg-white/5 px-3 py-3 text-sm text-white/50">
                 No files in this room yet.
               </div>
             ) : (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {orderedAssets.map((asset) => (
-                  <div key={asset.id} className={`rounded-xl border-[0.5px] px-4 py-4 text-sm text-[#111] ${getAssetTone(asset.kind)}`}>
+                  <div key={asset.id} className={`rounded-xl border-[0.5px] px-4 py-4 text-sm text-white/90 ${getAssetTone(asset.kind)}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-[#6d6860]">{getAssetGlyph(asset.kind)}</span>
-                          <span className="rounded-full border border-black/10 bg-white/70 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
+                          <span className="rounded-full border border-white/8 bg-white/70 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
                             {getAssetKindLabel(asset.kind)}
                           </span>
                         </div>
-                        <div className="mt-3 truncate text-[15px] font-medium text-[#111]">{asset.name}</div>
+                        <div className="mt-3 truncate text-[15px] font-medium text-white/90">{asset.name}</div>
                         <div className="mt-1 text-[11px] text-[#6d6860]">
                           {asset.sizeLabel} · {asset.source === "supabase" ? "Synced across devices" : "Saved on this device only"}
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${asset.source === "supabase" ? "bg-[#eaf3de] text-[#3b6d11]" : "bg-[#faeeda] text-[#854f0b]"}`}>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${asset.source === "supabase" ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : "bg-[#faeeda] text-[#f0a832]"}`}>
                         {asset.source === "supabase" ? "Synced" : "Local only"}
                       </span>
                     </div>
@@ -658,7 +705,7 @@ export default function ProjectDetailPage() {
                             type="button"
                             onClick={() => void openVaultAsset(asset)}
                             disabled={assetActionId === asset.id}
-                            className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#514d47] transition hover:border-black/25 disabled:opacity-50"
+                            className="rounded-full border border-white/8 bg-white/80 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/60 transition hover:border-white/12 disabled:opacity-50"
                           >
                             {assetActionId === asset.id ? "Opening…" : "Open"}
                           </button>
@@ -666,17 +713,17 @@ export default function ProjectDetailPage() {
                             type="button"
                             onClick={() => void openVaultAsset(asset, true)}
                             disabled={assetActionId === asset.id}
-                            className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#514d47] transition hover:border-black/25 disabled:opacity-50"
+                            className="rounded-full border border-white/8 bg-white/80 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/60 transition hover:border-white/12 disabled:opacity-50"
                           >
                             Download
                           </button>
                         </>
                       ) : (
-                        <span className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
+                        <span className="rounded-full border border-white/8 bg-white/80 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
                           Upload from a signed-in session to sync
                         </span>
                       )}
-                      <span className="rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
+                      <span className="rounded-full border border-white/8 bg-white/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#6d6860]">
                         Filed in room
                       </span>
                     </div>
@@ -710,7 +757,7 @@ export default function ProjectDetailPage() {
                 const fillPct = total > 1 && lastDoneIdx >= 0 ? (lastDoneIdx / (total - 1)) * 100 : 0;
                 return (
                   <>
-                    <div className="h-full rounded-full bg-[#3b6d11] transition-all duration-700" style={{ width: `${fillPct}%` }} />
+                    <div className="h-full rounded-full bg-[#5fcf7e] transition-all duration-700" style={{ width: `${fillPct}%` }} />
                     {runwayRows.map((row, i) => {
                       const left = total > 1 ? (i / (total - 1)) * 100 : 0;
                       const isDone = row.status === "Done";
@@ -719,7 +766,7 @@ export default function ProjectDetailPage() {
                         <div
                           key={row.title}
                           className={`absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
-                            isDone ? "bg-[#3b6d11]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
+                            isDone ? "bg-[#5fcf7e]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
                           }`}
                           style={{ left: `${left}%` }}
                         />
@@ -738,7 +785,7 @@ export default function ProjectDetailPage() {
                 return (
                   <div key={`${row.title}-${row.daysBefore}`} className="flex items-start gap-3 border-b-[0.5px] border-white/[0.05] py-3 last:border-b-0">
                     <div className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full text-[9px] ${
-                      isDone ? "bg-[#eaf3de] text-[#3b6d11]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
+                      isDone ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
                     }`}>
                       {isDone ? "✓" : "○"}
                     </div>
@@ -758,20 +805,20 @@ export default function ProjectDetailPage() {
 
         {/* What am I missing? */}
         {missingItems.length > 0 && (
-          <section className="bg-white px-5 pb-5 text-[#111]">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">What am I missing?</div>
-            <div className="overflow-hidden rounded-xl border-[0.5px] border-[#e24b4a]/30 bg-[#fcebeb]">
+          <section className="bg-transparent px-5 pb-5 text-white/90">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">What am I missing?</div>
+            <div className="overflow-hidden rounded-xl border-[0.5px] border-[#e24b4a]/30 bg-[#f05c5c]/10">
               {missingItems.map((item, i) => (
                 <div
                   key={item}
                   className={`flex items-center gap-3 px-4 py-3 text-sm ${i < missingItems.length - 1 ? "border-b-[0.5px] border-[#e24b4a]/15" : ""}`}
                 >
                   <span className="size-1.5 shrink-0 rounded-full bg-[#e24b4a]" />
-                  <span className="text-[#a32d2d]">{item}</span>
+                  <span className="text-[#f05c5c]">{item}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-[#9a9a8a]">
+            <p className="mt-2 text-[11px] text-white/50">
               Fix these before pitching or releasing.
             </p>
           </section>
@@ -779,11 +826,11 @@ export default function ProjectDetailPage() {
 
         {/* Bottom CTAs */}
         {song ? (
-          <div className="flex flex-wrap gap-3 bg-white px-5 pb-5 text-[#111]">
+          <div className="flex flex-wrap gap-3 bg-transparent px-5 pb-5 text-white/90">
             <Link href="/signal" className="flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
               Create promo →
             </Link>
-            <Link href="/epk" className="flex rounded-lg border-[0.5px] border-black/15 px-5 py-3 text-sm font-medium text-[#111]">
+            <Link href="/epk" className="flex rounded-lg border-[0.5px] border-white/10 px-5 py-3 text-sm font-medium text-white/90">
               Build EPK
             </Link>
           </div>
@@ -877,30 +924,76 @@ export default function ProjectDetailPage() {
         )}
 
       {/* Action modal — opens when artist taps "Fix →" on a revenue gap */}
-      {fixModal && song && (
-        <ActionModal
-          platformId={COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody]}
-          platform={
-            COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody]
-              ? undefined
-              : {
-                  name: fixModal.collectionBody,
-                  group: "PRO",
-                  whyItMatters: `Register this song with ${fixModal.collectionBody} to close this revenue gap.`,
-                  steps: [`Go to ${fixModal.collectionBody}`, "Register this song and your writer information", "Return here when done"],
-                  confirmPrompt: `I've registered this song with ${fixModal.collectionBody}`,
-                  estimatedMinutes: 10,
-                }
-          }
-          open={fixModal !== null}
-          onClose={() => setFixModal(null)}
-          onComplete={() => {
-            completeRevenueAction(song.id, fixModal.streamType, fixModal.collectionBody);
-            setFixModal(null);
-          }}
-        />
-      )}
+      {fixModal && song && (() => {
+        const needsIsrc = !song.isrc && ["soundexchange", "mlc", "ascap", "bmi", "sesac"].includes(
+          COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody] ?? ""
+        );
+        return (
+          <ActionModal
+            platformId={COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody]}
+            platform={
+              COLLECTION_BODY_TO_PLATFORM[fixModal.collectionBody]
+                ? undefined
+                : {
+                    name: fixModal.collectionBody,
+                    group: "PRO",
+                    whyItMatters: `Register this song with ${fixModal.collectionBody} to close this revenue gap.`,
+                    steps: [`Go to ${fixModal.collectionBody}`, "Register this song and your writer information", "Return here when done"],
+                    confirmPrompt: `I've registered this song with ${fixModal.collectionBody}`,
+                    estimatedMinutes: 10,
+                  }
+            }
+            songId={song.id}
+            songTitle={song.title}
+            open={fixModal !== null}
+            onClose={() => setFixModal(null)}
+            verificationField={needsIsrc ? {
+              label: "ISRC code",
+              placeholder: "e.g. USRC12345678",
+              pattern: /^[A-Z]{2}[A-Z0-9]{3}[0-9]{7}$/i,
+            } : undefined}
+            onComplete={(isrcValue) => {
+              completeRevenueAction(song.id, fixModal.streamType, fixModal.collectionBody);
+              if (isrcValue && needsIsrc) {
+                updateSongMetadata(song.id, { isrc: isrcValue.toUpperCase() });
+              }
+              setFixModal(null);
+            }}
+          />
+        );
+      })()}
     </AppShell>
+  );
+}
+
+function ActionJumpCard({
+  label,
+  value,
+  detail,
+  href,
+  cta,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  href: string;
+  cta: string;
+  tone: "warning" | "neutral" | "success";
+}) {
+  const toneClass = tone === "warning"
+    ? "border-[#ef9f27]/25 bg-[#ef9f27]/10"
+    : tone === "success"
+      ? "border-[#97c459]/25 bg-[#97c459]/10"
+      : "border-white/10 bg-white/5";
+
+  return (
+    <a href={href} className={`rounded-2xl border px-4 py-4 transition hover:bg-white/10 ${toneClass}`}>
+      <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">{label}</div>
+      <div className="mt-2 text-xl font-medium text-white">{value}</div>
+      <div className="mt-2 text-sm leading-6 text-white/55">{detail}</div>
+      <div className="mt-4 text-xs font-medium uppercase tracking-[0.14em] text-white/75">{cta}</div>
+    </a>
   );
 }
 
@@ -927,12 +1020,12 @@ function EmotionalStoryField({
         value={value}
         onChange={(e) => { setValue(e.target.value); setSaved(false); }}
         placeholder="Write from the gut — what were you feeling, going through, trying to survive when you made this? This becomes the soul of every pitch."
-        className="w-full resize-none rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-2 text-sm text-[#111] outline-none placeholder:text-[#aaa]"
+        className="w-full resize-none rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/30"
       />
       <button
         type="button"
         onClick={save}
-        className="mt-2 rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-1.5 text-xs text-[#514d47]"
+        className="mt-2 rounded-lg border-[0.5px] border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60"
       >
         {saved ? "Saved ✓" : "Save story"}
       </button>
@@ -940,22 +1033,20 @@ function EmotionalStoryField({
   );
 }
 
-type MusicFetchLinks = Record<string, { url?: string; label?: string }>;
+type StreamingLinks = Record<string, { url?: string; label?: string }>;
 
 function MusicFetchPanel({ isrc }: { isrc: string }) {
-  const [links, setLinks] = useState<MusicFetchLinks | null>(null);
+  const [links, setLinks] = useState<StreamingLinks | null>(null);
   const [loading, setLoading] = useState(true);
-  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch(`/api/musicfetch?isrc=${encodeURIComponent(isrc)}`);
+        const res = await fetch(`/api/odesli?isrc=${encodeURIComponent(isrc)}`);
         if (!cancelled) {
-          if (res.status === 503) { setUnavailable(true); setLoading(false); return; }
           if (!res.ok) { setLoading(false); return; }
-          const data = await res.json() as { services?: MusicFetchLinks };
+          const data = await res.json() as { services?: StreamingLinks };
           setLinks(data.services ?? null);
           setLoading(false);
         }
@@ -966,8 +1057,6 @@ function MusicFetchPanel({ isrc }: { isrc: string }) {
     void load();
     return () => { cancelled = true; };
   }, [isrc]);
-
-  if (unavailable) return null; // silently skip if not configured
 
   const DSP_LABELS: Record<string, string> = {
     spotify: "Spotify", appleMusic: "Apple Music", youtube: "YouTube",
@@ -983,12 +1072,12 @@ function MusicFetchPanel({ isrc }: { isrc: string }) {
     : [];
 
   return (
-    <section className="bg-white px-5 pb-5 text-[#111]">
-      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Streaming links</div>
-      <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-        {loading && <div className="text-sm text-[#9a9a8a]">Finding links…</div>}
+    <section className="bg-transparent px-5 pb-5 text-white/90">
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Streaming links</div>
+      <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
+        {loading && <div className="text-sm text-white/50">Finding links…</div>}
         {!loading && activeLinks.length === 0 && (
-          <div className="text-sm text-[#9a9a8a]">No links found yet — ISRC resolves once the release goes live.</div>
+          <div className="text-sm text-white/50">No links found yet — ISRC resolves once the release goes live.</div>
         )}
         {!loading && activeLinks.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -998,7 +1087,7 @@ function MusicFetchPanel({ isrc }: { isrc: string }) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border-[0.5px] border-black/15 bg-white px-3 py-1.5 text-xs text-[#514d47] hover:border-black/35"
+                className="rounded-lg border-[0.5px] border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:border-white/20"
               >
                 {label} ↗
               </a>
@@ -1063,36 +1152,36 @@ function SongstatsPanel({ isrc, spotifyArtistId }: { isrc: string; spotifyArtist
   const radioPlays = (radioStats as { total_plays?: number } | null)?.total_plays;
 
   return (
-    <section className="bg-white px-5 pb-5 text-[#111]">
-      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Live stats</div>
-      <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-        {loading && <div className="text-sm text-[#9a9a8a]">Loading live data…</div>}
+    <section className="bg-transparent px-5 pb-5 text-white/90">
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Live stats</div>
+      <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
+        {loading && <div className="text-sm text-white/50">Loading live data…</div>}
         {error && <div className="text-sm text-[#e24b4a]">Could not load stats: {error}</div>}
         {!loading && !error && sources.length === 0 && !radioPlays && (
-          <div className="text-sm text-[#9a9a8a]">No data yet — stats appear once the song is live on DSPs and SONGSTATS_API_KEY is set.</div>
+          <div className="text-sm text-white/50">No data yet — stats appear once the song is live on DSPs and SONGSTATS_API_KEY is set.</div>
         )}
         {!loading && (sources.length > 0 || radioPlays !== undefined) && (
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg bg-white px-3 py-3 text-center">
-              <div className="text-[18px] font-medium text-[#111]">{fmt(totalStreams)}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-[#9a9a8a]">Total streams</div>
+            <div className="rounded-lg glass-subtle px-3 py-3 text-center">
+              <div className="text-[18px] font-medium text-white/90">{fmt(totalStreams)}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-white/50">Total streams</div>
             </div>
-            <div className="rounded-lg bg-white px-3 py-3 text-center">
-              <div className="text-[18px] font-medium text-[#111]">{fmt(totalPlaylists)}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-[#9a9a8a]">Playlists</div>
+            <div className="rounded-lg glass-subtle px-3 py-3 text-center">
+              <div className="text-[18px] font-medium text-white/90">{fmt(totalPlaylists)}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-white/50">Playlists</div>
             </div>
-            <div className="rounded-lg bg-white px-3 py-3 text-center">
-              <div className="text-[18px] font-medium text-[#111]">{fmt(radioPlays)}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-[#9a9a8a]">Radio spins</div>
+            <div className="rounded-lg glass-subtle px-3 py-3 text-center">
+              <div className="text-[18px] font-medium text-white/90">{fmt(radioPlays)}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-white/50">Radio spins</div>
             </div>
           </div>
         )}
         {!loading && sources.length > 0 && (
           <div className="mt-3 space-y-1.5">
             {sources.map((s) => (
-              <div key={s.source} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm">
-                <span className="capitalize text-[#514d47]">{s.source}</span>
-                <span className="font-medium text-[#111]">{fmt(s.total_streams)} streams</span>
+              <div key={s.source} className="flex items-center justify-between rounded-lg glass-subtle px-3 py-2 text-sm">
+                <span className="capitalize text-white/60">{s.source}</span>
+                <span className="font-medium text-white/90">{fmt(s.total_streams)} streams</span>
               </div>
             ))}
           </div>
@@ -1104,17 +1193,17 @@ function SongstatsPanel({ isrc, spotifyArtistId }: { isrc: string; spotifyArtist
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] px-4 py-3 text-sm">
+    <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] px-4 py-3 text-sm">
       <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6d6860]">{label}</div>
-      <div className="mt-1.5 leading-6 text-[#111]">{value}</div>
+      <div className="mt-1.5 leading-6 text-white/90">{value}</div>
     </div>
   );
 }
 
 function statusClass(status: string) {
-  if (status === "collecting" || status === "connected") return "bg-[#97c459]/25 text-[#3b6d11]";
-  if (status === "registered_not_collecting" || status === "incomplete") return "bg-[#ef9f27]/20 text-[#854f0b]";
-  return "bg-[#e24b4a]/15 text-[#a32d2d]";
+  if (status === "collecting" || status === "connected") return "bg-[#97c459]/25 text-[#5fcf7e]";
+  if (status === "registered_not_collecting" || status === "incomplete") return "bg-[#ef9f27]/20 text-[#f0a832]";
+  return "bg-[#e24b4a]/15 text-[#f05c5c]";
 }
 
 function buildLocalAsset(file: File): SongVaultAsset {
@@ -1153,15 +1242,15 @@ function getAssetGlyph(kind: SongVaultAsset["kind"]) {
 function getAssetTone(kind: SongVaultAsset["kind"]) {
   switch (kind) {
     case "master":
-      return "border-[#97c459]/30 bg-[#f4f8ec]";
+      return "border-[#97c459]/30 bg-[#97c459]/[0.06]";
     case "artwork":
-      return "border-[#c7a6ff]/35 bg-[#f7f2ff]";
+      return "border-[#c7a6ff]/35 bg-[#c7a6ff]/[0.06]";
     case "split":
-      return "border-[#ef9f27]/30 bg-[#fff6e8]";
+      return "border-[#ef9f27]/30 bg-[#ef9f27]/[0.06]";
     case "contract":
-      return "border-[#7dc4ff]/30 bg-[#eef7ff]";
+      return "border-[#7dc4ff]/30 bg-[#7dc4ff]/[0.06]";
     default:
-      return "border-black/10 bg-white";
+      return "border-white/8 bg-white/[0.04]";
   }
 }
 

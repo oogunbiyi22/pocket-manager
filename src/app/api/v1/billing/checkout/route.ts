@@ -85,9 +85,8 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe();
 
     if (!stripe) {
-      // Dev/staging — return mock for local development only
-      console.warn("[billing] Stripe not configured — returning mock URL");
-      return NextResponse.json({ url: successUrl, mock: true, plan: plan.name });
+      console.error("[billing] STRIPE_SECRET_KEY is missing");
+      return NextResponse.json({ error: "Billing is not configured yet." }, { status: 503 });
     }
 
     const priceId = planKey === "elite"

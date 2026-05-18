@@ -61,8 +61,8 @@ export default function StatementsPage() {
 
   return (
     <AppShell title="Statement Reader" eyebrow="Income statements">
-      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+      <main className="mx-auto max-w-5xl rounded-[24px] border-[0.5px] border-white/10 glass p-5 text-white/90">
+        <section className="rounded-xl border-[0.5px] border-white/10 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Royalty statement reader</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Turn royalty statements into clear income breakdowns.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
@@ -72,14 +72,14 @@ export default function StatementsPage() {
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-4">
-            <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Import statement</div>
-              <label className="mt-4 block text-sm text-[#514d47]">
+            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Import statement</div>
+              <label className="mt-4 block text-sm text-white/60">
                 <span className="mb-2 block">Statement source</span>
                 <select
                   value={statementSource}
                   onChange={(event) => { setStatementSource(event.target.value); setRawCsv(""); setFileName(null); }}
-                  className="h-12 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                  className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                 >
                   {Object.keys(DISTRIBUTOR_COLUMNS).map((source) => (
                     <option key={source}>{source}</option>
@@ -97,8 +97,8 @@ export default function StatementsPage() {
                   dragOver
                     ? "border-[#ef9f27] bg-[#faeeda]/40"
                     : fileName
-                    ? "border-[#97c459] bg-[#eaf3de]/40"
-                    : "border-dashed border-black/20 bg-white hover:bg-[#f5f4f0]"
+                    ? "border-[#5fcf7e] bg-[#5fcf7e]/10/40"
+                    : "border-dashed border-white/12 bg-white hover:bg-white/5"
                 }`}
               >
                 <input
@@ -111,12 +111,12 @@ export default function StatementsPage() {
                 {fileName ? (
                   <>
                     <div className="text-2xl">✓</div>
-                    <div className="mt-1 text-sm font-medium text-[#3b6d11]">{fileName}</div>
-                    <div className="mt-0.5 text-xs text-[#6b6b65]">{rows.length} rows parsed</div>
+                    <div className="mt-1 text-sm font-medium text-[#5fcf7e]">{fileName}</div>
+                    <div className="mt-0.5 text-xs text-white/50">{rows.length} rows parsed</div>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setRawCsv(""); setFileName(null); }}
-                      className="mt-2 text-xs text-[#9a9a8a] underline"
+                      className="mt-2 text-xs text-white/50 underline"
                     >
                       Clear
                     </button>
@@ -124,25 +124,25 @@ export default function StatementsPage() {
                 ) : (
                   <>
                     <div className="text-2xl">📂</div>
-                    <div className="mt-1 text-sm text-[#5d5a54]">Drop CSV here or click to browse</div>
-                    <div className="mt-0.5 text-xs text-[#9a9a8a]">.csv · .tsv · .txt</div>
+                    <div className="mt-1 text-sm text-white/40">Drop CSV here or click to browse</div>
+                    <div className="mt-0.5 text-xs text-white/50">.csv · .tsv · .txt</div>
                   </>
                 )}
               </div>
 
               {/* Or paste */}
-              <label className="mt-4 block text-sm text-[#514d47]">
-                <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Or paste CSV rows</span>
+              <label className="mt-4 block text-sm text-white/60">
+                <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">Or paste CSV rows</span>
                 <textarea
                   value={rawCsv}
                   onChange={(event) => { setRawCsv(event.target.value); setFileName(null); }}
                   placeholder={`${colMap.song},${colMap.platform},${colMap.territory},${colMap.streams},${colMap.income}\nYour Song,Spotify,US,50000,21.50`}
-                  className="min-h-40 w-full rounded-xl border-[0.5px] border-black/15 bg-white px-4 py-3 font-mono text-xs leading-5 text-[#111] outline-none placeholder:text-[#9a9a8a]/60"
+                  className="min-h-40 w-full rounded-xl border-[0.5px] border-white/10 bg-white/[0.06] px-4 py-3 font-mono text-xs leading-5 text-white/90 outline-none placeholder:text-white/50/60"
                 />
               </label>
             </div>
 
-            <div className="rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#854f0b]">
+            <div className="rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#f0a832]">
               Expected headers for <strong>{statementSource}</strong>: {colMap.song} · {colMap.platform} · {colMap.territory} · {colMap.streams} · {colMap.income}
             </div>
           </div>
@@ -154,26 +154,26 @@ export default function StatementsPage() {
               <Metric label="Streams" value={totalStreams.toLocaleString()} />
             </div>
 
-            <section className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Income by song</div>
+            <section className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Income by song</div>
               <div className="mt-3 space-y-2">
                 {bySong.map((item) => (
-                  <div key={item.label} className="rounded-lg border-[0.5px] border-black/10 bg-white px-3 py-3 text-sm">
+                  <div key={item.label} className="rounded-lg border-[0.5px] border-white/8 bg-white/[0.06] px-3 py-3 text-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-[#111]">{item.label}</div>
-                        <div className="mt-1 text-xs text-[#6b6b65]">{item.streams.toLocaleString()} streams</div>
+                        <div className="text-white/90">{item.label}</div>
+                        <div className="mt-1 text-xs text-white/50">{item.streams.toLocaleString()} streams</div>
                       </div>
-                      <div className="text-[#111]">{formatMoney(item.income)}</div>
+                      <div className="text-white/90">{formatMoney(item.income)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Flags</div>
-              <div className="mt-3 space-y-2 text-sm text-[#514d47]">
+            <section className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Flags</div>
+              <div className="mt-3 space-y-2 text-sm text-white/60">
                 {anomalies.length ? anomalies.map((item) => <div key={item}>{item}</div>) : <div>No simple statement flags from this pasted data.</div>}
               </div>
               <Link href="/financial" className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
@@ -265,9 +265,9 @@ function getStatementAnomalies(rows: StatementRow[]) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#6b6b65]">{label}</div>
-      <div className="mt-2 text-xl font-normal text-[#111]">{value}</div>
+    <div className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className="mt-2 text-xl font-normal text-white/90">{value}</div>
     </div>
   );
 }

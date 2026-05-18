@@ -79,8 +79,8 @@ export default function NotificationsPage() {
 
   return (
     <AppShell title="Notifications" eyebrow="Alert control">
-      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+      <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-white/[0.08] bg-[#141412] p-5 text-white/90">
+        <section className="rounded-xl border-[0.5px] border-white/[0.08] bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Push intelligence</div>
           <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">Only alerts that move the catalog forward.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
@@ -93,19 +93,19 @@ export default function NotificationsPage() {
 
         <section className="mt-5 space-y-3">
           {preferences.map((item) => (
-            <article key={item.id} className="rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
+            <article key={item.id} className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-[15px] font-medium text-[#111]">{item.label}</h3>
+                    <h3 className="text-[15px] font-medium text-white/85">{item.label}</h3>
                     <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${tierClass(item.tier)}`}>{item.tier}</span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-[#514d47]">{item.description}</p>
+                  <p className="mt-2 text-sm leading-6 text-white/60">{item.description}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => togglePreference(item.id)}
-                  className={`min-w-20 rounded-lg px-3 py-2 text-sm ${item.enabled ? "bg-[#0a0a0a] text-white" : "border-[0.5px] border-black/15 text-[#111]"}`}
+                  className={`min-w-20 rounded-lg px-3 py-2 text-sm ${item.enabled ? "bg-[#7c6fef] text-white" : "border-[0.5px] border-white/[0.08] text-white/85"}`}
                 >
                   {item.enabled ? "On" : "Off"}
                 </button>
@@ -120,14 +120,14 @@ export default function NotificationsPage() {
 
 function tierClass(tier: NotificationPreference["tier"]) {
   if (tier === "Free") {
-    return "bg-[#eaf3de] text-[#3b6d11]";
+    return "bg-[#5fcf7e]/10 text-[#5fcf7e]";
   }
 
   if (tier === "Pro") {
     return "bg-[#e6f1fb] text-[#185fa5]";
   }
 
-  return "bg-[#faeeda] text-[#854f0b]";
+  return "bg-[#faeeda] text-[#f0a832]";
 }
 
 function loadPreferences() {

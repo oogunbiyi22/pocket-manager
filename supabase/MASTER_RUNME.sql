@@ -37,6 +37,20 @@ CREATE POLICY "user_catalogs_owner" ON public.user_catalogs
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 GRANT ALL ON public.user_catalogs TO service_role;
 
+CREATE TABLE IF NOT EXISTS public.user_workspace_state (
+  user_id              uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  projects             jsonb       NOT NULL DEFAULT '[]'::jsonb,
+  events               jsonb       NOT NULL DEFAULT '[]'::jsonb,
+  money_entries        jsonb       NOT NULL DEFAULT '[]'::jsonb,
+  platform_connections jsonb       NOT NULL DEFAULT '[]'::jsonb,
+  updated_at           timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.user_workspace_state ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_workspace_state_owner" ON public.user_workspace_state;
+CREATE POLICY "user_workspace_state_owner" ON public.user_workspace_state
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+GRANT ALL ON public.user_workspace_state TO service_role;
+
 CREATE TABLE IF NOT EXISTS public.waitlist (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   email       text        NOT NULL UNIQUE,

@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
 
   const { data: profile, error } = await anonClient
     .from("profiles")
-    .select("id, email, artist_name, artist_role, vibe, plan, onboarded, created_at")
+    .select("id, email, artist_name, artist_role, vibe, plan, onboarded, stripe_customer_id, created_at")
     .eq("id", user.id)
     .maybeSingle();
 

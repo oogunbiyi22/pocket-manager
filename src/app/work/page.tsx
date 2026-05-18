@@ -20,7 +20,7 @@ export default function WorkPage() {
 
   return (
     <AppShell title="Work" eyebrow="My catalog">
-      <main className="mx-auto max-w-4xl space-y-4 text-[#111]">
+      <main className="mx-auto max-w-4xl space-y-4 text-white/90">
         <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">My catalog</div>
           <h2 className="mt-3 text-[40px] font-light leading-none tracking-[-0.03em]">Every song gets a Room.</h2>
@@ -29,24 +29,32 @@ export default function WorkPage() {
             {formatGapEstimate(summary.totalEstimatedGap)} estimated Gap
           </p>
           {highestGapSong ? (
-            <Link
-              href={`/projects/${highestGapSong.id}`}
-              className="mt-5 flex items-center justify-between gap-4 rounded-xl border-[0.5px] border-white/15 bg-white/5 px-4 py-3 text-sm transition hover:bg-white/10"
-            >
-              <span className="text-white/65">Biggest Room to fix</span>
-              <span className="text-right text-white">
-                {highestGapSong.title} · {formatGapEstimate(getSongEstimatedGap(highestGapSong))}
-              </span>
-            </Link>
+            <div className="mt-5 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
+              <Link
+                href={`/projects/${highestGapSong.id}`}
+                className="flex items-center justify-between gap-4 rounded-xl border-[0.5px] border-white/15 bg-white/5 px-4 py-3 text-sm transition hover:bg-white/10"
+              >
+                <span className="text-white/65">Biggest Room to fix</span>
+                <span className="text-right text-white">
+                  {highestGapSong.title} · {formatGapEstimate(getSongEstimatedGap(highestGapSong))}
+                </span>
+              </Link>
+              <Link
+                href={`/a?prompt=${encodeURIComponent(`What should I do next for \"${highestGapSong.title}\"? Start with the biggest money gap.`)}`}
+                className="flex items-center justify-center rounded-xl border border-[#7c6fef]/35 bg-[#7c6fef]/10 px-4 py-3 text-sm font-medium text-[#c7bfff] transition hover:bg-[#7c6fef]/20"
+              >
+                Ask A about this room →
+              </Link>
+            </div>
           ) : null}
         </section>
 
         <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Active Rooms</div>
           {songs.length === 0 ? (
-            <div className="rounded-xl border-[0.5px] border-dashed border-black/20 bg-[#f8f6f1] p-6 text-center">
-              <div className="text-[15px] font-normal text-[#111]">No songs yet.</div>
-              <p className="mt-2 text-sm text-[#6b6b65]">Add a release to open your first Room and see the Gap.</p>
+            <div className="rounded-xl border-[0.5px] border-dashed border-white/12 bg-white/5 p-6 text-center">
+              <div className="text-[15px] font-normal text-white/90">No songs yet.</div>
+              <p className="mt-2 text-sm text-white/50">Add a release to open your first Room and see the Gap.</p>
               <Link
                 href="/projects/new"
                 className="mt-4 inline-flex rounded-lg bg-[#0a0a0a] px-5 py-2.5 text-sm font-medium text-white"
@@ -66,30 +74,43 @@ export default function WorkPage() {
         {/* The Vault preview */}
         <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">The Vault</div>
-            <Link href="/vault" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#854f0b]">
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">The Vault</div>
+            <Link href="/vault" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#f0a832]">
               Open →
             </Link>
           </div>
-          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f5f4f0]">
-            {songs.slice(0, 3).flatMap((song) => [
-              { key: `${song.id}-master`, name: `${song.title} — master WAV`, type: "Master", songTitle: song.title },
-              { key: `${song.id}-split`, name: `${song.title} — split sheet`, type: "Split", songTitle: song.title },
-            ]).slice(0, 4).map((file, i, arr) => (
-              <Link
-                key={file.key}
-                href="/vault"
-                className={`flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-black/[0.03] ${i < arr.length - 1 ? "border-b-[0.5px] border-black/10" : ""}`}
-              >
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#0d0d0b]/[0.06] text-[10px] font-medium uppercase text-[#6b6b65]">
-                  {file.type === "Master" ? "M" : "S"}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[#111]">{file.name}</span>
-                <span className="shrink-0 text-[11px] text-[#9a9a8a]">{file.type}</span>
-              </Link>
-            ))}
-          </div>
-          <p className="mt-2 text-[11px] text-[#9a9a8a]">
+          {(() => {
+            const realAssets = songs.flatMap((song) =>
+              (song.assets ?? []).map((a) => ({ ...a, songTitle: song.title, songId: song.id }))
+            ).slice(0, 4);
+            const kindLabel: Record<string, string> = { master: "M", artwork: "A", split: "S", contract: "C", other: "F" };
+            if (realAssets.length > 0) {
+              return (
+                <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-white/5">
+                  {realAssets.map((file, i, arr) => (
+                    <Link
+                      key={file.id}
+                      href={`/projects/${file.songId}`}
+                      className={`flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${i < arr.length - 1 ? "border-b-[0.5px] border-white/8" : ""}`}
+                    >
+                      <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#0d0d0b]/[0.06] text-[10px] font-medium uppercase text-white/50">
+                        {kindLabel[file.kind] ?? "F"}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-white/90">{file.name}</span>
+                      <span className="shrink-0 text-[11px] text-white/50">{file.songTitle}</span>
+                    </Link>
+                  ))}
+                </div>
+              );
+            }
+            return (
+              <div className="rounded-xl border-[0.5px] border-dashed border-white/10 bg-white/5 px-4 py-5 text-center">
+                <p className="text-[13px] text-white/50">No files filed yet.</p>
+                <Link href="/vault" className="mt-2 inline-block text-xs font-medium text-[#f0a832]">Open vault to file assets →</Link>
+              </div>
+            );
+          })()}
+          <p className="mt-2 text-[11px] text-white/50">
             Masters, contracts, split sheets, and artwork live here.
           </p>
         </section>
@@ -136,14 +157,14 @@ function RoomRow({ song }: { song: SongCatalogItem }) {
     >
       <ReadinessRing score={readiness} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[15px] font-medium text-[#111]">{song.title}</div>
-        <div className="mt-0.5 truncate text-[11px] text-[#6b6b65]">
+        <div className="truncate text-[15px] font-medium text-white/90">{song.title}</div>
+        <div className="mt-0.5 truncate text-[11px] text-white/50">
           {song.releaseDate} · {song.isrc}
         </div>
       </div>
       <div className="hidden text-right sm:block">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9a9a8a]">The Gap</div>
-        <div className="mt-1 text-sm text-[#111]">{formatGapEstimate(gap)}</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/50">The Gap</div>
+        <div className="mt-1 text-sm text-white/90">{formatGapEstimate(gap)}</div>
       </div>
       <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${gapBadgeClass(gapScore)}`}>
         {missingCount ? `${missingCount} missing` : "Ready"}
@@ -182,10 +203,10 @@ function ReadinessRing({ score }: { score: number }) {
 function WorkMetric({ label, value, tone }: { label: string; value: string; tone: "warning" | "complete" | "neutral" }) {
   const toneClass =
     tone === "warning"
-      ? "bg-[#faeeda] text-[#854f0b]"
+      ? "bg-[#faeeda] text-[#f0a832]"
       : tone === "complete"
-        ? "bg-[#eaf3de] text-[#3b6d11]"
-        : "glass text-[#111]";
+        ? "bg-[#5fcf7e]/10 text-[#5fcf7e]"
+        : "glass text-white/90";
 
   return (
     <div className={`rounded-[18px] card-shadow p-5 ${toneClass}`}>
@@ -197,12 +218,12 @@ function WorkMetric({ label, value, tone }: { label: string; value: string; tone
 
 function gapBadgeClass(score: number) {
   if (score === 0) {
-    return "bg-[#eaf3de] text-[#3b6d11]";
+    return "bg-[#5fcf7e]/10 text-[#5fcf7e]";
   }
 
   if (score >= 60) {
-    return "bg-[#fcebeb] text-[#a32d2d]";
+    return "bg-[#f05c5c]/10 text-[#f05c5c]";
   }
 
-  return "bg-[#faeeda] text-[#854f0b]";
+  return "bg-[#faeeda] text-[#f0a832]";
 }

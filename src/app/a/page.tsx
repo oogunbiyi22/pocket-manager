@@ -58,6 +58,7 @@ export default function APage() {
   const [chatHistory, setChatHistory] = useState<SavedMessage[]>(() => loadChatHistory());
   const [historyVisible, setHistoryVisible] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const promptPrimedRef = useRef(false);
 
   const triageVisible = songs.length > 0
     && summary.totalEstimatedGap > 0
@@ -75,15 +76,31 @@ export default function APage() {
       api: "/api/v1/manager/chat",
       body: {
         artistName: profile.artistName ?? "Artist",
+        managerName: profile.managerName ?? "REMY",
+        page: "a",
         songs,
         platforms: platformConnections,
-        fixProgress: { summary: fixSummary, stale: staleFixes.length },
+        plan: profile.plan ?? "free",
       },
     }),
   });
 
   const isStreaming = status === "streaming" || status === "submitted";
   const hasMessages = messages.length > 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || promptPrimedRef.current || hasMessages || isStreaming) {
+      return;
+    }
+
+    const prompt = new URLSearchParams(window.location.search).get("prompt")?.trim();
+    if (!prompt) {
+      return;
+    }
+
+    promptPrimedRef.current = true;
+    sendMessage({ text: prompt });
+  }, [hasMessages, isStreaming, sendMessage]);
 
   // Persist new messages to localStorage as they arrive
   useEffect(() => {
@@ -147,7 +164,7 @@ export default function APage() {
       <main className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[1fr_0.85fr]">
 
         {/* ── Chat panel ─────────────────────────────────────────────────── */}
-        <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#141412] text-white">
+        <section className="overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-[#141412] text-white">
           <header className="flex items-center justify-between border-b-[0.5px] border-white/10 bg-[#0d0d0b] px-5 py-4">
             <div>
               <div className="text-[15px] font-medium text-white">A</div>
@@ -296,7 +313,7 @@ export default function APage() {
                     <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/30">A</div>
                   )}
                   <div className={isUser
-                    ? "max-w-[82%] rounded-xl rounded-br-sm bg-white px-4 py-3 text-sm leading-6 text-[#0d0d0b]"
+                    ? "max-w-[82%] rounded-xl rounded-br-sm bg-[#7c6fef] px-4 py-3 text-sm leading-6 text-white"
                     : "max-w-[88%] rounded-xl rounded-bl-sm border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-7 text-white/80"
                   }>
                     {text}
@@ -350,7 +367,7 @@ export default function APage() {
             <button
               type="submit"
               disabled={isStreaming || !draft.trim()}
-              className="grid size-10 place-items-center rounded-full bg-white text-[#0d0d0b] text-sm font-semibold disabled:opacity-30 transition hover:bg-white/90"
+              className="grid size-10 place-items-center rounded-full bg-[#7c6fef] text-white text-sm font-semibold disabled:opacity-30 transition hover:bg-[#6a5de0]"
             >
               →
             </button>
@@ -361,13 +378,13 @@ export default function APage() {
         <aside className="space-y-4">
 
           {/* Account snapshot */}
-          <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-[#0d0d0b] text-white p-5">
+          <section className="overflow-hidden rounded-[24px] border-[0.5px] border-white/10 bg-[#0d0d0b] text-white p-5">
             <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">Account</div>
             {songs.length === 0 ? (
               <div className="mt-4 text-center py-4">
                 <div className="text-2xl">🎵</div>
                 <p className="mt-3 text-sm text-white/45 leading-6">No releases yet. Add your first song to unlock your gap analysis.</p>
-                <Link href="/projects/new" className="mt-4 block rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-[#0d0d0b] text-center transition hover:bg-white/90">
+                <Link href="/projects/new" className="mt-4 block rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-[#0d0d0b] text-center transition hover:bg-[#6a5de0]">
                   Add release →
                 </Link>
               </div>
@@ -398,8 +415,8 @@ export default function APage() {
 
           {/* Action queue */}
           {songs.length > 0 && actionQueue.length > 0 && (
-            <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Priority queue</div>
+            <section className="overflow-hidden rounded-[24px] border-[0.5px] border-white/10 glass p-5 text-white/90">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Priority queue</div>
               <div className="mt-4 space-y-2">
                 {actionQueue.map((action, i) => {
                   const fixRecord = allFixRecords.find((r) => r.fixId.includes(action.collectionBody.toLowerCase().replace(/\s+/g, "_")));
@@ -411,21 +428,21 @@ export default function APage() {
                       type="button"
                       onClick={() => submit(`Walk me through: ${action.action} via ${action.collectionBody}${action.songTitle ? ` for "${action.songTitle}"` : ""}`)}
                       className={`w-full rounded-[14px] px-4 py-3 text-left transition hover:opacity-80 ${
-                        isDone ? "bg-[#eaf3de]" : isInProgress ? "bg-[#faeeda]" : "bg-[#f5f4f0]"
+                        isDone ? "bg-[#5fcf7e]/10" : isInProgress ? "bg-[#f0a832]/10" : "bg-white/5"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold ${isDone ? "text-[#3b6d11]" : isInProgress ? "text-[#854f0b]" : "text-[#9a9a8a]"}`}>
+                        <span className={`text-[10px] font-bold ${isDone ? "text-[#5fcf7e]" : isInProgress ? "text-[#f0a832]" : "text-white/50"}`}>
                           {isDone ? "✓ Done" : isInProgress ? "In progress" : `#${i + 1}`}
                         </span>
-                        <span className="text-[12px] font-medium text-[#111] truncate">{action.collectionBody}</span>
+                        <span className="text-[12px] font-medium text-white/90 truncate">{action.collectionBody}</span>
                       </div>
-                      <div className="mt-1 text-[11px] text-[#9a9a8a]">{formatGapEstimate(action.estimatedValue)} · {action.estimatedTime}</div>
+                      <div className="mt-1 text-[11px] text-white/50">{formatGapEstimate(action.estimatedValue)} · {action.estimatedTime}</div>
                     </button>
                   );
                 })}
               </div>
-              <Link href="/actions" className="mt-4 block text-center text-[11px] text-[#9a9a8a] hover:text-[#111] transition">
+              <Link href="/actions" className="mt-4 block text-center text-[11px] text-white/50 hover:text-white/90 transition">
                 See full queue →
               </Link>
             </section>
@@ -433,9 +450,9 @@ export default function APage() {
 
           {/* Progress memory */}
           {(fixSummary.inProgress > 0 || fixSummary.completed > 0) && (
-            <section className="overflow-hidden rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#6b6b65]">Progress memory</div>
-              <p className="mt-3 text-sm leading-6 text-[#514d47]">
+            <section className="overflow-hidden rounded-[24px] border-[0.5px] border-white/10 glass p-5 text-white/90">
+              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Progress memory</div>
+              <p className="mt-3 text-sm leading-6 text-white/60">
                 A remembers every fix you&apos;ve started or completed this session.
                 {fixSummary.stale > 0 && (
                   <span className="text-[#ef9f27]"> {fixSummary.stale} fix{fixSummary.stale === 1 ? "" : "es"} have been in progress for 48h+ without confirmation.</span>
@@ -444,7 +461,7 @@ export default function APage() {
               <button
                 type="button"
                 onClick={() => submit("Show me all the fixes I've started and where they stand")}
-                className="mt-3 text-[12px] text-[#9a9a8a] underline underline-offset-2 hover:text-[#111] transition"
+                className="mt-3 text-[12px] text-white/50 underline underline-offset-2 hover:text-white/90 transition"
               >
                 Review my progress →
               </button>

@@ -17,7 +17,7 @@ const PROTECTED_PREFIXES = [
   "/radar", "/albums", "/beats", "/contracts", "/statements", "/financial",
   "/forecast", "/valuation", "/actions", "/capture", "/drop", "/pitch-kits",
   "/sync", "/pitching", "/career-twin", "/booking", "/events", "/venues",
-  "/radio", "/home", "/mobile", "/pocket", "/a",
+  "/radio", "/home", "/mobile", "/pocket", "/a", "/publishing",
 ];
 
 // Public routes — never require auth

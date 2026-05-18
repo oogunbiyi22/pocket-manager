@@ -54,15 +54,15 @@ export default function FinancialPage() {
         {/* Money Health — fix your money action center */}
         <MoneyHealth />
 
-        <div className="rounded-[24px] border-[0.5px] border-black/15 bg-white p-5 text-[#111]">
-        <section className="rounded-xl border-[0.5px] border-black/15 bg-[#0a0a0a] p-5 text-white">
+        <div className="rounded-[24px] border-[0.5px] border-white/10 glass p-5 text-white/90">
+        <section className="rounded-xl border-[0.5px] border-white/10 bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Current quarter</div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <div>
               <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Confirmed income</div>
               <div className="mt-2 text-5xl font-light tracking-[-0.04em]">{formatMoney(totalConfirmed)}</div>
             </div>
-            <div className="rounded-lg border-[0.5px] border-[#faeeda]/60 bg-[#faeeda] px-4 py-3 text-[#854f0b]">
+            <div className="rounded-lg border-[0.5px] border-[#faeeda]/60 bg-[#faeeda] px-4 py-3 text-[#f0a832]">
               <div className="text-[11px] uppercase tracking-[0.18em]">Estimated missing</div>
               <div className="mt-2 text-3xl font-normal">{formatGapEstimate(totalGap)}</div>
             </div>
@@ -70,25 +70,25 @@ export default function FinancialPage() {
         </section>
 
         <section className="mt-5">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">By song</div>
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">By song</div>
           <div className="space-y-3">
             {songs.map((song) => (
               <Link
                 key={song.id}
                 href={`/projects/${song.id}`}
-                className="grid gap-3 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4 text-sm transition hover:border-black/35 sm:grid-cols-[1fr_0.8fr_0.8fr]"
+                className="grid gap-3 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4 text-sm transition hover:border-white/20 sm:grid-cols-[1fr_0.8fr_0.8fr]"
               >
                 <div>
-                  <div className="text-[15px] font-medium text-[#111]">{song.title}</div>
-                  <div className="mt-1 text-xs text-[#6b6b65]">{song.releaseDate} · {song.territory}</div>
+                  <div className="text-[15px] font-medium text-white/90">{song.title}</div>
+                  <div className="mt-1 text-xs text-white/50">{song.releaseDate} · {song.territory}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-[#6b6b65]">Confirmed</div>
-                  <div className="mt-1 text-[#111]">{formatMoney(getSongConfirmedIncome(song))}</div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">Confirmed</div>
+                  <div className="mt-1 text-white/90">{formatMoney(getSongConfirmedIncome(song))}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-[#6b6b65]">Missing</div>
-                  <div className="mt-1 text-[#854f0b]">{formatGapEstimate(getSongEstimatedGap(song))}</div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">Missing</div>
+                  <div className="mt-1 text-[#f0a832]">{formatGapEstimate(getSongEstimatedGap(song))}</div>
                 </div>
               </Link>
             ))}
@@ -96,41 +96,41 @@ export default function FinancialPage() {
         </section>
 
         <section className="mt-5">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">By collection path</div>
-          <div className="overflow-hidden rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1]">
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">By collection path</div>
+          <div className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-white/5">
             {streamRows.map((row) => (
               <Link
                 key={`${row.songId}-${row.streamLabel}-${row.collectionBody}`}
                 href={`/projects/${row.songId}`}
-                className="grid gap-3 border-b-[0.5px] border-black/10 px-4 py-3 text-sm last:border-b-0 sm:grid-cols-[1fr_0.8fr_0.7fr_0.7fr]"
+                className="grid gap-3 border-b-[0.5px] border-white/8 px-4 py-3 text-sm last:border-b-0 sm:grid-cols-[1fr_0.8fr_0.7fr_0.7fr]"
               >
                 <div>
-                  <div className="text-[#111]">{row.collectionBody}</div>
-                  <div className="mt-1 text-xs text-[#6b6b65]">{row.songTitle} · {row.territory}</div>
+                  <div className="text-white/90">{row.collectionBody}</div>
+                  <div className="mt-1 text-xs text-white/50">{row.songTitle} · {row.territory}</div>
                 </div>
                 <div>
-                  <div className="text-[#514d47]">{row.streamLabel}</div>
-                  <div className="mt-1 text-xs text-[#6b6b65]">{row.status}</div>
+                  <div className="text-white/60">{row.streamLabel}</div>
+                  <div className="mt-1 text-xs text-white/50">{row.status}</div>
                 </div>
-                <div className="text-[#111]">{formatMoney(row.confirmed)}</div>
-                <div className="text-[#854f0b]">{formatGapEstimate(row.missing)}</div>
+                <div className="text-white/90">{formatMoney(row.confirmed)}</div>
+                <div className="text-[#f0a832]">{formatGapEstimate(row.missing)}</div>
               </Link>
             ))}
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-black/15 bg-[#f8f6f1] p-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Export preview</div>
-          <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border-[0.5px] border-black/10 bg-white p-3 text-xs leading-5 text-[#514d47]">
+        <section className="mt-5 rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Export preview</div>
+          <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border-[0.5px] border-white/8 glass p-3 text-xs leading-5 text-white/60">
             {exportText}
           </pre>
           <button type="button" onClick={copySummary} className="mt-3 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
             {copied ? "Copied" : "Copy summary"}
           </button>
-          <Link href="/statements" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+          <Link href="/statements" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/90">
             Read statement
           </Link>
-          <Link href="/forecast" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-black/15 px-4 py-2 text-sm text-[#111]">
+          <Link href="/forecast" className="ml-2 mt-3 inline-flex rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/90">
             Forecast income
           </Link>
         </section>

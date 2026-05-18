@@ -34,7 +34,7 @@ const STORAGE_KEY = "pocket-signal-v1";
 
 const STATUS_CONFIG: Record<PitchStatus, { label: string; color: string; bg: string; dot: string }> = {
   queued:   { label: "Queued",   color: "text-white/40",       bg: "bg-white/[0.06]",      dot: "bg-white/20" },
-  sent:     { label: "Sent",     color: "text-[#9a9a8a]",      bg: "bg-white/[0.06]",      dot: "bg-white/40" },
+  sent:     { label: "Sent",     color: "text-white/50",      bg: "bg-white/[0.06]",      dot: "bg-white/40" },
   opened:   { label: "Opened",   color: "text-[#ef9f27]",      bg: "bg-[#ef9f27]/10",      dot: "bg-[#ef9f27]" },
   replied:  { label: "Replied",  color: "text-[#6c9fcf]",      bg: "bg-[#6c9fcf]/10",      dot: "bg-[#6c9fcf]" },
   placed:   { label: "Placed",   color: "text-[#97c459]",      bg: "bg-[#97c459]/10",      dot: "bg-[#97c459]" },
@@ -100,6 +100,78 @@ function saveState(state: SignalState) {
 }
 
 const FILTER_TYPES = ["All", "Queued", "Sent", "Opened", "Placed", "Declined"] as const;
+
+const CAMPAIGN_OVERRIDE_CHECKLIST = [
+  {
+    title: "Ignore lazy defaults",
+    detail:
+      "Do not trust whatever the platform auto-selects. Pick the objective, placements, and optimization goal on purpose.",
+  },
+  {
+    title: "Judge with 3 real numbers",
+    detail:
+      "Track hook rate, click-through rate, and cost per real action first. Everything else is secondary until those are healthy.",
+  },
+  {
+    title: "Protect traffic quality",
+    detail:
+      "If clicks are cheap but low-intent, the campaign is lying to you. Watch saves, follows, replies, signups, and sales quality.",
+  },
+  {
+    title: "Batch creative, not single shots",
+    detail:
+      "Launch multiple hooks and angles at once so the weak ideas die fast and the best ones get more budget.",
+  },
+] as const;
+
+const CREATIVE_TEST_BATCHES = [
+  {
+    title: "Hook tests",
+    summary: "Test the first 1–3 seconds before anything else.",
+    assets: ["performance teaser", "studio moment", "quote/lyric opener"],
+    metric: "Hold rate + outbound intent",
+  },
+  {
+    title: "Proof tests",
+    summary: "Swap social proof and receipts without changing the offer.",
+    assets: ["fan reaction", "stream count", "behind-the-scenes proof"],
+    metric: "Saves, shares, replies",
+  },
+  {
+    title: "CTA tests",
+    summary: "Keep the creative constant and test where the click is pointed.",
+    assets: ["stream now", "join waitlist", "watch full video"],
+    metric: "Cost per action",
+  },
+] as const;
+
+const DECISION_RULES = [
+  {
+    label: "Kill",
+    tone: "text-[#f05c5c]",
+    bg: "bg-[#e24b4a]/10",
+    rule: "Weak hook, weak click, or bad traffic after enough spend/impressions.",
+  },
+  {
+    label: "Hold",
+    tone: "text-[#ef9f27]",
+    bg: "bg-[#ef9f27]/10",
+    rule: "Signal is mixed. Let it breathe for one clean test window before touching it.",
+  },
+  {
+    label: "Scale",
+    tone: "text-[#97c459]",
+    bg: "bg-[#97c459]/10",
+    rule: "Strong hook + strong action quality. Add budget, duplicate winners, and keep the rest simple.",
+  },
+] as const;
+
+const TRAFFIC_GUARDRAILS = [
+  "Do not change targeting, copy, and creative at the same time.",
+  "Let a test window finish before judging it early out of emotion.",
+  "Broad with light constraints usually beats over-targeting.",
+  "Name every test clearly so you can tell what actually won.",
+] as const;
 
 export default function SignalPage() {
   const { songs, profile } = usePocket();
@@ -233,7 +305,7 @@ export default function SignalPage() {
 
   return (
     <AppShell title="Signal" eyebrow="Get heard">
-      <main className="mx-auto max-w-4xl space-y-4 text-[#111]">
+      <main className="mx-auto max-w-4xl space-y-4 text-white/90">
 
         {/* Hero */}
         <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-5 py-6 text-white">
@@ -299,8 +371,8 @@ export default function SignalPage() {
 
         {/* Auto-pitch launcher */}
         <section className="rounded-[24px] glass card-shadow px-5 py-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Auto pitch</div>
-          <p className="mt-2 text-sm text-[#6b6b65]">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Auto pitch</div>
+          <p className="mt-2 text-sm text-white/50">
             Choose a song and we&apos;ll match it to the best playlists by genre, mood, and BPM — then generate the pitch email automatically.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -308,14 +380,14 @@ export default function SignalPage() {
               <select
                 value={selectedSongId}
                 onChange={(e) => setSelectedSongId(e.target.value)}
-                className="h-10 flex-1 rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none"
+                className="h-10 flex-1 rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
               >
                 {songs.map((s) => (
                   <option key={s.id} value={s.id}>{s.title} {s.genre ? `· ${s.genre}` : ""}</option>
                 ))}
               </select>
             ) : (
-              <div className="flex-1 text-sm text-[#9a9a8a]">No songs in catalog yet</div>
+              <div className="flex-1 text-sm text-white/50">No songs in catalog yet</div>
             )}
             <button
               type="button"
@@ -329,29 +401,94 @@ export default function SignalPage() {
               <button
                 type="button"
                 onClick={handleSendAll}
-                className="rounded-lg border-[0.5px] border-[#97c459]/40 bg-[#97c459]/10 px-5 py-2 text-sm font-medium text-[#3b6d11] transition hover:bg-[#97c459]/20"
+                className="rounded-lg border-[0.5px] border-[#5fcf7e]/30 bg-[#97c459]/10 px-5 py-2 text-sm font-medium text-[#5fcf7e] transition hover:bg-[#97c459]/20"
               >
-                Send all {queuedCount} queued
+                Mark all {queuedCount} as sent
               </button>
             )}
           </div>
           {selectedSong && (
             <div className="mt-3 flex flex-wrap gap-2">
               {[selectedSong.genre, selectedSong.mood, selectedSong.bpm ? `${selectedSong.bpm} BPM` : null].filter(Boolean).map((tag) => (
-                <span key={tag} className="rounded-full border-[0.5px] border-black/10 bg-white px-2.5 py-0.5 text-[11px] text-[#6b6b65]">{tag}</span>
+                <span key={tag} className="rounded-full border-[0.5px] border-white/8 bg-white/8 px-2.5 py-0.5 text-[11px] text-white/50">{tag}</span>
               ))}
               {!selectedSong.genre && !selectedSong.mood && (
-                <span className="text-[11px] text-[#9a9a8a]">Add genre and mood to your song for better matches</span>
+                <Link href={`/projects/${selectedSong.id}`} className="text-[11px] text-[#f0a832] underline underline-offset-2">
+                  Add genre + mood in the song room for better matches →
+                </Link>
               )}
             </div>
           )}
         </section>
 
+        <section className="grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[24px] glass card-shadow px-5 py-5">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Testing OS</div>
+            <div className="space-y-3">
+              {CREATIVE_TEST_BATCHES.map((batch) => (
+                <div key={batch.title} className="rounded-[16px] border-[0.5px] border-white/8 bg-white/5 px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[14px] font-medium text-white/90">{batch.title}</div>
+                    <span className="rounded-full border-[0.5px] border-white/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-white/45">
+                      {batch.metric}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[13px] leading-5 text-white/50">{batch.summary}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {batch.assets.map((asset) => (
+                      <span key={asset} className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] text-white/55">
+                        {asset}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <section className="rounded-[24px] glass card-shadow px-5 py-5">
+              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Decision rules</div>
+              <div className="space-y-2">
+                {DECISION_RULES.map((item) => (
+                  <div key={item.label} className={`rounded-[16px] px-4 py-3 ${item.bg}`}>
+                    <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${item.tone}`}>{item.label}</div>
+                    <p className="mt-1.5 text-[13px] leading-5 text-white/60">{item.rule}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-[24px] glass card-shadow px-5 py-5">
+              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Default override checklist</div>
+              <div className="space-y-3">
+                {CAMPAIGN_OVERRIDE_CHECKLIST.map((item) => (
+                  <div key={item.title} className="flex gap-3">
+                    <div className="mt-1 size-2 shrink-0 rounded-full bg-[#ef9f27]" />
+                    <div>
+                      <div className="text-[13px] font-medium text-white/85">{item.title}</div>
+                      <p className="mt-1 text-[12px] leading-5 text-white/50">{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-[16px] border-[0.5px] border-white/8 bg-black/10 px-4 py-4">
+                <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/45">Guardrails</div>
+                <div className="mt-2 space-y-2 text-[12px] leading-5 text-white/55">
+                  {TRAFFIC_GUARDRAILS.map((rule) => (
+                    <div key={rule}>• {rule}</div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
         {/* Pitch tracker */}
         <section className="rounded-[24px] glass card-shadow px-5 py-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9a9a8a]">Pitch tracker</div>
-            <div className="text-[11px] text-[#9a9a8a]">Status updates when curators open or reply</div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Pitch tracker</div>
+            <div className="text-[11px] text-white/50">Status updates when curators open or reply</div>
           </div>
 
           {/* Filter chips */}
@@ -366,22 +503,22 @@ export default function SignalPage() {
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
                     filter === t
                       ? "bg-[#0d0d0b] text-white"
-                      : "border-[0.5px] border-black/15 bg-white text-[#6b6b65]"
+                      : "border-[0.5px] border-white/10 bg-white/5 text-white/50"
                   }`}
                 >
                   {t}
-                  {count > 0 && <span className={`text-[10px] ${filter === t ? "text-white/50" : "text-[#9a9a8a]"}`}>{count}</span>}
+                  {count > 0 && <span className={`text-[10px] ${filter === t ? "text-white/50" : "text-white/50"}`}>{count}</span>}
                 </button>
               );
             })}
           </div>
 
           {filteredPitches.length === 0 ? (
-            <div className="rounded-xl border-[0.5px] border-dashed border-black/15 bg-white p-8 text-center">
-              <div className="text-sm font-medium text-[#111]">
+            <div className="rounded-xl border-[0.5px] border-dashed border-white/10 glass p-8 text-center">
+              <div className="text-sm font-medium text-white/90">
                 {pitches.length === 0 ? "No pitches yet" : "No pitches match this filter"}
               </div>
-              <p className="mt-1 text-xs text-[#9a9a8a]">
+              <p className="mt-1 text-xs text-white/50">
                 {pitches.length === 0 ? "Use auto pitch above to find matching playlists and generate your first pitches." : "Try a different filter."}
               </p>
             </div>
@@ -392,7 +529,7 @@ export default function SignalPage() {
                 const song = songs.find((s) => s.id === pitch.songId);
                 const isExpanded = expandedPitch === pitch.id;
                 return (
-                  <div key={pitch.id} className="overflow-hidden rounded-[14px] border-[0.5px] border-black/10 bg-white">
+                  <div key={pitch.id} className="overflow-hidden rounded-[14px] border-[0.5px] border-white/8 bg-white/[0.05]">
                     <button
                       type="button"
                       onClick={() => setExpandedPitch(isExpanded ? null : pitch.id)}
@@ -401,11 +538,11 @@ export default function SignalPage() {
                       <div className={`mt-1 size-2 shrink-0 rounded-full ${cfg.dot}`} />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[14px] font-medium text-[#111]">{pitch.playlistName}</span>
-                          <span className="text-[11px] text-[#9a9a8a]">{pitch.platform}</span>
-                          <span className="text-[11px] text-[#9a9a8a]">{pitch.followers}</span>
+                          <span className="text-[14px] font-medium text-white/90">{pitch.playlistName}</span>
+                          <span className="text-[11px] text-white/50">{pitch.platform}</span>
+                          <span className="text-[11px] text-white/50">{pitch.followers}</span>
                         </div>
-                        <div className="mt-0.5 text-[11px] text-[#9a9a8a]">
+                        <div className="mt-0.5 text-[11px] text-white/50">
                           &ldquo;{pitch.songTitle}&rdquo; · {pitch.primaryGenre} · {pitch.fitScore}% fit
                           {pitch.sentDate ? ` · Sent ${pitch.sentDate}` : ""}
                         </div>
@@ -416,11 +553,11 @@ export default function SignalPage() {
                     </button>
 
                     {isExpanded && (
-                      <div className="border-t border-black/[0.06] bg-[#fafaf8] px-4 py-4 space-y-3">
+                      <div className="border-t border-white/8 bg-white/5 px-4 py-4 space-y-3">
                         {song && (
                           <div>
-                            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.15em] text-[#9a9a8a]">Generated pitch</div>
-                            <pre className="whitespace-pre-wrap rounded-lg border-[0.5px] border-black/10 bg-white p-3 text-[12px] leading-5 text-[#514d47]">
+                            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.15em] text-white/50">Generated pitch</div>
+                            <pre className="whitespace-pre-wrap rounded-lg border-[0.5px] border-white/8 bg-white/5 p-3 text-[12px] leading-5 text-white/60">
                               {generatePitchEmail(pitch, song)}
                             </pre>
                           </div>
@@ -437,8 +574,8 @@ export default function SignalPage() {
                           )}
                           {song && (
                             <a
-                              href={`mailto:${pitch.curatorHandle}@gmail.com?subject=${encodeURIComponent(`${profile.artistName ?? "Artist"} — "${song.title}" for ${pitch.playlistName}`)}&body=${encodeURIComponent(generatePitchEmail(pitch, song))}`}
-                              className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-xs text-[#111]"
+                              href={`mailto:?subject=${encodeURIComponent(`${profile.artistName ?? "Artist"} — "${song.title}" for ${pitch.playlistName}`)}&body=${encodeURIComponent(generatePitchEmail(pitch, song))}`}
+                              className="rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-xs text-white/90"
                             >
                               Open in Mail →
                             </a>
@@ -448,7 +585,7 @@ export default function SignalPage() {
                             onClick={async () => {
                               if (song) await navigator.clipboard.writeText(generatePitchEmail(pitch, song));
                             }}
-                            className="rounded-lg border-[0.5px] border-black/15 px-3 py-1.5 text-xs text-[#6b6b65]"
+                            className="rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-xs text-white/50"
                           >
                             Copy pitch
                           </button>
@@ -463,14 +600,35 @@ export default function SignalPage() {
         </section>
 
         {/* Notification info */}
-        <section className="rounded-[24px] glass card-shadow px-5 py-4">
+        <section className="rounded-[24px] glass card-shadow px-5 py-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 size-8 shrink-0 rounded-full bg-[#ef9f27]/10 text-center text-[16px] leading-8">⚡</div>
             <div>
-              <div className="text-sm font-medium text-[#111]">How pitch tracking works</div>
-              <p className="mt-1 text-[13px] leading-5 text-[#6b6b65]">
-                We track when curators open your pitch email or reply. When a placement is confirmed or declined, the status updates here automatically — you&apos;ll see it under Opened, Placed, or Declined without needing to click anything.
+              <div className="text-sm font-medium text-white/90">How pitch tracking works</div>
+              <p className="mt-1 text-[13px] leading-5 text-white/50">
+                &ldquo;Open in Mail&rdquo; launches your email app with the pitch pre-written — just add the curator&apos;s real email in the To field. When they respond, tap the pitch to update its status manually.
               </p>
+            </div>
+          </div>
+          <div className="border-t border-white/8 pt-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 mb-2">Find real curator contacts</div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "SubmitHub", href: "https://www.submithub.com", hint: "Pay-per-pitch, guaranteed feedback" },
+                { label: "Groover", href: "https://groover.co", hint: "European curators, €2/contact" },
+                { label: "Playlist Supply", href: "https://playlistsupply.com", hint: "Spotify playlist curator database" },
+              ].map((r) => (
+                <a
+                  key={r.label}
+                  href={r.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col rounded-xl border-[0.5px] border-white/8 bg-white/5 px-3 py-2 text-left transition hover:bg-white/5"
+                >
+                  <span className="text-[12px] font-medium text-white/90">{r.label} →</span>
+                  <span className="text-[10px] text-white/50">{r.hint}</span>
+                </a>
+              ))}
             </div>
           </div>
         </section>
@@ -484,8 +642,8 @@ export default function SignalPage() {
             { href: "/career-twin", title: "Career twin", body: "See which artists were at your exact stage 2–3 years ago and what move broke them through." },
           ].map((area) => (
             <Link key={area.href} href={area.href} className="rounded-[20px] glass card-shadow p-5 press">
-              <div className="text-[14px] font-medium text-[#111]">{area.title}</div>
-              <p className="mt-1.5 text-sm leading-6 text-[#6b6b65]">{area.body}</p>
+              <div className="text-[14px] font-medium text-white/90">{area.title}</div>
+              <p className="mt-1.5 text-sm leading-6 text-white/50">{area.body}</p>
             </Link>
           ))}
         </section>

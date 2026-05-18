@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
@@ -53,7 +52,6 @@ const PLANS = [
 ];
 
 export default function SettingsPage() {
-  const router = useRouter();
   const [upgraded, setUpgraded] = useState<string | null>(null);
   const [trialStarted, setTrialStarted] = useState(false);
   useEffect(() => {
@@ -64,6 +62,8 @@ export default function SettingsPage() {
   const { platformConnections, profile, signedIn, signOut, songs, updateProfile } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   // Mark plan upgrade from Stripe redirect
   if (upgraded && profile.plan !== upgraded) {
@@ -75,6 +75,7 @@ export default function SettingsPage() {
 
   async function startCheckout(planId: string) {
     setCheckingOut(planId);
+    setBillingError(null);
     try {
       const res = await fetch("/api/v1/billing/checkout", {
         method: "POST",
@@ -86,25 +87,66 @@ export default function SettingsPage() {
           cancelUrl: `${window.location.origin}/settings`,
         }),
       });
-      const data = await res.json() as { url?: string; mock?: boolean };
-      if (data.url) {
-        if (data.mock) {
-          // Dev mode — simulate success without Stripe
-          router.push(`/settings?upgraded=${planId}`);
-        } else {
-          window.location.href = data.url;
-        }
+      const data = await res.json() as { url?: string; error?: string };
+
+      if (!res.ok) {
+        setBillingError(data.error ?? "Billing is unavailable right now.");
+        return;
       }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      setBillingError("Billing session could not be created.");
     } catch {
-      // noop — user stays on page
+      setBillingError("Billing is unavailable right now.");
     } finally {
       setCheckingOut(null);
     }
   }
 
+  async function openBillingPortal() {
+    if (!profile.stripeCustomerId) {
+      setBillingError("This account does not have an active billing customer yet.");
+      return;
+    }
+
+    setOpeningPortal(true);
+    setBillingError(null);
+    try {
+      const res = await fetch("/api/v1/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId: profile.stripeCustomerId,
+          returnUrl: `${window.location.origin}/settings`,
+        }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+
+      if (!res.ok) {
+        setBillingError(data.error ?? "Billing portal is unavailable right now.");
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      setBillingError("Billing portal could not be opened.");
+    } catch {
+      setBillingError("Billing portal is unavailable right now.");
+    } finally {
+      setOpeningPortal(false);
+    }
+  }
+
   return (
     <AppShell title="Profile" eyebrow="Operations">
-      <main className="mx-auto max-w-3xl space-y-4 text-[#111]">
+      <main className="mx-auto max-w-3xl space-y-4 text-white/90">
         <section className="rounded-[24px] glass-dark card-shadow-dark p-6 text-white">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -150,10 +192,13 @@ export default function SettingsPage() {
 
         {/* Trial started banner */}
         {trialStarted && (
-          <div className="rounded-[16px] border-[0.5px] border-[#97c459]/50 bg-[#eaf3de] px-4 py-3 text-sm text-[#3b6d11]">
+          <div className="rounded-[16px] border-[0.5px] border-[#5fcf7e]/30 bg-[#5fcf7e]/10 px-4 py-3 text-sm text-[#5fcf7e]">
             Pro trial started. Full access unlocked for 7 days.
           </div>
         )}
+
+        {/* Goals & target — editable */}
+        <GoalsEditor />
 
         <SpotifyArtistIdInput />
 
@@ -162,7 +207,7 @@ export default function SettingsPage() {
 
         {/* Pricing tiers */}
         <section className="space-y-3">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Subscription</div>
+          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Subscription</div>
           <div className="grid gap-3 sm:grid-cols-3">
             {PLANS.map((plan) => {
               const isActive = profile.plan === plan.id;
@@ -177,7 +222,7 @@ export default function SettingsPage() {
                 } ${
                   plan.highlight
                     ? "glass-dark card-shadow-dark text-white"
-                    : "glass card-shadow text-[#111]"
+                    : "glass card-shadow text-white/90"
                 }`}
               >
                 <div className="px-4 py-4">
@@ -201,7 +246,7 @@ export default function SettingsPage() {
                   </ul>
                 </div>
                 {plan.cta && !isActive && (
-                  <div className={`border-t px-4 py-3 ${plan.highlight ? "border-white/10" : "border-black/10"}`}>
+                  <div className={`border-t px-4 py-3 ${plan.highlight ? "border-white/10" : "border-white/[0.07]"}`}>
                     <button
                       type="button"
                       onClick={() => startCheckout(plan.id)}
@@ -220,9 +265,24 @@ export default function SettingsPage() {
               );
             })}
           </div>
-          <p className="mt-3 text-[11px] text-[#9a9a8a]">
+          <p className="mt-3 text-[11px] text-white/50">
             Cancel anytime. 7-day free trial on Pro. No card needed during trial.
           </p>
+          {profile.stripeCustomerId ? (
+            <button
+              type="button"
+              onClick={openBillingPortal}
+              disabled={openingPortal}
+              className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+            >
+              {openingPortal ? "Opening billing…" : "Manage billing"}
+            </button>
+          ) : null}
+          {billingError ? (
+            <p className="mt-3 rounded-xl border border-[#e24b4a]/20 bg-[#e24b4a]/10 px-3 py-2 text-xs text-[#f5b3b3]">
+              {billingError}
+            </p>
+          ) : null}
         </section>
 
         {signedIn ? (
@@ -241,16 +301,17 @@ const API_INTEGRATIONS = [
   { name: "TheAudioDB", description: "Artist bios, photos, album art (free tier)", free: true, envKey: null },
   { name: "Bandsintown", description: "Live events and show data", free: true, envKey: null },
   { name: "Lyrics.ovh", description: "Song lyrics lookup", free: true, envKey: null },
+  { name: "Odesli / song.link", description: "Streaming links across all DSPs from any ISRC — no key needed", free: true, envKey: null },
+  { name: "Deezer", description: "Global charts, artist data, track search — no key needed", free: true, envKey: null },
   { name: "Last.fm", description: "Similar artists, listener counts", free: true, envKey: "LASTFM_API_KEY" },
   { name: "TasteDive", description: "Similar artist recommendations for Career Twin", free: true, envKey: "TASTEDIVE_API_KEY" },
   { name: "Genius", description: "Lyrics, annotations, song knowledge", free: true, envKey: "GENIUS_ACCESS_TOKEN" },
+  { name: "Resend", description: "In-app email sending for pitch campaigns", free: true, envKey: "RESEND_API_KEY" },
+  { name: "Groq", description: "AI pitch generation (free tier)", free: true, envKey: "GROQ_API_KEY" },
   { name: "Musixmatch", description: "Synchronized lyrics, lyric snippets", free: false, envKey: "MUSIXMATCH_API_KEY" },
-  { name: "MusicFetch", description: "Auto-generate links for 40+ DSPs from ISRC", free: false, envKey: "MUSICFETCH_TOKEN" },
   { name: "Songstats", description: "Live streaming stats, playlist placements", free: false, envKey: "SONGSTATS_API_KEY" },
   { name: "Radiostats", description: "Radio airplay analytics", free: false, envKey: "SONGSTATS_API_KEY" },
   { name: "AI Mastering", description: "Automated audio mastering (premium)", free: false, envKey: "AIMASTERING_API_KEY" },
-  { name: "Resend", description: "In-app email sending for pitch campaigns", free: true, envKey: "RESEND_API_KEY" },
-  { name: "Groq", description: "AI pitch generation (free tier)", free: true, envKey: "GROQ_API_KEY" },
 ];
 
 function ApiIntegrationsStatus() {
@@ -260,51 +321,117 @@ function ApiIntegrationsStatus() {
 
   return (
     <section className="rounded-[20px] glass card-shadow p-5">
-      <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">API integrations</div>
+      <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">API integrations</div>
 
       <div className="mb-4">
-        <div className="mb-2 text-[11px] font-medium text-[#3b6d11]">Active — no key needed</div>
+        <div className="mb-2 text-[11px] font-medium text-[#5fcf7e]">Active — no key needed</div>
         <div className="space-y-1.5">
           {freeApis.map((api) => (
-            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#f0f7e6] px-3 py-2">
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#5fcf7e]/8 px-3 py-2">
               <div>
-                <span className="text-sm font-medium text-[#111]">{api.name}</span>
-                <span className="ml-2 text-xs text-[#6b6b65]">{api.description}</span>
+                <span className="text-sm font-medium text-white/90">{api.name}</span>
+                <span className="ml-2 text-xs text-white/50">{api.description}</span>
               </div>
-              <span className="text-[10px] font-medium text-[#3b6d11]">✓ Active</span>
+              <span className="text-[10px] font-medium text-[#5fcf7e]">✓ Active</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="mb-4">
-        <div className="mb-2 text-[11px] font-medium text-[#854f0b]">Free — add key to Vercel</div>
+        <div className="mb-2 text-[11px] font-medium text-[#f0a832]">Free — add key to Vercel</div>
         <div className="space-y-1.5">
           {freeWithKey.map((api) => (
-            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#fef9f0] px-3 py-2">
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#f0a832]/8 px-3 py-2">
               <div>
-                <span className="text-sm font-medium text-[#111]">{api.name}</span>
-                <span className="ml-2 text-xs text-[#6b6b65]">{api.description}</span>
+                <span className="text-sm font-medium text-white/90">{api.name}</span>
+                <span className="ml-2 text-xs text-white/50">{api.description}</span>
               </div>
-              <code className="text-[10px] text-[#854f0b]">{api.envKey}</code>
+              <code className="text-[10px] text-[#f0a832]">{api.envKey}</code>
             </div>
           ))}
         </div>
       </div>
 
       <div>
-        <div className="mb-2 text-[11px] font-medium text-[#9a9a8a]">Paid API — requires subscription</div>
+        <div className="mb-2 text-[11px] font-medium text-white/50">Paid API — requires subscription</div>
         <div className="space-y-1.5">
           {paidApis.map((api) => (
-            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#f8f6f1] px-3 py-2">
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
               <div>
-                <span className="text-sm font-medium text-[#111]">{api.name}</span>
-                <span className="ml-2 text-xs text-[#6b6b65]">{api.description}</span>
+                <span className="text-sm font-medium text-white/90">{api.name}</span>
+                <span className="ml-2 text-xs text-white/50">{api.description}</span>
               </div>
-              <code className="text-[10px] text-[#9a9a8a]">{api.envKey}</code>
+              <code className="text-[10px] text-white/50">{api.envKey}</code>
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function GoalsEditor() {
+  const { profile, updateProfile } = usePocket();
+  const [goal, setGoal] = useState(profile.mainGoal ?? "");
+  const [window, setWindow] = useState(profile.targetWindow ?? "");
+  const [artistName, setArtistName] = useState(profile.artistName ?? "");
+  const [managerName, setManagerName] = useState(profile.managerName ?? "");
+  const [saved, setSaved] = useState(false);
+
+  function save() {
+    updateProfile({ mainGoal: goal.trim(), targetWindow: window.trim(), artistName: artistName.trim() || profile.artistName, managerName: managerName.trim() || undefined });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <section className="rounded-[20px] glass card-shadow p-5">
+      <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Artist & goals</div>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-[11px] text-white/40 mb-1.5">Artist name</label>
+          <input
+            value={artistName}
+            onChange={(e) => setArtistName(e.target.value)}
+            placeholder="Your artist or band name"
+            className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50 placeholder:text-white/30"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] text-white/40 mb-1.5">AI manager name</label>
+          <input
+            value={managerName}
+            onChange={(e) => setManagerName(e.target.value)}
+            placeholder="e.g. REMY — leave blank for default"
+            className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50 placeholder:text-white/30"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] text-white/40 mb-1.5">Main goal right now</label>
+          <input
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            placeholder="e.g. Release my EP and get 5 playlist placements"
+            className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50 placeholder:text-white/30"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] text-white/40 mb-1.5">Target release window</label>
+          <input
+            value={window}
+            onChange={(e) => setWindow(e.target.value)}
+            placeholder="e.g. Q3 2026 · August · 90 days"
+            className="w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 py-2.5 text-sm text-white/90 outline-none transition focus:border-[#7c6fef]/50 placeholder:text-white/30"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={save}
+          className="btn-electric w-full py-2.5 text-sm font-medium press"
+        >
+          {saved ? "Saved ✓" : "Save"}
+        </button>
       </div>
     </section>
   );
@@ -331,20 +458,20 @@ function SpotifyArtistIdInput() {
 
   return (
     <section className="rounded-[20px] glass card-shadow p-5">
-      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-[#5d5a54]">Integrations</div>
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Integrations</div>
       <div className="space-y-3">
         <div>
-          <label className="block text-sm text-[#514d47]">
-            <span className="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-[#9a9a8a]">Spotify artist URL or ID</span>
+          <label className="block text-sm text-white/60">
+            <span className="mb-1.5 block text-[11px] uppercase tracking-[0.12em] text-white/50">Spotify artist URL or ID</span>
             <input
               type="text"
               value={value}
               onChange={(e) => { setValue(e.target.value); setSaved(false); }}
               placeholder="https://open.spotify.com/artist/... or paste the ID"
-              className="h-10 w-full rounded-lg border-[0.5px] border-black/15 bg-white px-3 text-sm text-[#111] outline-none placeholder:text-[#bbb]"
+              className="h-10 w-full rounded-lg border-[0.5px] border-white/[0.08] bg-white/8 px-3 text-sm text-white/90 outline-none placeholder:text-white/30"
             />
           </label>
-          <p className="mt-1.5 text-[11px] text-[#9a9a8a]">Used to pull live stream counts and top playlists via Songstats on your song pages.</p>
+          <p className="mt-1.5 text-[11px] text-white/50">Used to pull live stream counts and top playlists via Songstats on your song pages.</p>
           <button
             type="button"
             onClick={save}
@@ -373,10 +500,10 @@ function ProfileLink({ href, title, detail, body }: { href: string; title: strin
     <Link href={href} className="rounded-[20px] glass card-shadow p-5 press block">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="text-[15px] font-medium text-[#111]">{title}</div>
-          <p className="mt-2 text-sm leading-6 text-[#514d47]">{body}</p>
+          <div className="text-[15px] font-medium text-white/90">{title}</div>
+          <p className="mt-2 text-sm leading-6 text-white/60">{body}</p>
         </div>
-        <span className="shrink-0 rounded-full bg-white px-3 py-1 text-[11px] font-medium text-[#6b6b65]">{detail}</span>
+        <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-white/50">{detail}</span>
       </div>
     </Link>
   );

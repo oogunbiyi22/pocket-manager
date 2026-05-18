@@ -13,8 +13,12 @@ export async function POST(req: NextRequest) {
     const returnUrl = body.returnUrl ?? `${origin}/settings`;
 
     const stripe = getStripe();
-    if (!stripe || !body.customerId) {
-      return NextResponse.json({ url: returnUrl, mock: true });
+    if (!stripe) {
+      return NextResponse.json({ error: "Billing portal is not configured yet." }, { status: 503 });
+    }
+
+    if (!body.customerId) {
+      return NextResponse.json({ error: "No Stripe customer is linked to this account yet." }, { status: 400 });
     }
 
     const session = await stripe.billingPortal.sessions.create({
