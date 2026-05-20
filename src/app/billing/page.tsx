@@ -4,59 +4,68 @@ import { useState, useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 
+type BillingInterval = "monthly" | "annual";
+
 const PLANS = [
   {
     id: "free",
     name: "Free",
-    price: "$0",
-    interval: "",
-    tagline: "Get started",
+    monthly: 0,
+    annual: 0,
+    tagline: "Start tracking your catalog",
     features: [
-      "Gap range estimates",
-      "Up to 3 songs",
-      "Top 1 priority action",
-      "Basic readiness score",
+      { text: "Up to 3 songs", included: true },
+      { text: "Gap range estimates", included: true },
+      { text: "Basic readiness score", included: true },
+      { text: "1 priority action per song", included: true },
+      { text: "Unlimited songs", included: false },
+      { text: "AI manager chat", included: false },
+      { text: "Signal + Harvest exports", included: false },
     ],
     cta: null,
+    badge: null,
   },
   {
     id: "pro",
     name: "Pro",
-    price: "$9",
-    interval: "/mo",
-    tagline: "For working artists",
+    monthly: 9,
+    annual: 7,
+    tagline: "For artists building momentum",
     features: [
-      "Exact gap dollar amounts",
-      "Unlimited songs",
-      "Full prioritized action queue",
-      "Signal + Harvest exports",
-      "A — AI manager chat",
-      "Release Radar milestone tracking",
-      "Split sheet generation",
+      { text: "Unlimited songs", included: true },
+      { text: "Exact gap dollar amounts", included: true },
+      { text: "Full prioritized action queue", included: true },
+      { text: "A — AI manager chat", included: true },
+      { text: "Signal + Harvest exports", included: true },
+      { text: "Release Radar milestones", included: true },
+      { text: "Split sheet generation", included: true },
     ],
-    cta: "Start free trial",
-    trialNote: "7 days free · no card needed",
+    cta: "Start 7-day free trial",
+    trialNote: "No card needed during trial",
+    badge: "Most popular",
   },
   {
     id: "elite",
     name: "Elite",
-    price: "$29",
-    interval: "/mo",
-    tagline: "For serious catalogues",
+    monthly: 29,
+    annual: 23,
+    tagline: "For artists with a serious catalog",
     features: [
-      "Everything in Pro",
-      "Contract scanner",
-      "Catalog valuation report",
-      "Sync brief matching",
-      "Priority A responses",
-      "White-label EPK",
+      { text: "Everything in Pro", included: true },
+      { text: "Contract scanner + analysis", included: true },
+      { text: "Catalog valuation report", included: true },
+      { text: "Sync brief matching", included: true },
+      { text: "Priority AI responses", included: true },
+      { text: "White-label EPK", included: true },
     ],
     cta: "Upgrade to Elite",
+    badge: null,
   },
 ];
 
 export default function BillingPage() {
   const { profile, updateProfile } = usePocket();
+  const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +94,9 @@ export default function BillingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan: planId,
+          interval,
           email: profile.email ?? undefined,
-          successUrl: `${window.location.origin}/billing?upgraded=${planId}&session_id={CHECKOUT_SESSION_ID}`,
+          successUrl: `${window.location.origin}/billing?upgraded=${planId}`,
           cancelUrl: `${window.location.origin}/billing`,
         }),
       });
@@ -102,10 +112,7 @@ export default function BillingPage() {
   }
 
   async function openPortal() {
-    if (!profile.stripeCustomerId) {
-      setError("No active billing account found.");
-      return;
-    }
+    if (!profile.stripeCustomerId) { setError("No active billing account found."); return; }
     setOpeningPortal(true);
     setError(null);
     try {
@@ -130,123 +137,167 @@ export default function BillingPage() {
 
   return (
     <AppShell title="" eyebrow="">
-      <main className="mx-auto max-w-3xl space-y-5">
+      <main className="mx-auto max-w-3xl space-y-6">
 
+        {/* Header */}
         <header className="px-1 pt-2">
           <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Billing</div>
-          <div className="text-[15px] text-white/90">Subscription & plan</div>
+          <div className="text-[22px] font-light text-white/90 mt-0.5">Choose your plan</div>
         </header>
 
-        {/* Current plan banner */}
-        <section className="rounded-[20px] glass-dark card-shadow-dark px-5 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-white/40 mb-1">Current plan</div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-light text-white">{currentPlan.name}</span>
-                <span className="rounded-full bg-[#97c459]/15 px-2.5 py-0.5 text-[10px] font-semibold text-[#97c459]">Active</span>
-              </div>
-              <div className="mt-1 text-[13px] text-white/50">{currentPlan.price}{currentPlan.interval} · {currentPlan.tagline}</div>
-            </div>
-            {profile.stripeCustomerId ? (
-              <button
-                type="button"
-                onClick={openPortal}
-                disabled={openingPortal}
-                className="rounded-xl border border-white/15 bg-white/8 px-4 py-2 text-[13px] text-white/80 transition hover:bg-white/12 disabled:opacity-50"
-              >
-                {openingPortal ? "Opening…" : "Manage billing"}
-              </button>
-            ) : null}
+        {/* Success banners */}
+        {(trialStarted || upgraded) && (
+          <div className="rounded-[16px] border border-[#5fcf7e]/25 bg-[#5fcf7e]/10 px-5 py-3 text-[13px] text-[#5fcf7e]">
+            {trialStarted
+              ? "Pro trial active — full access unlocked for 7 days."
+              : `You're on ${upgraded?.charAt(0).toUpperCase()}${upgraded?.slice(1)}. All features unlocked.`}
           </div>
+        )}
 
-          {trialStarted && (
-            <div className="mt-4 rounded-xl border border-[#5fcf7e]/25 bg-[#5fcf7e]/10 px-4 py-3 text-[13px] text-[#5fcf7e]">
-              Pro trial active — full access unlocked for 7 days.
-            </div>
+        {/* Current plan strip */}
+        <div className="flex items-center justify-between rounded-[16px] glass px-5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-[#97c459]" />
+            <span className="text-[13px] text-white/70">
+              Current plan: <span className="text-white font-medium">{currentPlan.name}</span>
+            </span>
+          </div>
+          {profile.stripeCustomerId && (
+            <button
+              type="button"
+              onClick={openPortal}
+              disabled={openingPortal}
+              className="text-[12px] text-white/50 hover:text-white/80 transition disabled:opacity-40"
+            >
+              {openingPortal ? "Opening…" : "Manage billing →"}
+            </button>
           )}
-          {upgraded && (
-            <div className="mt-4 rounded-xl border border-[#97c459]/25 bg-[#97c459]/10 px-4 py-3 text-[13px] text-[#97c459]">
-              You're on {upgraded.charAt(0).toUpperCase() + upgraded.slice(1)}. All features unlocked.
-            </div>
-          )}
-        </section>
+        </div>
+
+        {/* Interval toggle */}
+        <div className="flex items-center justify-center">
+          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
+            <button
+              type="button"
+              onClick={() => setInterval("monthly")}
+              className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition ${
+                interval === "monthly" ? "bg-white/15 text-white" : "text-white/45 hover:text-white/70"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterval("annual")}
+              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] font-medium transition ${
+                interval === "annual" ? "bg-white/15 text-white" : "text-white/45 hover:text-white/70"
+              }`}
+            >
+              Annual
+              <span className="rounded-full bg-[#97c459]/20 px-1.5 py-0.5 text-[9px] font-semibold text-[#97c459]">
+                Save 20%
+              </span>
+            </button>
+          </div>
+        </div>
 
         {/* Plan cards */}
         <div className="grid gap-3 sm:grid-cols-3">
           {PLANS.map((plan) => {
             const isActive = profile.plan === plan.id;
+            const price = interval === "annual" ? plan.annual : plan.monthly;
             const isDowngrade = (plan.id === "free" && profile.plan !== "free") ||
               (plan.id === "pro" && profile.plan === "elite");
 
             return (
               <div
                 key={plan.id}
-                className={`flex flex-col rounded-[20px] overflow-hidden ${
-                  isActive
-                    ? "ring-1 ring-[#97c459]/60 glass-dark card-shadow-dark"
+                className={`relative flex flex-col rounded-[20px] overflow-hidden ${
+                  plan.id === "pro"
+                    ? "glass-dark card-shadow-dark ring-1 ring-white/10"
                     : "glass card-shadow"
-                }`}
+                } ${isActive ? "ring-1 ring-[#97c459]/50" : ""}`}
               >
-                <div className="flex-1 px-5 py-5">
-                  {isActive && (
-                    <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[#97c459]">
-                      Current plan
-                    </div>
-                  )}
-                  {plan.id === "pro" && !isActive && (
-                    <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[#ef9f27]">
-                      Most popular
-                    </div>
-                  )}
-                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">{plan.name}</div>
-                  <div className="mt-2 flex items-baseline gap-0.5">
-                    <span className="text-[30px] font-light leading-none text-white">{plan.price}</span>
-                    {plan.interval && <span className="text-sm text-white/40">{plan.interval}</span>}
+                {plan.badge && !isActive && (
+                  <div className="absolute top-0 left-0 right-0 flex justify-center">
+                    <span className="rounded-b-full bg-[#ef9f27] px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
+                      {plan.badge}
+                    </span>
                   </div>
-                  <div className="mt-1 text-[12px] text-white/40">{plan.tagline}</div>
-                  <ul className="mt-4 space-y-2">
+                )}
+                {isActive && (
+                  <div className="absolute top-0 left-0 right-0 flex justify-center">
+                    <span className="rounded-b-full bg-[#97c459] px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
+                      Your plan
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex-1 px-5 pt-8 pb-5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">{plan.name}</div>
+                  <div className="mt-3 flex items-end gap-1">
+                    <span className="text-[38px] font-light leading-none text-white">
+                      ${price}
+                    </span>
+                    {price > 0 && (
+                      <span className="mb-1.5 text-[13px] text-white/40">/mo</span>
+                    )}
+                  </div>
+                  {interval === "annual" && price > 0 && (
+                    <div className="mt-0.5 text-[11px] text-white/40">
+                      Billed ${price * 12}/yr
+                    </div>
+                  )}
+                  <div className="mt-2 text-[12px] text-white/50 leading-relaxed">{plan.tagline}</div>
+
+                  <ul className="mt-5 space-y-2.5">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-[12px] text-white/65">
-                        <span className="mt-0.5 shrink-0 text-[#97c459]">✓</span>
-                        <span>{f}</span>
+                      <li key={f.text} className={`flex items-start gap-2 text-[12px] ${f.included ? "text-white/75" : "text-white/25 line-through"}`}>
+                        <span className={`mt-0.5 shrink-0 text-[11px] font-bold ${f.included ? "text-[#97c459]" : "text-white/20"}`}>
+                          {f.included ? "✓" : "×"}
+                        </span>
+                        {f.text}
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {plan.cta && !isActive && !isDowngrade && (
-                  <div className="border-t border-white/8 px-5 py-4">
-                    <button
-                      type="button"
-                      onClick={() => startCheckout(plan.id)}
-                      disabled={checkingOut === plan.id}
-                      className={`w-full rounded-xl py-2.5 text-[13px] font-medium transition disabled:opacity-50 ${
-                        plan.id === "pro"
-                          ? "bg-white text-[#0d0d0b] hover:bg-white/90"
-                          : "border border-white/20 bg-white/8 text-white hover:bg-white/12"
-                      }`}
-                    >
-                      {checkingOut === plan.id ? "Opening…" : plan.cta}
-                    </button>
-                    {"trialNote" in plan && plan.trialNote ? (
-                      <div className="mt-2 text-center text-[11px] text-white/35">{plan.trialNote}</div>
-                    ) : null}
-                  </div>
-                )}
-
-                {isActive && plan.id !== "free" && (
-                  <div className="border-t border-white/8 px-5 py-4">
-                    <button
-                      type="button"
-                      onClick={openPortal}
-                      disabled={openingPortal}
-                      className="w-full rounded-xl border border-white/15 bg-white/5 py-2.5 text-[13px] text-white/60 transition hover:bg-white/10 disabled:opacity-50"
-                    >
-                      {openingPortal ? "Opening…" : "Manage or cancel"}
-                    </button>
-                  </div>
-                )}
+                <div className="px-5 pb-5">
+                  {plan.cta && !isActive && !isDowngrade ? (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => startCheckout(plan.id)}
+                        disabled={checkingOut === plan.id}
+                        className={`w-full rounded-xl py-3 text-[13px] font-semibold transition disabled:opacity-50 ${
+                          plan.id === "pro"
+                            ? "bg-white text-[#0d0d0b] hover:bg-white/90"
+                            : "border border-white/20 bg-white/8 text-white hover:bg-white/12"
+                        }`}
+                      >
+                        {checkingOut === plan.id ? "Opening…" : plan.cta}
+                      </button>
+                      {"trialNote" in plan && plan.trialNote && (
+                        <div className="mt-2 text-center text-[11px] text-white/30">{plan.trialNote}</div>
+                      )}
+                    </div>
+                  ) : isActive ? (
+                    plan.id !== "free" ? (
+                      <button
+                        type="button"
+                        onClick={openPortal}
+                        disabled={openingPortal}
+                        className="w-full rounded-xl border border-white/12 bg-white/5 py-2.5 text-[12px] text-white/50 transition hover:bg-white/10 disabled:opacity-40"
+                      >
+                        {openingPortal ? "Opening…" : "Manage or cancel"}
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-[#97c459]/20 bg-[#97c459]/8 py-2.5 text-center text-[12px] text-[#97c459]">
+                        Active plan
+                      </div>
+                    )
+                  ) : null}
+                </div>
               </div>
             );
           })}
@@ -258,9 +309,10 @@ export default function BillingPage() {
           </div>
         )}
 
-        <p className="px-1 text-[11px] text-white/35">
-          Cancel anytime from the billing portal. Paid plans renew monthly. No hidden fees.
-        </p>
+        {/* Footer note */}
+        <div className="flex flex-col items-center gap-1 pb-4 text-center">
+          <p className="text-[11px] text-white/30">Cancel anytime · No hidden fees · Annual plans billed upfront</p>
+        </div>
 
       </main>
     </AppShell>
