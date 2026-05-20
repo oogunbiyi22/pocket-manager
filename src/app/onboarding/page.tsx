@@ -56,10 +56,12 @@ export default function OnboardingPage() {
   const [pro, setPro] = useState("");
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [gapRevealed, setGapRevealed] = useState(false);
+  const [createdSongId, setCreatedSongId] = useState<string | null>(null);
+  const postOnboardingRoute = createdSongId ? `/projects/${createdSongId}` : songs[0] ? `/projects/${songs[0].id}` : "/mobile";
 
   useEffect(() => {
     if (signedIn && profile.onboarded) {
-      router.replace("/home");
+      router.replace("/mobile");
     }
   }, [profile.onboarded, router, signedIn]);
 
@@ -234,7 +236,8 @@ export default function OnboardingPage() {
                       type="button"
                       disabled={!songTitle.trim()}
                       onClick={() => {
-                        createSong({ title: songTitle.trim(), isrc: isrc.trim(), releaseDate, distributor });
+                        const songId = createSong({ title: songTitle.trim(), isrc: isrc.trim(), releaseDate, distributor });
+                        setCreatedSongId(songId ?? null);
                         next();
                       }}
                       className="h-11 rounded-xl bg-white text-sm font-medium text-[#0d0d0b] disabled:opacity-30 press"
@@ -274,7 +277,8 @@ export default function OnboardingPage() {
                       type="button"
                       disabled={songTitle.trim().length < 2}
                       onClick={() => {
-                        createSong({ title: songTitle.trim(), isrc: "", releaseDate, distributor });
+                        const songId = createSong({ title: songTitle.trim(), isrc: "", releaseDate, distributor });
+                        setCreatedSongId(songId ?? null);
                         next();
                       }}
                       className="h-11 rounded-xl bg-white text-sm font-medium text-[#0d0d0b] disabled:opacity-30 press"
@@ -446,11 +450,11 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => {
                   completeOnboarding({ artistName: artistName.trim() || profile.artistName || "Artist", role: role.trim() || profile.role || "", vibe: "", currentProject: "", targetWindow: "", mainGoal: "" });
-                  if (signedIn) { router.push("/home"); } else { next(); }
+                  if (signedIn) { router.push(postOnboardingRoute); } else { next(); }
                 }}
                 className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] press"
               >
-                {signedIn ? "Enter the app →" : "Start collecting →"}
+                {signedIn ? "Open my first room →" : "Start collecting →"}
               </button>
             </div>
           )}
@@ -493,10 +497,10 @@ export default function OnboardingPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push("/home")}
+                  onClick={() => router.push(postOnboardingRoute)}
                   className="h-14 w-full rounded-2xl border-[0.5px] border-white/15 text-base text-white/60 press"
                 >
-                  Continue without account
+                  Open the app without account
                 </button>
               </div>
 

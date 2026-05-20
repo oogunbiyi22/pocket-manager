@@ -233,15 +233,15 @@ export default function NewProjectPage() {
   }
 
   return (
-    <AppShell title="Add Song" eyebrow="Catalog">
+    <AppShell title="Add Release" eyebrow="Open a room">
       <main className="mx-auto max-w-3xl space-y-4 text-white/90">
 
         {/* Hero */}
         <section className="overflow-hidden rounded-[24px] bg-[#0a0a0a] px-5 py-6 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/45">Add release</div>
-          <h2 className="mt-3 text-[32px] font-light leading-tight tracking-[-0.03em]">Start with one song.</h2>
+          <h2 className="mt-3 text-[32px] font-light leading-tight tracking-[-0.03em]">Open the room with one release.</h2>
           <p className="mt-2 text-sm leading-6 text-white/40">
-            Search and we auto-fill everything. Or just type the title and add details later.
+            Start simple: title first, details next. As soon as you save, Pocket opens the room and shows what to fix.
           </p>
         </section>
 
@@ -370,7 +370,7 @@ export default function NewProjectPage() {
                 {form.title.trim() ? `Add "${form.title}" to catalog →` : "Enter a song title to continue"}
               </button>
               <p className="mt-2 text-center text-[11px] text-white/50">
-                You can add ISRC, genre, and splits from inside the song room after saving.
+                You can finish ISRC, metadata, splits, and files inside the room right after saving.
               </p>
             </>
           )}

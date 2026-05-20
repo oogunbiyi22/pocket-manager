@@ -58,11 +58,11 @@ function IconProfile({ active }: { active: boolean }) {
 
 // ─── Navigation ────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { href: "/home",    label: "Home",    Icon: IconHome },
-  { href: "/work",    label: "Work",    Icon: IconWork },
-  { href: "/signal",  label: "Signal",  Icon: IconSignal },
-  { href: "/harvest", label: "Harvest", Icon: IconHarvest },
-  { href: "/profile", label: "Profile", Icon: IconProfile },
+  { href: "/mobile", label: "Home", Icon: IconHome },
+  { href: "/projects", label: "Rooms", Icon: IconWork },
+  { href: "/vault", label: "Vault", Icon: IconSignal },
+  { href: "/harvest", label: "Gap", Icon: IconHarvest },
+  { href: "/settings", label: "Settings", Icon: IconProfile },
 ] as const;
 
 function getActiveSurface(pathname: string): string {
@@ -72,22 +72,9 @@ function getActiveSurface(pathname: string): string {
     pathname.startsWith("/projects") ||
     pathname.startsWith("/albums") ||
     pathname.startsWith("/radar") ||
-    pathname.startsWith("/vault") ||
     pathname.startsWith("/guild")
-  ) return "Work";
-  if (
-    pathname.startsWith("/signal") ||
-    pathname.startsWith("/studio") ||
-    pathname.startsWith("/epk") ||
-    pathname.startsWith("/pitch-kits") ||
-    pathname.startsWith("/pitching") ||
-    pathname.startsWith("/career-twin") ||
-    pathname.startsWith("/sync") ||
-    pathname.startsWith("/booking") ||
-    pathname.startsWith("/events") ||
-    pathname.startsWith("/venues") ||
-    pathname.startsWith("/radio")
-  ) return "Signal";
+  ) return "Rooms";
+  if (pathname.startsWith("/vault")) return "Vault";
   if (
     pathname.startsWith("/harvest") ||
     pathname.startsWith("/financial") ||
@@ -98,15 +85,15 @@ function getActiveSurface(pathname: string): string {
     pathname.startsWith("/forecast") ||
     pathname.startsWith("/valuation") ||
     pathname.startsWith("/publishing")
-  ) return "Harvest";
+  ) return "Gap";
   if (
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/platforms") ||
     pathname.startsWith("/notifications")
-  ) return "Profile";
-  if (pathname.startsWith("/pocket") || pathname.startsWith("/drop") || pathname.startsWith("/capture")) return "Pocket";
-  if (pathname.startsWith("/a") || pathname.startsWith("/manager")) return "A";
+  ) return "Settings";
+  if (pathname.startsWith("/pocket") || pathname.startsWith("/drop") || pathname.startsWith("/capture")) return "Home";
+  if (pathname.startsWith("/a") || pathname.startsWith("/manager")) return "Home";
   return "Home";
 }
 
@@ -150,7 +137,7 @@ export function AppShell({
         }}
       >
         <div className="mx-auto flex max-w-7xl items-center gap-4">
-          <Link href="/home" className="shrink-0 press" style={{ opacity: 0.9 }}>
+          <Link href="/mobile" className="shrink-0 press" style={{ opacity: 0.9 }}>
             <LogoWordmark size={28} />
           </Link>
 

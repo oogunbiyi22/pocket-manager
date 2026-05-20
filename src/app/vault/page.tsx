@@ -39,7 +39,7 @@ export default function VaultPage() {
             The files your career depends on.
           </h2>
           <p className="text-[13px] leading-[1.7] text-white/40 max-w-[480px] mb-5">
-            Masters, artwork, split sheets, and contracts — tracked per song. Mark each as filed when you have it. Upload real files from inside any song room.
+            Masters, artwork, split sheets, and contracts — tracked per release. Upload the real files from each room and keep the package available when you need it.
           </p>
           <div className="flex gap-5 flex-wrap">
             {songs.length > 0 ? (
@@ -65,10 +65,10 @@ export default function VaultPage() {
         {songs.length === 0 ? (
           <section className="rounded-[20px] glass card-shadow p-12 text-center">
             <div className="text-3xl mb-4">🗄️</div>
-            <div className="text-[15px] font-medium text-[var(--text-primary)] mb-2">No releases yet</div>
-            <p className="text-[13px] text-[var(--text-muted)] mb-6">Add your first song to start tracking masters, artwork, and split sheets.</p>
+            <div className="text-[15px] font-medium text-[var(--text-primary)] mb-2">No release rooms yet</div>
+            <p className="text-[13px] text-[var(--text-muted)] mb-6">Add your first release, open the room, then start locking in masters, artwork, and split sheets.</p>
             <Link href="/projects/new" className="inline-block rounded-xl bg-[var(--bg-dark)] px-6 py-3 text-sm font-medium text-white">
-              Add release →
+              Open first room →
             </Link>
           </section>
         ) : (
@@ -153,7 +153,7 @@ export default function VaultPage() {
             ))}
           </div>
           <p className="mt-4 text-[11px] text-white/50">
-            Open any song room to upload and track real files. Vault status now reflects actual room assets instead of manual checkoffs.
+            Open any release room to upload and track real files. Vault status now reflects actual room assets instead of manual checkoffs.
           </p>
         </section>
 

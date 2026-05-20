@@ -95,6 +95,7 @@ export default function ProjectDetailPage() {
   const [splitSheetCopied, setSplitSheetCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [assetActionId, setAssetActionId] = useState<string | null>(null);
+  const [metadataNotice, setMetadataNotice] = useState<string | null>(null);
   const splitTotal = song?.collaborators.reduce((total, collaborator) => total + collaborator.ownershipPercentage, 0) ?? 0;
   const splitSheetText = !song ? "" : [
     "Pocket Manager split sheet preview",
@@ -198,6 +199,7 @@ export default function ProjectDetailPage() {
       ...metadataForm,
       bpm: metadataForm.bpm ? Number(metadataForm.bpm) : undefined,
     });
+    setMetadataNotice("Metadata saved to this room.");
   }
 
   async function copySplitSheet() {
@@ -259,6 +261,12 @@ export default function ProjectDetailPage() {
   const missingCriticalKinds = requiredAssetKinds.filter((kind) => !filedAssets.some((asset) => asset.kind === kind));
   const nextMissingKind = missingCriticalKinds[0] ?? null;
   const orderedAssets = [...filedAssets].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  const roomStateLabel = blockingCount === 0 ? "Room in strong shape" : blockingCount === 1 ? "1 blocker left" : `${blockingCount} blockers left`;
+  const roomStateDetail = topGapStream?.estimatedGap
+    ? `Biggest money move: ${topGapStream.collectionBody}.`
+    : missingCriticalKinds.length > 0
+      ? `Next file to lock in: ${getAssetKindLabel(nextMissingKind ?? "master")}.`
+      : "Core release path is looking solid.";
   const roomCommandPrompt = topGapStream?.estimatedGap
     ? `What should I do next for \"${title}\"? Walk me through fixing ${topGapStream.collectionBody} first.`
     : nextMissingKind
@@ -283,6 +291,12 @@ export default function ProjectDetailPage() {
                   ? `${song.isrc} · ${song.releaseDate} · ${song.territory}`
                   : "Add ISRC and platform registrations next."}
               </p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-white/55">
+                <span className={`size-1.5 rounded-full ${blockingCount === 0 ? "bg-[#5fcf7e]" : blockingCount <= 2 ? "bg-[#ef9f27]" : "bg-[#e24b4a]"}`} />
+                <span>{roomStateLabel}</span>
+                <span className="text-white/25">•</span>
+                <span>{roomStateDetail}</span>
+              </div>
             </div>
             {song && (
               <button
@@ -298,13 +312,19 @@ export default function ProjectDetailPage() {
         </section>
 
         {/* Readiness ring — 56px */}
-        <section className="flex items-center gap-4 border-y-[0.5px] border-white/10 bg-[#141412] px-5 py-4">
-          <LargeReadinessRing score={readinessScore} />
-          <div>
-            <div className="text-[15px] font-medium text-white">{readinessScore}% ready</div>
-            <p className="mt-1 text-sm text-white/35">
-              {blockingCount} item{blockingCount === 1 ? "" : "s"} blocking
-            </p>
+        <section className="flex items-center justify-between gap-4 border-y-[0.5px] border-white/10 bg-[#141412] px-5 py-4">
+          <div className="flex items-center gap-4">
+            <LargeReadinessRing score={readinessScore} />
+            <div>
+              <div className="text-[15px] font-medium text-white">{readinessScore}% ready</div>
+              <p className="mt-1 text-sm text-white/35">
+                {blockingCount === 0 ? "No core blockers right now." : `${blockingCount} item${blockingCount === 1 ? "" : "s"} still blocking this release.`}
+              </p>
+            </div>
+          </div>
+          <div className="hidden rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right md:block">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-white/35">Next best move</div>
+            <div className="mt-1 text-xs text-white/75">{topGapStream?.estimatedGap ? `Fix ${topGapStream.collectionBody}` : nextMissingKind ? `Upload ${getAssetKindLabel(nextMissingKind)}` : "Review the room"}</div>
           </div>
         </section>
 
@@ -533,7 +553,12 @@ export default function ProjectDetailPage() {
           <section id="metadata-panel" className="bg-transparent px-5 pb-5 text-white/90">
             <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Metadata</div>
             <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
-              <div className="mb-3 text-[13px] font-medium text-white/90">{metadataIntelligence.score}% complete</div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="text-[13px] font-medium text-white/90">{metadataIntelligence.score}% complete</div>
+                <div className="text-[11px] text-white/45">
+                  {song?.metadataComplete ? "Core release metadata is covered." : "Finish this before pitching and release week."}
+                </div>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   ["ISRC", "isrc"],
@@ -557,42 +582,19 @@ export default function ProjectDetailPage() {
                   </label>
                 ))}
               </div>
-              <button type="button" onClick={saveMetadata} className="mt-4 rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
-                Save metadata
-              </button>
-            </div>
-          </section>
-        ) : null}
-
-        {/* Live stats from Songstats */}
-        {song?.isrc && <SongstatsPanel isrc={song.isrc} spotifyArtistId={song.spotifyArtistId} />}
-
-        {/* Streaming links across all DSPs via MusicFetch */}
-        {song?.isrc && <MusicFetchPanel isrc={song.isrc} />}
-
-        {/* Emotional Story — pitch DNA */}
-        {song && (
-          <section className="bg-transparent px-5 pb-5 text-white/90">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Emotional story</div>
-            <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
-              <p className="mb-3 text-[11px] leading-5 text-white/50">
-                How did you feel when you made this song? Write it raw — this powers every pitch in your exact voice. You only write it once.
-              </p>
-              <EmotionalStoryField song={song} updateSongMetadata={updateSongMetadata} />
-              <div className="mt-3 flex gap-2">
-                <Link
-                  href={`/pitching?song=${song.id}`}
-                  className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
-                >
-                  Launch Pitching Engine →
-                </Link>
-                <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/60">
-                  Pitch kit
-                </Link>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button type="button" onClick={saveMetadata} className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white">
+                  Save metadata
+                </button>
+                {metadataNotice ? (
+                  <div className="rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-2 text-xs text-[#5fcf7e]">
+                    {metadataNotice}
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>
-        )}
+        ) : null}
 
         {/* Files */}
         <section id="files-panel" className="bg-transparent px-5 pb-5 text-white/90">
@@ -673,8 +675,11 @@ export default function ProjectDetailPage() {
             {uploadNotice && <div className="mt-3 rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-2 text-xs text-[#5fcf7e]">{uploadNotice}</div>}
             {uploadError && <div className="mt-3 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-2 text-xs text-[#f0a832]">{uploadError}</div>}
             {filedAssets.length === 0 ? (
-              <div className="mt-3 rounded-lg border-[0.5px] border-white/8 bg-white/5 px-3 py-3 text-sm text-white/50">
-                No files in this room yet.
+              <div className="mt-3 rounded-xl border-[0.5px] border-dashed border-white/10 bg-white/5 px-4 py-4 text-sm text-white/55">
+                <div className="font-medium text-white/85">No files in this room yet.</div>
+                <p className="mt-1 text-xs leading-5 text-white/45">
+                  Start with the master, artwork, split sheet, or contract so this release is not trapped on one device or in scattered messages.
+                </p>
               </div>
             ) : (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -734,107 +739,146 @@ export default function ProjectDetailPage() {
           </div>
         </section>
 
-        {/* The Runway */}
-        {song && runwayRows.length ? (
-          <section className="bg-[#141412] px-5 pb-5 text-white">
-            <div className="flex items-center justify-between py-4">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">The Runway</div>
-              {song.releaseDate && song.releaseDate !== "Release date needed" ? (
-                <div className="text-[11px] text-white/35">
-                  {(() => {
-                    const days = Math.ceil((new Date(`${song.releaseDate}T12:00:00`).getTime() - todayTimestamp) / 86400000);
-                    return days > 0 ? `${days}d to release` : days === 0 ? "Release day" : `${Math.abs(days)}d post-release`;
-                  })()}
-                </div>
-              ) : null}
-            </div>
+        <section className="bg-transparent px-5 pb-5 text-white/90">
+          <details className="overflow-hidden rounded-xl border-[0.5px] border-white/10 bg-white/[0.04]">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-4 text-left marker:hidden list-none">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">More room tools</div>
+                <div className="mt-1 text-sm text-white/80">Runway, pitch DNA, streaming stats, and promo tools</div>
+              </div>
+              <span className="text-xs text-white/40">Open →</span>
+            </summary>
+            <div className="border-t border-white/8">
+              {/* Live stats from Songstats */}
+              {song?.isrc && <SongstatsPanel isrc={song.isrc} spotifyArtistId={song.spotifyArtistId} />}
 
-            {/* Visual progress bar */}
-            <div className="relative mx-1 mb-5 h-[4px] rounded-full bg-[#1e1e1b]">
-              {(() => {
-                const total = runwayRows.length;
-                const lastDoneIdx = runwayRows.reduce((acc, row, i) => (row.status === "Done" ? i : acc), -1);
-                const fillPct = total > 1 && lastDoneIdx >= 0 ? (lastDoneIdx / (total - 1)) * 100 : 0;
-                return (
-                  <>
-                    <div className="h-full rounded-full bg-[#5fcf7e] transition-all duration-700" style={{ width: `${fillPct}%` }} />
-                    {runwayRows.map((row, i) => {
-                      const left = total > 1 ? (i / (total - 1)) * 100 : 0;
+              {/* Streaming links across all DSPs via MusicFetch */}
+              {song?.isrc && <MusicFetchPanel isrc={song.isrc} />}
+
+              {/* Emotional Story — pitch DNA */}
+              {song && (
+                <section className="bg-transparent px-5 pb-5 pt-5 text-white/90">
+                  <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Emotional story</div>
+                  <div className="rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] p-4">
+                    <p className="mb-3 text-[11px] leading-5 text-white/50">
+                      How did you feel when you made this song? Write it raw — this powers every pitch in your exact voice. You only write it once.
+                    </p>
+                    <EmotionalStoryField song={song} updateSongMetadata={updateSongMetadata} />
+                    <div className="mt-3 flex gap-2">
+                      <Link
+                        href={`/pitching?song=${song.id}`}
+                        className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm text-white"
+                      >
+                        Launch Pitching Engine →
+                      </Link>
+                      <Link href="/pitch-kits" className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/60">
+                        Pitch kit
+                      </Link>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* The Runway */}
+              {song && runwayRows.length ? (
+                <section className="bg-[#141412] px-5 pb-5 text-white">
+                  <div className="flex items-center justify-between py-4">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/35">The Runway</div>
+                    {song.releaseDate && song.releaseDate !== "Release date needed" ? (
+                      <div className="text-[11px] text-white/35">
+                        {(() => {
+                          const days = Math.ceil((new Date(`${song.releaseDate}T12:00:00`).getTime() - todayTimestamp) / 86400000);
+                          return days > 0 ? `${days}d to release` : days === 0 ? "Release day" : `${Math.abs(days)}d post-release`;
+                        })()}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="relative mx-1 mb-5 h-[4px] rounded-full bg-[#1e1e1b]">
+                    {(() => {
+                      const total = runwayRows.length;
+                      const lastDoneIdx = runwayRows.reduce((acc, row, i) => (row.status === "Done" ? i : acc), -1);
+                      const fillPct = total > 1 && lastDoneIdx >= 0 ? (lastDoneIdx / (total - 1)) * 100 : 0;
+                      return (
+                        <>
+                          <div className="h-full rounded-full bg-[#5fcf7e] transition-all duration-700" style={{ width: `${fillPct}%` }} />
+                          {runwayRows.map((row, i) => {
+                            const left = total > 1 ? (i / (total - 1)) * 100 : 0;
+                            const isDone = row.status === "Done";
+                            const isDue = row.status === "Due now";
+                            return (
+                              <div
+                                key={row.title}
+                                className={`absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+                                  isDone ? "bg-[#5fcf7e]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
+                                }`}
+                                style={{ left: `${left}%` }}
+                              />
+                            );
+                          })}
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="space-y-0">
+                    {runwayRows.map((row) => {
                       const isDone = row.status === "Done";
                       const isDue = row.status === "Due now";
                       return (
-                        <div
-                          key={row.title}
-                          className={`absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
-                            isDone ? "bg-[#5fcf7e]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
-                          }`}
-                          style={{ left: `${left}%` }}
-                        />
+                        <div key={`${row.title}-${row.daysBefore}`} className="flex items-start gap-3 border-b-[0.5px] border-white/[0.05] py-3 last:border-b-0">
+                          <div className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full text-[9px] ${
+                            isDone ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
+                          }`}>
+                            {isDone ? "✓" : "○"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-[13px] ${isDue ? "font-medium text-white" : isDone ? "text-white/40" : "text-white/70"}`}>{row.title}</div>
+                            <div className="mt-0.5 text-[11px] leading-5 text-white/30">{row.detail}</div>
+                          </div>
+                          {isDue && (
+                            <span className="shrink-0 rounded-lg bg-[#ef9f27] px-2 py-1 text-[10px] font-medium text-black">Now</span>
+                          )}
+                        </div>
                       );
                     })}
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* Checkpoints */}
-            <div className="space-y-0">
-              {runwayRows.map((row) => {
-                const isDone = row.status === "Done";
-                const isDue = row.status === "Due now";
-                return (
-                  <div key={`${row.title}-${row.daysBefore}`} className="flex items-start gap-3 border-b-[0.5px] border-white/[0.05] py-3 last:border-b-0">
-                    <div className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full text-[9px] ${
-                      isDone ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
-                    }`}>
-                      {isDone ? "✓" : "○"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className={`text-[13px] ${isDue ? "font-medium text-white" : isDone ? "text-white/40" : "text-white/70"}`}>{row.title}</div>
-                      <div className="mt-0.5 text-[11px] leading-5 text-white/30">{row.detail}</div>
-                    </div>
-                    {isDue && (
-                      <span className="shrink-0 rounded-lg bg-[#ef9f27] px-2 py-1 text-[10px] font-medium text-black">Now</span>
-                    )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        ) : null}
+                </section>
+              ) : null}
 
-        {/* What am I missing? */}
-        {missingItems.length > 0 && (
-          <section className="bg-transparent px-5 pb-5 text-white/90">
-            <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">What am I missing?</div>
-            <div className="overflow-hidden rounded-xl border-[0.5px] border-[#e24b4a]/30 bg-[#f05c5c]/10">
-              {missingItems.map((item, i) => (
-                <div
-                  key={item}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm ${i < missingItems.length - 1 ? "border-b-[0.5px] border-[#e24b4a]/15" : ""}`}
-                >
-                  <span className="size-1.5 shrink-0 rounded-full bg-[#e24b4a]" />
-                  <span className="text-[#f05c5c]">{item}</span>
+              {missingItems.length > 0 && (
+                <section className="bg-transparent px-5 pb-5 text-white/90">
+                  <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">What am I missing?</div>
+                  <div className="overflow-hidden rounded-xl border-[0.5px] border-[#e24b4a]/30 bg-[#f05c5c]/10">
+                    {missingItems.map((item, i) => (
+                      <div
+                        key={item}
+                        className={`flex items-center gap-3 px-4 py-3 text-sm ${i < missingItems.length - 1 ? "border-b-[0.5px] border-[#e24b4a]/15" : ""}`}
+                      >
+                        <span className="size-1.5 shrink-0 rounded-full bg-[#e24b4a]" />
+                        <span className="text-[#f05c5c]">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/50">
+                    Fix these before pitching or releasing.
+                  </p>
+                </section>
+              )}
+
+              {song ? (
+                <div className="flex flex-wrap gap-3 bg-transparent px-5 pb-5 text-white/90">
+                  <Link href="/signal" className="flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
+                    Create promo →
+                  </Link>
+                  <Link href="/epk" className="flex rounded-lg border-[0.5px] border-white/10 px-5 py-3 text-sm font-medium text-white/90">
+                    Build EPK
+                  </Link>
                 </div>
-              ))}
+              ) : null}
             </div>
-            <p className="mt-2 text-[11px] text-white/50">
-              Fix these before pitching or releasing.
-            </p>
-          </section>
-        )}
-
-        {/* Bottom CTAs */}
-        {song ? (
-          <div className="flex flex-wrap gap-3 bg-transparent px-5 pb-5 text-white/90">
-            <Link href="/signal" className="flex rounded-lg bg-[#0a0a0a] px-5 py-3 text-sm font-medium text-white">
-              Create promo →
-            </Link>
-            <Link href="/epk" className="flex rounded-lg border-[0.5px] border-white/10 px-5 py-3 text-sm font-medium text-white/90">
-              Build EPK
-            </Link>
-          </div>
-        ) : null}
+          </details>
+        </section>
       </main>
 
       {/* Share sheet */}

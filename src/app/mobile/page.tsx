@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import {
@@ -13,23 +13,6 @@ import {
   getSongReadinessScore,
   type SongCatalogItem,
 } from "@/lib/backstage-data";
-
-function CountUp({ target, prefix = "", suffix = "" }: { target: number; prefix?: string; suffix?: string }) {
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const step = target / 24;
-    const id = setInterval(() => {
-      start = Math.min(start + step, target);
-      setDisplay(Math.round(start));
-      if (start >= target) clearInterval(id);
-    }, 33);
-    return () => clearInterval(id);
-  }, [target]);
-
-  return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
-}
 
 function ReadinessRing({ score }: { score: number }) {
   const r = 16;
@@ -88,7 +71,10 @@ export default function MobilePage() {
 
   const actionQueue = getRevenueActionQueue(availableSongs.length ? availableSongs : songs).slice(0, 3);
   const missingAssets = missingAssetCount(songs);
-  const activeSong = songs[0] ?? null;
+  const activeSong = [...songs].sort((a, b) => getSongReadinessScore(a) - getSongReadinessScore(b))[0] ?? null;
+  const activeSongReadiness = activeSong ? getSongReadinessScore(activeSong) : null;
+  const primaryActionHref = activeSong ? `/projects/${activeSong.id}` : "/projects/new";
+  const primaryActionLabel = activeSong ? "Open urgent room →" : "Add first release →";
 
   // Manager brief: context-aware note based on real state
   const managerBrief = useMemo(() => {
@@ -136,26 +122,37 @@ export default function MobilePage() {
               <p className="mt-2 text-sm leading-7 text-white/80">{managerBrief}</p>
             </div>
           </div>
-          <div className="border-t border-white/[0.08] px-5 py-3 flex items-center justify-between">
-            <Link href="/a" className="text-xs font-medium text-white/40 hover:text-white/70 transition">
-              Ask A anything →
-            </Link>
-            {missingAssets > 0 && (
-              <Link href="/vault" className="text-[10px] font-medium text-[#e24b4a]/70 hover:text-[#e24b4a] transition">
-                {missingAssets} missing in vault
-              </Link>
-            )}
+          <div className="grid grid-cols-3 gap-2 border-t border-white/[0.08] px-5 py-3 text-center">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">Rooms</div>
+              <div className="mt-1 text-sm text-white/85">{songs.length}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">Gap</div>
+              <div className="mt-1 text-sm text-white/85">{formatGapEstimate(summary.totalEstimatedGap)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">Missing</div>
+              <div className={`mt-1 text-sm ${missingAssets > 0 ? "text-[#f0a832]" : "text-white/85"}`}>{missingAssets}</div>
+            </div>
           </div>
         </section>
 
         {/* Command surface — total secured + readiness */}
         <section className="overflow-hidden rounded-[24px] glass-dark px-5 py-6 text-white card-shadow-dark">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">Total secured</div>
-          <div className="mt-3 text-[44px] font-light leading-none tracking-[-0.04em]">
-            $<CountUp target={summary.totalSecured} />
-          </div>
-          <div className="mt-3 text-sm text-white/45">
-            This quarter · {summary.activeIncomeStreams} stream{summary.activeIncomeStreams === 1 ? "" : "s"} active
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">Command deck</div>
+              <div className="mt-2 text-[26px] font-light leading-tight tracking-[-0.03em] text-white">
+                {activeSong ? activeSong.title : "Start your first room"}
+              </div>
+              <div className="mt-2 text-sm text-white/45">
+                {activeSong
+                  ? `${activeSongReadiness}% ready · ${summary.activeIncomeStreams} income stream${summary.activeIncomeStreams === 1 ? "" : "s"} active`
+                  : "Add one release and Pocket will show the room, the gap, and the missing files."}
+              </div>
+            </div>
+            {activeSongReadiness !== null ? <ReadinessRing score={activeSongReadiness} /> : null}
           </div>
           <div className="mt-5 flex items-center gap-3">
             <div className="flex-1">
@@ -170,8 +167,16 @@ export default function MobilePage() {
               </div>
             </div>
             <span className="shrink-0 text-[11px] text-white/40">
-              {catalogReadiness}% ready
+              {catalogReadiness}% catalog ready
             </span>
+          </div>
+          <div className="mt-5 flex items-center justify-between gap-3">
+            <Link href={primaryActionHref} className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-[#0d0d0b]">
+              {primaryActionLabel}
+            </Link>
+            <Link href="/a" className="text-xs font-medium text-white/45 hover:text-white/80 transition">
+              Ask A →
+            </Link>
           </div>
         </section>
 
@@ -192,7 +197,7 @@ export default function MobilePage() {
         )}
 
         {/* Active goal — surfaces what they told us in onboarding */}
-        {(profile.mainGoal || profile.targetWindow) && (
+        {(profile.mainGoal || profile.targetWindow) && songs.length === 0 && (
           <section className="rounded-[20px] glass-electric px-5 py-4 card-shadow">
             <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#7c6fef]/70">Active goal</div>
             <div className="mt-1.5 text-[15px] text-white/90">{profile.mainGoal || "No goal set"}</div>
@@ -238,7 +243,7 @@ export default function MobilePage() {
         {/* Active project */}
         {activeSong ? (
           <section className="rounded-[20px] glass p-5 card-shadow">
-            <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Active release</div>
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">Most urgent room</div>
             <Link
               href={`/projects/${activeSong.id}`}
               className="flex items-center gap-4 rounded-[14px] glass-subtle px-4 py-4 press"
@@ -249,25 +254,30 @@ export default function MobilePage() {
                 <div className="text-[11px] text-white/50 mt-0.5">
                   {activeSong.releaseDate ? `Released ${activeSong.releaseDate}` : "Release date not set"}
                 </div>
+                <div className="mt-1 text-[11px] text-white/35">
+                  {activeSongReadiness !== null && activeSongReadiness < 70 ? "Needs cleanup before this feels release-safe." : "In stronger shape — review the next move."}
+                </div>
               </div>
               <span className="text-white/50 text-sm">→</span>
             </Link>
             <Link
-              href="/work"
+              href="/projects"
               className="mt-2 block text-center text-[11px] text-white/50 hover:text-white/90 transition py-2"
             >
-              View all releases →
+              View all rooms →
             </Link>
           </section>
         ) : (
           <section className="rounded-[20px] glass-dark p-5 card-shadow-dark">
-            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Manager startup plan</div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Start your first room</div>
+            <div className="mt-2 text-sm leading-6 text-white/50">
+              One release unlocks the real workflow: room, gap scan, vault tracking, and next actions.
+            </div>
             <div className="mt-3 space-y-2">
               {[
-                { step: "1", label: "Add your first release", sub: "Title, ISRC, distributor — unlock the full system", href: "/projects/new", done: false },
-                { step: "2", label: "Register with a PRO", sub: "ASCAP, BMI, PRS, or SOCAN — collect performance royalties", href: "/harvest", done: false },
-                { step: "3", label: "Set up publishing admin", sub: "SoundExchange, DistroKid Sync, or Songtrust for mechanicals", href: "/publishing", done: false },
-                { step: "4", label: "Connect your platforms", sub: "Spotify, Apple Music, DistroKid — track what's paying", href: "/platforms", done: false },
+                { step: "1", label: "Add your first release", sub: "Title first. Add deeper metadata once the room exists.", href: "/projects/new", done: false },
+                { step: "2", label: "Open the room", sub: "See what is blocking release readiness and revenue collection.", href: "/projects", done: false },
+                { step: "3", label: "File the core assets", sub: "Master, artwork, split sheet, and contract.", href: "/vault", done: false },
               ].map((item) => (
                 <Link
                   key={item.step}
@@ -293,10 +303,10 @@ export default function MobilePage() {
           <section className="rounded-[20px] glass p-5 card-shadow">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                Catalog
+                More rooms
               </div>
-              <Link href="/work" className="text-[11px] font-medium text-[var(--amber)]">
-                {songs.length} songs →
+              <Link href="/projects" className="text-[11px] font-medium text-[var(--amber)]">
+                {songs.length} releases →
               </Link>
             </div>
             <div className="space-y-2">
