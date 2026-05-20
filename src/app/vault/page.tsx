@@ -43,38 +43,22 @@ export default function VaultPage() {
   const presentCount = totalAssets - missingCount;
 
   return (
-    <AppShell title="Vault" eyebrow="Where the work lives">
+    <AppShell title="" eyebrow="">
       <main className="mx-auto max-w-4xl space-y-4">
 
-        {/* Header */}
-        <section className="overflow-hidden rounded-[24px] glass-dark card-shadow-dark px-6 py-7 text-white" style={{ position: "relative" }}>
-          <div style={{ position: "absolute", top: 0, right: 0, width: 320, height: 200, background: "radial-gradient(ellipse, rgba(168,85,247,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
-          <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/30" style={{ fontFamily: "monospace", marginBottom: 12 }}>The Vault</div>
-          <h2 className="text-[clamp(22px,4vw,32px)] font-light tracking-[-0.03em] text-white leading-tight mb-3">
-            The files your career depends on.
-          </h2>
-          <p className="text-[13px] leading-[1.7] text-white/40 max-w-[480px] mb-5">
-            Masters, artwork, split sheets, and contracts — tracked per release. Upload the real files from each room and keep the package available when you need it.
-          </p>
-          <div className="flex gap-5 flex-wrap">
-            {songs.length > 0 ? (
-              <>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: "rgba(59,109,17,0.12)", border: "0.5px solid rgba(59,109,17,0.25)" }}>
-                  <span className="size-1.5 rounded-full bg-[#97c459]" style={{ boxShadow: "0 0 6px #97c459" }} />
-                  <span className="text-[13px] text-white/70"><strong className="text-[#97c459]">{presentCount}</strong> filed</span>
-                </div>
-                {missingCount > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: "rgba(163,45,45,0.1)", border: "0.5px solid rgba(163,45,45,0.25)" }}>
-                    <span className="size-1.5 rounded-full bg-[#e24b4a]" style={{ boxShadow: "0 0 6px #e24b4a" }} />
-                    <span className="text-[13px] text-white/70"><strong className="text-[#e24b4a]">{missingCount}</strong> missing</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className="text-[13px] text-white/30">Add releases to start tracking assets.</span>
-            )}
+        <header className="flex items-center justify-between px-1 pt-2">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Vault</div>
+            <div className="text-[15px] text-white/90">
+              {songs.length > 0
+                ? `${presentCount} filed · ${missingCount > 0 ? `${missingCount} missing` : "all clear"}`
+                : "The release package"}
+            </div>
           </div>
-        </section>
+          <Link href="/projects" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white/90 press">
+            Rooms →
+          </Link>
+        </header>
 
         {/* Per-song asset rows */}
         {songs.length === 0 ? (
@@ -123,7 +107,7 @@ export default function VaultPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-[13px] font-medium text-[var(--text-primary)]">{asset.label}</span>
-                              {asset.critical && <span className="text-[9px] font-semibold uppercase tracking-wider text-[#f0a832] bg-[#faeeda] px-1.5 py-0.5 rounded">Required</span>}
+                              {asset.critical && <span className="text-[9px] font-semibold uppercase tracking-wider text-[#f0a832] bg-[#f0a832]/10 border border-[#f0a832]/20 px-1.5 py-0.5 rounded">Required</span>}
                             </div>
                             <div className="text-[11px] text-white/50 mt-0.5">{asset.hint}</div>
                           </div>
@@ -161,7 +145,7 @@ export default function VaultPage() {
               { label: "PRO registrations", icon: "✅", hint: "ASCAP, BMI, SESAC" },
               { label: "Press photos / EPK", icon: "📸", hint: "High-res promo assets" },
             ].map((item) => (
-              <div key={item.label} className="flex items-start gap-3 rounded-xl p-3" style={{ background: "rgba(0,0,0,0.03)", border: "0.5px solid rgba(0,0,0,0.06)" }}>
+              <div key={item.label} className="flex items-start gap-3 rounded-xl border-[0.5px] border-white/8 bg-white/[0.03] p-3">
                 <span className="text-lg leading-none mt-0.5">{item.icon}</span>
                 <div>
                   <div className="text-[13px] font-medium text-[var(--text-primary)]">{item.label}</div>
