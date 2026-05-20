@@ -300,7 +300,9 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             if (catalogResult.status === "fulfilled" && catalogResult.value.data?.songs) {
               const remoteSongs = catalogResult.value.data.songs as SongCatalogItem[];
               if (Array.isArray(remoteSongs)) {
-                const normalizedSongs = remoteSongs.map(normalizeSongCatalogItem);
+                const normalizedSongs = remoteSongs
+                  .filter((s) => !DEMO_SONG_IDS.has(s.id))
+                  .map(normalizeSongCatalogItem);
                 setSongs(normalizedSongs);
                 window.localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(normalizedSongs));
               }

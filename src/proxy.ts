@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Routes that require authentication
 const PROTECTED_PREFIXES = [
-  "/work", "/harvest", "/signal", "/profile", "/settings", "/projects",
+  "/work", "/harvest", "/signal", "/profile", "/settings", "/billing", "/projects",
   "/platforms", "/notifications", "/studio", "/epk", "/guild", "/vault",
   "/radar", "/albums", "/beats", "/contracts", "/statements", "/financial",
   "/forecast", "/valuation", "/actions", "/capture", "/drop", "/pitch-kits",

@@ -6,143 +6,12 @@ import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { formatGapEstimate, getRevenueGapSummary } from "@/lib/backstage-data";
 
-const PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    interval: "",
-    features: ["Gap range estimates", "3-song starter catalog", "Top 1 next action", "Basic readiness score"],
-    cta: null,
-    highlight: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$9",
-    interval: "/mo",
-    features: [
-      "Exact Gap dollar estimates",
-      "Unlimited songs",
-      "Full prioritized action queue",
-      "Signal + Harvest exports",
-      "A — AI manager chat",
-      "Release Radar milestone tracking",
-      "Split sheet generation",
-    ],
-    cta: "Start 7-day trial",
-    highlight: true,
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    price: "$29",
-    interval: "/mo",
-    features: [
-      "Everything in Pro",
-      "Contract scanner",
-      "Catalog valuation report",
-      "Sync brief matching",
-      "Priority A responses",
-      "White-label EPK",
-    ],
-    cta: "Upgrade to Elite",
-    highlight: false,
-  },
-];
-
 export default function SettingsPage() {
-  const [upgraded, setUpgraded] = useState<string | null>(null);
-  const [trialStarted, setTrialStarted] = useState(false);
-  useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    setTrialStarted(p.get("trial") === "started");
-    setUpgraded(p.get("upgraded"));
-  }, []);
-  const { platformConnections, profile, signedIn, signOut, songs, updateProfile } = usePocket();
+  const { platformConnections, profile, signedIn, signOut, songs } = usePocket();
   const summary = getRevenueGapSummary(songs);
-  const [checkingOut, setCheckingOut] = useState<string | null>(null);
-  const [openingPortal, setOpeningPortal] = useState(false);
-  const [billingError, setBillingError] = useState<string | null>(null);
-
-  // Mark plan upgrade from Stripe redirect
-  if (upgraded && profile.plan !== upgraded) {
-    updateProfile({ plan: upgraded as "pro" | "elite" });
-  }
   const connected = platformConnections.filter((platform) => platform.status === "connected").length;
   const incomplete = platformConnections.filter((platform) => platform.status !== "connected").length;
   const gapsClosed = songs.flatMap((song) => song.revenueStreams).filter((stream) => stream.status === "collecting").length;
-
-  async function startCheckout(planId: string) {
-    setCheckingOut(planId);
-    setBillingError(null);
-    try {
-      const res = await fetch("/api/v1/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan: planId,
-          email: profile.email ?? undefined,
-          successUrl: `${window.location.origin}/settings?upgraded=${planId}&session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/settings`,
-        }),
-      });
-      const data = await res.json() as { url?: string; error?: string };
-
-      if (!res.ok) {
-        setBillingError(data.error ?? "Billing is unavailable right now.");
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-
-      setBillingError("Billing session could not be created.");
-    } catch {
-      setBillingError("Billing is unavailable right now.");
-    } finally {
-      setCheckingOut(null);
-    }
-  }
-
-  async function openBillingPortal() {
-    if (!profile.stripeCustomerId) {
-      setBillingError("This account does not have an active billing customer yet.");
-      return;
-    }
-
-    setOpeningPortal(true);
-    setBillingError(null);
-    try {
-      const res = await fetch("/api/v1/billing/portal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerId: profile.stripeCustomerId,
-          returnUrl: `${window.location.origin}/settings`,
-        }),
-      });
-      const data = await res.json() as { url?: string; error?: string };
-
-      if (!res.ok) {
-        setBillingError(data.error ?? "Billing portal is unavailable right now.");
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-
-      setBillingError("Billing portal could not be opened.");
-    } catch {
-      setBillingError("Billing portal is unavailable right now.");
-    } finally {
-      setOpeningPortal(false);
-    }
-  }
 
   return (
     <AppShell title="Profile" eyebrow="Operations">
@@ -171,6 +40,12 @@ export default function SettingsPage() {
 
         <section className="grid gap-3">
           <ProfileLink
+            href="/billing"
+            title="Subscription & billing"
+            detail={`${profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Free"} plan · manage or upgrade`}
+            body="Change your plan, start a trial, or open the billing portal."
+          />
+          <ProfileLink
             href="/platforms"
             title="Platform connections"
             detail={`${connected} connected · ${incomplete} need attention`}
@@ -190,13 +65,6 @@ export default function SettingsPage() {
           />
         </section>
 
-        {/* Trial started banner */}
-        {trialStarted && (
-          <div className="rounded-[16px] border-[0.5px] border-[#5fcf7e]/30 bg-[#5fcf7e]/10 px-4 py-3 text-sm text-[#5fcf7e]">
-            Pro trial started. Full access unlocked for 7 days.
-          </div>
-        )}
-
         {/* Goals & target — editable */}
         <GoalsEditor />
 
@@ -204,86 +72,6 @@ export default function SettingsPage() {
 
         {/* API integrations status */}
         <ApiIntegrationsStatus />
-
-        {/* Pricing tiers */}
-        <section className="space-y-3">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Subscription</div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {PLANS.map((plan) => {
-              const isActive = profile.plan === plan.id;
-              const isHigher = (plan.id === "elite" && profile.plan === "pro") || (plan.id === "pro" && profile.plan === "elite");
-              return (
-              <div
-                key={plan.id}
-                className={`overflow-hidden rounded-[20px] ${
-                  isActive
-                    ? "ring-2 ring-[#97c459]"
-                    : ""
-                } ${
-                  plan.highlight
-                    ? "glass-dark card-shadow-dark text-white"
-                    : "glass card-shadow text-white/90"
-                }`}
-              >
-                <div className="px-4 py-4">
-                  {isActive ? (
-                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#97c459]">Current plan</div>
-                  ) : plan.highlight && !isHigher ? (
-                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#ef9f27]">Most popular</div>
-                  ) : null}
-                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] opacity-50">{plan.name}</div>
-                  <div className="mt-2 flex items-baseline gap-0.5">
-                    <span className="text-[32px] font-light leading-none">{plan.price}</span>
-                    {plan.interval && <span className="text-sm opacity-40">{plan.interval}</span>}
-                  </div>
-                  <ul className="mt-4 space-y-2">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-xs opacity-70">
-                        <span className="mt-0.5 shrink-0 text-[#97c459]">✓</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {plan.cta && !isActive && (
-                  <div className={`border-t px-4 py-3 ${plan.highlight ? "border-white/10" : "border-white/[0.07]"}`}>
-                    <button
-                      type="button"
-                      onClick={() => startCheckout(plan.id)}
-                      disabled={checkingOut === plan.id}
-                      className={`w-full rounded-lg py-2 text-sm font-medium transition disabled:opacity-50 ${
-                        plan.highlight
-                          ? "bg-white text-[#0d0d0b] hover:bg-white/90"
-                          : "bg-[#0d0d0b] text-white hover:bg-[#242424]"
-                      }`}
-                    >
-                      {checkingOut === plan.id ? "Opening…" : plan.cta}
-                    </button>
-                  </div>
-                )}
-              </div>
-              );
-            })}
-          </div>
-          <p className="mt-3 text-[11px] text-white/50">
-            Cancel anytime. 7-day free trial on Pro. No card needed during trial.
-          </p>
-          {profile.stripeCustomerId ? (
-            <button
-              type="button"
-              onClick={openBillingPortal}
-              disabled={openingPortal}
-              className="mt-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-50"
-            >
-              {openingPortal ? "Opening billing…" : "Manage billing"}
-            </button>
-          ) : null}
-          {billingError ? (
-            <p className="mt-3 rounded-xl border border-[#e24b4a]/20 bg-[#e24b4a]/10 px-3 py-2 text-xs text-[#f5b3b3]">
-              {billingError}
-            </p>
-          ) : null}
-        </section>
 
         {signedIn ? (
           <button type="button" onClick={signOut} className="rounded-xl glass card-shadow px-5 py-2.5 text-sm text-[var(--text-muted)] press">
