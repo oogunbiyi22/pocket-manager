@@ -1400,12 +1400,28 @@ export function usePocket() {
   return context;
 }
 
+// Known fake starter gaps that were hardcoded before — clear them on load
+const FAKE_STARTER_GAPS = new Set([20, 25, 35, 50]);
+
 function normalizeSongCatalogItem(song: SongCatalogItem): SongCatalogItem {
   const assets = Array.isArray(song.assets) ? song.assets : [];
+
+  const revenueStreams = Array.isArray(song.revenueStreams)
+    ? song.revenueStreams.map((stream) => ({
+        ...stream,
+        // If the stream has no actual income and the gap is one of the old
+        // hardcoded starter amounts, zero it out — it was never real data.
+        estimatedGap:
+          stream.actualAmount === 0 && FAKE_STARTER_GAPS.has(stream.estimatedGap)
+            ? 0
+            : stream.estimatedGap,
+      }))
+    : song.revenueStreams;
 
   return {
     ...song,
     assets,
+    revenueStreams,
     artworkUploaded: song.artworkUploaded || assets.some((asset) => asset.kind === "artwork"),
   };
 }
@@ -1464,10 +1480,10 @@ function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
       collectionBody: hasDistributor ? distributor : "Distributor",
       status: hasDistributor ? "registered_not_collecting" : "not_registered",
       actualAmount: 0,
-      estimatedGap: hasDistributor ? 0 : 25,
-      reason: hasDistributor ? "Distributor selected. Statement import is still needed." : "No distributor connection selected.",
-      action: hasDistributor ? "Import latest statement" : "Connect distributor",
-      rateNote: "Streaming collection needs distributor data before Pocket can show confirmed income.",
+      estimatedGap: 0,
+      reason: hasDistributor ? "Distributor selected — import a statement to see earnings." : "No distributor connected yet.",
+      action: hasDistributor ? "Import statement" : "Connect distributor",
+      rateNote: "Import a distributor statement to see real numbers here.",
     },
     {
       streamType: "digital_performance",
@@ -1475,10 +1491,10 @@ function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
       collectionBody: "SoundExchange",
       status: "not_registered",
       actualAmount: 0,
-      estimatedGap: 50,
+      estimatedGap: 0,
       reason: "Not registered on SoundExchange.",
       action: "Register now",
-      rateNote: "Conservative starter estimate. Exact value improves after stream counts or statements are connected.",
+      rateNote: "Register and connect SoundExchange to see your digital performance earnings.",
     },
     {
       streamType: "performance_royalty",
@@ -1486,10 +1502,10 @@ function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
       collectionBody: "PRO",
       status: "not_registered",
       actualAmount: 0,
-      estimatedGap: 35,
+      estimatedGap: 0,
       reason: "Song is not logged with a PRO.",
       action: "Log with PRO",
-      rateNote: "Conservative starter estimate. PRO territory and repertoire data refine the number.",
+      rateNote: "Log this song with your PRO (ASCAP, BMI, or SESAC) to start collecting.",
     },
     {
       streamType: "mechanical",
@@ -1497,10 +1513,10 @@ function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
       collectionBody: "The MLC",
       status: "not_registered",
       actualAmount: 0,
-      estimatedGap: 25,
+      estimatedGap: 0,
       reason: "Mechanical collection path is not connected.",
       action: "Connect MLC path",
-      rateNote: "Starter estimate until download, stream, and composition metadata are imported.",
+      rateNote: "Register with The MLC to collect mechanicals from on-demand streaming.",
     },
     {
       streamType: "youtube",
@@ -1508,10 +1524,10 @@ function buildStarterRevenueStreams(distributor: string): RevenueStream[] {
       collectionBody: "YouTube",
       status: "not_registered",
       actualAmount: 0,
-      estimatedGap: 20,
+      estimatedGap: 0,
       reason: "Master is not claimed for Content ID.",
       action: "Claim Content ID",
-      rateNote: "Starter estimate for UGC monetization risk. YouTube analytics refines the number.",
+      rateNote: "Claim your master on Content ID to monetize user-generated videos.",
     },
   ];
 }

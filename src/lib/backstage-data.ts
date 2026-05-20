@@ -1052,12 +1052,12 @@ export function formatMoney(amount: number) {
 }
 
 export function formatGapEstimate(amount: number, tier: SubscriptionTier = "free") {
-  if (tier !== "free") {
-    return `${formatMoney(amount)} estimated`;
+  if (amount <= 0) {
+    return "—";
   }
 
-  if (amount <= 0) {
-    return "$0 estimated";
+  if (tier !== "free") {
+    return `${formatMoney(amount)} estimated`;
   }
 
   const roundedRange = Math.max(50, Math.floor(amount / 50) * 50);
