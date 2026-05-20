@@ -603,7 +603,10 @@ export default function ProjectDetailPage() {
             <div className="mb-4 overflow-hidden rounded-[18px] border-[0.5px] border-white/8 bg-[#11110f] text-white">
               <div className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Vault command</div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Vault command</div>
+                    <Link href="/vault" className="text-[10px] font-medium text-white/40 hover:text-white/80 transition">View all vault →</Link>
+                  </div>
                   <div className="mt-2 text-lg font-medium text-white">Keep the release package complete and cross-device.</div>
                   <p className="mt-1 max-w-[540px] text-sm leading-6 text-white/45">
                     Every room should carry the real release package: master, artwork, splits, and contracts — not just notes about them.
@@ -618,20 +621,20 @@ export default function ProjectDetailPage() {
                     <div className="text-[10px] uppercase tracking-[0.16em] text-white/35">Synced</div>
                     <div className="mt-1 text-lg text-white">{syncedAssets.length}</div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                  <Link href="/vault" className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 block hover:bg-white/[0.08] transition">
                     <div className="text-[10px] uppercase tracking-[0.16em] text-white/35">Still missing</div>
-                    <div className="mt-1 text-lg text-white">{missingCriticalKinds.length}</div>
-                  </div>
+                    <div className={`mt-1 text-lg ${missingCriticalKinds.length > 0 ? "text-[#f05c5c]" : "text-white"}`}>{missingCriticalKinds.length}</div>
+                  </Link>
                 </div>
               </div>
             </div>
 
             {missingCriticalKinds.length > 0 ? (
-              <div className="mb-4 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-3 text-xs text-[#f0a832]">
+              <div className="mb-4 rounded-lg border border-[#ef9f27]/25 bg-[#ef9f27]/10 px-3 py-3 text-xs text-[#ef9f27]">
                 <div className="font-medium uppercase tracking-[0.14em]">Need in this room</div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {missingCriticalKinds.map((kind) => (
-                    <span key={kind} className="rounded-full border border-[#ef9f27]/25 bg-white/10 px-2.5 py-1 uppercase tracking-[0.12em]">
+                    <span key={kind} className="rounded-full border border-[#ef9f27]/20 bg-white/5 px-2.5 py-1 uppercase tracking-[0.12em]">
                       {kind === "split" ? "Split sheet" : kind}
                     </span>
                   ))}

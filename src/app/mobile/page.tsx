@@ -133,7 +133,11 @@ export default function MobilePage() {
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">Missing</div>
-              <div className={`mt-1 text-sm ${missingAssets > 0 ? "text-[#f0a832]" : "text-white/85"}`}>{missingAssets}</div>
+              {missingAssets > 0 ? (
+                <Link href="/vault" className={`mt-1 block text-sm text-[#f0a832] underline-offset-2 hover:underline`}>{missingAssets}</Link>
+              ) : (
+                <div className="mt-1 text-sm text-white/85">{missingAssets}</div>
+              )}
             </div>
           </div>
         </section>

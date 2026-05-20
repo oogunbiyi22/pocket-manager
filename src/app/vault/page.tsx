@@ -3,7 +3,22 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getSongReadinessScore } from "@/lib/backstage-data";
 import type { SongCatalogItem, SongVaultAssetKind } from "@/lib/backstage-data";
+
+function ReadinessRing({ score }: { score: number }) {
+  const r = 12;
+  const circ = 2 * Math.PI * r;
+  const fill = (score / 100) * circ;
+  const color = score >= 70 ? "#97c459" : score >= 40 ? "#ef9f27" : "#e24b4a";
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" className="shrink-0">
+      <circle cx="14" cy="14" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2.5" />
+      <circle cx="14" cy="14" r={r} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${fill} ${circ}`} transform="rotate(-90 14 14)" />
+      <text x="14" y="14" textAnchor="middle" dominantBaseline="central" fontSize="7" fontWeight="600" fill={color}>{score}</text>
+    </svg>
+  );
+}
 
 type AssetDef = { key: SongVaultAssetKind; label: string; hint: string; critical: boolean };
 
@@ -76,13 +91,17 @@ export default function VaultPage() {
             {songs.map((song) => {
               const statuses = ASSET_TYPES.map((a) => ({ asset: a, status: assetStatus(song, a.key) }));
               const songMissing = statuses.filter((s) => s.status === "missing").length;
+              const readiness = getSongReadinessScore(song);
               return (
                 <section key={song.id} className="rounded-[20px] glass card-shadow overflow-hidden">
                   {/* Song header */}
                   <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/8">
-                    <div className="min-w-0">
-                      <div className="text-[15px] font-medium text-[var(--text-primary)] truncate">{song.title}</div>
-                      <div className="text-[11px] text-white/50 mt-0.5">{song.isrc || "No ISRC"}{song.releaseDate ? ` · ${song.releaseDate}` : ""}</div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <ReadinessRing score={readiness} />
+                      <div className="min-w-0">
+                        <div className="text-[15px] font-medium text-[var(--text-primary)] truncate">{song.title}</div>
+                        <div className="text-[11px] text-white/50 mt-0.5">{song.isrc || "No ISRC"}{song.releaseDate ? ` · ${song.releaseDate}` : ""}</div>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {songMissing > 0 ? (
@@ -114,9 +133,8 @@ export default function VaultPage() {
                             </span>
                           ) : (
                             <Link
-                              href={`/projects/${song.id}`}
-                              className="shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold transition"
-                              style={{ background: "#fcebeb", color: "#a32d2d", border: "0.5px solid rgba(163,45,45,0.2)" }}
+                              href={`/projects/${song.id}#files-panel`}
+                              className="shrink-0 rounded-full border border-[#f05c5c]/30 bg-[#f05c5c]/10 px-3 py-1 text-[10px] font-semibold text-[#f05c5c] transition hover:bg-[#f05c5c]/20"
                             >
                               Upload in room →
                             </Link>
