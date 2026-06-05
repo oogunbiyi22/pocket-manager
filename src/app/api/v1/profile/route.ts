@@ -122,11 +122,13 @@ export async function GET(req: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !anonKey) {
     return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
   }
 
+  // Validate the JWT first
   const anonClient = createClient(url, anonKey, { auth: { persistSession: false } });
   const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
 
@@ -134,7 +136,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
   }
 
-  const { data: profile, error } = await anonClient
+  // Use service role to bypass RLS — user identity already verified above
+  if (!serviceKey) {
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+
+  const adminClient = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const { data: profile, error } = await adminClient
     .from("profiles")
     .select("id, email, artist_name, artist_role, vibe, plan, onboarded, stripe_customer_id, created_at")
     .eq("id", user.id)

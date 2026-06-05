@@ -7,16 +7,19 @@
 -- ─── 001: Core User Tables ────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id          uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email       text,
-  artist_name text,
-  artist_role text,
-  vibe        text,
-  plan        text        NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'elite')),
-  onboarded   boolean     NOT NULL DEFAULT false,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
+  id                 uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email              text,
+  artist_name        text,
+  artist_role        text,
+  vibe               text,
+  plan               text        NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'elite')),
+  onboarded          boolean     NOT NULL DEFAULT false,
+  stripe_customer_id text,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  updated_at         timestamptz NOT NULL DEFAULT now()
 );
+-- Safe to re-run: add stripe_customer_id to existing tables
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS stripe_customer_id text;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_owner" ON public.profiles;
 CREATE POLICY "profiles_owner" ON public.profiles
