@@ -309,15 +309,15 @@ export function PocketProvider({ children }: { children: ReactNode }) {
             }
 
             if (profileResult.status === "fulfilled" && profileResult.value.data) {
-              const r = profileResult.value.data as { artist_name?: string; artist_role?: string; vibe?: string; plan?: string; onboarded?: boolean; email?: string; stripe_customer_id?: string };
+              const r = profileResult.value.data as { artist_name?: string; role?: string; vibe?: string; plan?: string; onboarded?: boolean; stripe_customer_id?: string };
               setProfile((prev) => ({
                 ...prev,
                 artistName: r.artist_name ?? prev.artistName,
-                role: r.artist_role ?? prev.role,
+                role: r.role ?? prev.role,
                 vibe: r.vibe ?? prev.vibe,
                 plan: (r.plan as PocketProfile["plan"]) ?? prev.plan,
                 onboarded: r.onboarded ?? prev.onboarded,
-                email: r.email ?? session.user.email ?? prev.email,
+                email: session.user.email ?? prev.email,
                 stripeCustomerId: r.stripe_customer_id ?? prev.stripeCustomerId,
               }));
             }
@@ -383,13 +383,14 @@ export function PocketProvider({ children }: { children: ReactNode }) {
     void supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
       const uid = result.data?.session?.user?.id;
       if (!uid) return;
+      // No `email` column on profiles (lives in auth.users) and never write
+      // `plan` from the client — that's webhook-only. Both would otherwise
+      // break this upsert or allow self-upgrade.
       supabase.from("profiles").upsert({
         id: uid,
-        email: profile.email,
         artist_name: profile.artistName,
-        artist_role: profile.role,
+        role: profile.role,
         vibe: profile.vibe,
-        plan: profile.plan ?? "free",
         onboarded: profile.onboarded,
         updated_at: new Date().toISOString(),
       }, { onConflict: "id" }).then(() => {});

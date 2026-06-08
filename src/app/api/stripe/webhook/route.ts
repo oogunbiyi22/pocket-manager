@@ -48,39 +48,43 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const customerEmail = session.customer_email ?? session.customer_details?.email;
 
-        // Determine plan from subscription metadata
-        let plan = "pro";
+        // Identity: prefer the Supabase user id we stamped at checkout
+        // (client_reference_id / metadata). profiles has no email column,
+        // so an email lookup would never match — this is the supported path.
+        const userId =
+          session.client_reference_id ??
+          (session.metadata?.supabase_user_id as string | undefined) ??
+          null;
+
+        // Determine plan from session/subscription metadata
+        let plan = (session.metadata?.plan as string | undefined) ?? "pro";
         if (session.subscription) {
           try {
             const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-            plan = sub.metadata.plan ?? "pro";
+            plan = sub.metadata.plan ?? plan;
           } catch {
-            // Default to pro if we can't retrieve subscription
+            // Keep the plan we already resolved
           }
         }
 
-        if (customerEmail && supabase) {
-          const { data: profile } = await supabase
+        if (userId && supabase) {
+          const { error } = await supabase
             .from("profiles")
-            .select("id")
-            .eq("email", customerEmail)
-            .maybeSingle();
-
-          if (profile?.id) {
-            await supabase
-              .from("profiles")
-              .update({
-                plan,
-                stripe_customer_id: session.customer as string,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", profile.id);
+            .update({
+              plan,
+              stripe_customer_id: session.customer as string,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", userId);
+          if (error) {
+            console.error(`[webhook] profile update failed for ${userId}:`, error.message);
           }
+        } else {
+          console.error("[webhook] checkout.session.completed missing supabase user id — cannot upgrade");
         }
 
-        console.info(`[webhook] checkout.session.completed — ${customerEmail} → ${plan}`);
+        console.info(`[webhook] checkout.session.completed — user ${userId} → ${plan}`);
         break;
       }
 

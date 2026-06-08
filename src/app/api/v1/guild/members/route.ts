@@ -19,7 +19,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, artist_name, artist_role, vibe, plan, created_at")
+    .select("id, artist_name, role, vibe, plan, created_at")
     .eq("onboarded", true)
     .not("artist_name", "is", null)
     .order("created_at", { ascending: false })
@@ -33,7 +33,7 @@ export async function GET() {
   const members: GuildMember[] = (data ?? []).map((row) => ({
     id: row.id as string,
     artistName: (row.artist_name as string) ?? "Artist",
-    role: (row.artist_role as string) ?? "Artist",
+    role: (row.role as string) ?? "Artist",
     genre: (row.vibe as string) ?? "Music",
     plan: (row.plan as string) ?? "free",
     joinedAt: row.created_at as string,

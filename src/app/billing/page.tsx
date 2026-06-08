@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getSupabase } from "@/lib/supabase";
 
 type BillingInterval = "monthly" | "annual";
 
@@ -89,13 +90,19 @@ export default function BillingPage() {
     setCheckingOut(planId);
     setError(null);
     try {
+      const supabase = getSupabase();
+      const session = supabase ? await supabase.auth.getSession() : null;
+      const token = session?.data?.session?.access_token;
+
       const res = await fetch("/api/v1/billing/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           plan: planId,
           interval,
-          email: profile.email ?? undefined,
           successUrl: `${window.location.origin}/billing?upgraded=${planId}`,
           cancelUrl: `${window.location.origin}/billing`,
         }),

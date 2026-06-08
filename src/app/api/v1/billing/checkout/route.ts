@@ -1,7 +1,28 @@
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+
+/**
+ * Resolve the authenticated Supabase user from the Bearer token.
+ * Returns { id, email } or null. Identity is trusted from the JWT —
+ * never from the client request body.
+ */
+async function getAuthedUser(req: NextRequest): Promise<{ id: string; email: string | null } | null> {
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return null;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return null;
+
+  const anonClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { data: { user }, error } = await anonClient.auth.getUser(token);
+  if (error || !user) return null;
+  return { id: user.id, email: user.email ?? null };
+}
 
 const PLANS = {
   pro: {
@@ -35,7 +56,7 @@ const PLANS = {
 
 const CheckoutSchema = z.object({
   plan: z.enum(["pro", "elite"]).default("pro"),
-  email: z.string().email().max(320).optional(),
+  interval: z.enum(["monthly", "annual"]).optional(),
   successUrl: z.string().url().max(500).optional(),
   cancelUrl: z.string().url().max(500).optional(),
 });
@@ -71,8 +92,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { plan: planKey, email } = parsed.data;
+    const { plan: planKey } = parsed.data;
     const plan = PLANS[planKey];
+
+    // Identity comes from the verified JWT, never the request body.
+    const user = await getAuthedUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Please sign in to upgrade." }, { status: 401 });
+    }
 
     // Determine safe origin — only allow our own domain
     const origin = req.headers.get("origin") ?? "https://pocketmanager.online";
@@ -118,16 +145,20 @@ export async function POST(req: NextRequest) {
       mode: "subscription",
       line_items: lineItems,
       allow_promotion_codes: true,
+      // client_reference_id ties the Stripe session back to the Supabase user.
+      // The webhook reads this to upgrade the correct profile — do not remove.
+      client_reference_id: user.id,
       subscription_data: {
         trial_period_days: 7,
-        metadata: { plan: planKey },
+        metadata: { plan: planKey, supabase_user_id: user.id },
       },
+      metadata: { plan: planKey, supabase_user_id: user.id },
       success_url: `${successUrl}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
     };
 
-    if (email) {
-      sessionParams.customer_email = email;
+    if (user.email) {
+      sessionParams.customer_email = user.email;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

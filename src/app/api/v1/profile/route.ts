@@ -78,14 +78,16 @@ export async function POST(req: NextRequest) {
 
   const adminClient = createClient(url, serviceKey, { auth: { persistSession: false } });
 
+  // NOTE: profiles has no `email` column — email lives in auth.users.
+  // Writing it here makes Supabase reject the whole upsert and silently
+  // drop every profile field (this was the onboarding-not-saving bug).
   const upsertData: Record<string, unknown> = {
     id: user.id,
-    email: user.email ?? parsed.data.email,
     updated_at: new Date().toISOString(),
   };
 
   if (parsed.data.artistName !== undefined) upsertData.artist_name = parsed.data.artistName;
-  if (parsed.data.role !== undefined) upsertData.artist_role = parsed.data.role;
+  if (parsed.data.role !== undefined) upsertData.role = parsed.data.role;
   if (parsed.data.vibe !== undefined) upsertData.vibe = parsed.data.vibe;
   if (parsed.data.onboarded !== undefined) upsertData.onboarded = parsed.data.onboarded;
   // Never update plan from client — only from Stripe webhook
@@ -144,7 +146,7 @@ export async function GET(req: NextRequest) {
   const adminClient = createClient(url, serviceKey, { auth: { persistSession: false } });
   const { data: profile, error } = await adminClient
     .from("profiles")
-    .select("id, email, artist_name, artist_role, vibe, plan, onboarded, stripe_customer_id, created_at")
+    .select("id, artist_name, role, vibe, plan, onboarded, stripe_customer_id, created_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -152,5 +154,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Could not load profile" }, { status: 500 });
   }
 
-  return NextResponse.json({ profile: profile ?? null });
+  // email is not stored on profiles — surface it from the verified auth user.
+  const withEmail = profile ? { ...profile, email: user.email ?? null } : null;
+
+  return NextResponse.json({ profile: withEmail });
 }
