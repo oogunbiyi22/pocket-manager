@@ -63,11 +63,21 @@
 
 html {
   scroll-behavior: smooth;
+  /* Paint the overscroll/bounce gutter (and iOS safe areas) with the void color
+     so a rubber-band pull-down never reveals the aurora background behind a
+     sticky nav. Kept on html (not body) so it covers the bounce region. */
+  background-color: var(--void);
+  /* Kill the document-level rubber-band bounce that drags sticky headers down. */
+  overscroll-behavior-y: none;
 }
 
 /* ── Body — electric noir aurora ─────────────────────────────────────────── */
 body {
   background-color: var(--void);
+  /* Also suppress bounce at the body scroll container, belt-and-suspenders. */
+  overscroll-behavior-y: none;
+  /* Background stays fixed so the aurora doesn't slide under a pulled header. */
+  background-attachment: fixed;
   background-image:
     radial-gradient(ellipse 60% 50% at 15% 10%,  rgba(124, 111, 239, 0.12) 0%, transparent 65%),
     radial-gradient(ellipse 50% 40% at 85% 85%,  rgba(240, 168, 50,  0.09) 0%, transparent 65%),
