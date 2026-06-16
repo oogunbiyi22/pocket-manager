@@ -6,6 +6,7 @@ import {
   MapPin, Clock, CheckCircle2, AlertCircle, ExternalLink,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { useSessionState, clearSessionState } from "@/lib/use-session-state";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: str
 // ─── Add Event Modal ──────────────────────────────────────────────────────────
 
 function AddEventModal({ onClose, onAdd }: { onClose: () => void; onAdd: (e: ShowEvent) => void }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useSessionState("pm-events-form", {
     title: "", venue: "", city: "", date: "", time: "",
     ticketPrice: "", capacity: "", ticketLink: "",
   });
@@ -79,6 +80,7 @@ function AddEventModal({ onClose, onAdd }: { onClose: () => void; onAdd: (e: Sho
       ticketLink: form.ticketLink || undefined,
       payoutStatus: "pending",
     });
+    clearSessionState("pm-events-form");
     onClose();
   }
 

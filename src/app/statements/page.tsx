@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
+import { useSessionState, clearSessionState } from "@/lib/use-session-state";
 import { formatMoney } from "@/lib/backstage-data";
 
 // Per-distributor column header mappings
@@ -26,9 +27,9 @@ type StatementRow = {
 
 export default function StatementsPage() {
   const [statementSource, setStatementSource] = useState("DistroKid");
-  const [rawCsv, setRawCsv] = useState("");
+  const [rawCsv, setRawCsv] = useSessionState("pm-statements-csv", "");
   const [dragOver, setDragOver] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileName, setFileName] = useSessionState<string | null>("pm-statements-filename", null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const colMap = DISTRIBUTOR_COLUMNS[statementSource] ?? DISTRIBUTOR_COLUMNS.DistroKid;
@@ -115,7 +116,7 @@ export default function StatementsPage() {
                     <div className="mt-0.5 text-xs text-white/50">{rows.length} rows parsed</div>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setRawCsv(""); setFileName(null); }}
+                      onClick={(e) => { e.stopPropagation(); setRawCsv(""); setFileName(null); clearSessionState("pm-statements-csv", "pm-statements-filename"); }}
                       className="mt-2 text-xs text-white/50 underline"
                     >
                       Clear

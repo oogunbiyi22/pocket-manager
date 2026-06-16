@@ -7,6 +7,7 @@ import {
   CheckCircle2, XCircle, AlertCircle,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { useSessionState, clearSessionState } from "@/lib/use-session-state";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: s
 // ─── Add Booking Modal ─────────────────────────────────────────────────────────
 
 function AddBookingModal({ onClose, onAdd }: { onClose: () => void; onAdd: (b: Booking) => void }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useSessionState("pm-booking-form", {
     venueName: "", city: "", state: "", date: "",
     guarantee: "", contact: "", contactEmail: "", notes: "",
   });
@@ -76,6 +77,7 @@ function AddBookingModal({ onClose, onAdd }: { onClose: () => void; onAdd: (b: B
       contactEmail: form.contactEmail,
       notes: form.notes,
     });
+    clearSessionState("pm-booking-form");
     onClose();
   }
 

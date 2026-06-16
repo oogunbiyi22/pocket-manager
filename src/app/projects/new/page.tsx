@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { useSessionState, clearSessionState } from "@/lib/use-session-state";
 import { Search, Music, Check, Loader2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ export default function NewProjectPage() {
   const router = useRouter();
   const { createSong, profile, songs } = usePocket();
   const atFreeLimit = profile.plan === "free" && songs.length >= 3;
-  const [form, setForm] = useState({
+  const [form, setForm] = useSessionState("pm-newsong-form", {
     title: "",
     isrc: "",
     upc: "",
@@ -157,8 +158,8 @@ export default function NewProjectPage() {
     territory: "",
     distributor: "",
   });
-  const [selectedArtwork, setSelectedArtwork] = useState<string | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const [selectedArtwork, setSelectedArtwork] = useSessionState<string | null>("pm-newsong-artwork", null);
+  const [showDetails, setShowDetails] = useSessionState("pm-newsong-showdetails", false);
 
   const [mbLookup, setMbLookup] = useState<{ status: "idle" | "loading" | "found" | "not-found"; result?: MBResult }>({ status: "idle" });
   const lookupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -173,7 +174,7 @@ export default function NewProjectPage() {
       territory: f.territory || "United States",
     }));
     setSelectedArtwork(artworkUrl(track.artworkUrl100, 300));
-  }, []);
+  }, [setForm, setSelectedArtwork]);
 
   async function lookupIsrc(raw: string) {
     const stripped = raw.replace(/-/g, "").toUpperCase();
@@ -229,7 +230,10 @@ export default function NewProjectPage() {
       territory: form.territory,
       distributor: form.distributor,
     });
-    if (songId) router.push(`/projects/${songId}`);
+    if (songId) {
+      clearSessionState("pm-newsong-form", "pm-newsong-artwork", "pm-newsong-showdetails");
+      router.push(`/projects/${songId}`);
+    }
   }
 
   return (

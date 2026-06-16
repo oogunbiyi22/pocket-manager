@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { useSessionState, clearSessionState } from "@/lib/use-session-state";
 
 type PocketItem = {
   id: string;
@@ -25,9 +26,10 @@ const captureTypes = [
 
 export default function CapturePage() {
   const { songs } = usePocket();
-  const [type, setType] = useState<PocketItem["type"]>("Note");
+  const [type, setType] = useSessionState<PocketItem["type"]>("pm-capture-type", "Note");
   const [songId, setSongId] = useState(songs[0]?.id ?? "inbox");
-  const [body, setBody] = useState("");
+  // Draft note survives refresh; cleared once the capture is saved.
+  const [body, setBody] = useSessionState("pm-capture-draft", "");
   const [items, setItems] = useState<PocketItem[]>(() => {
     if (typeof window === "undefined") {
       return [];
@@ -65,6 +67,7 @@ export default function CapturePage() {
       ...current,
     ].slice(0, 40));
     setBody("");
+    clearSessionState("pm-capture-draft");
   }
 
   return (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { useSessionState } from "@/lib/use-session-state";
 
 const starterContract = ``;
 
@@ -25,8 +26,9 @@ type AIAnalysis = {
 };
 
 export default function ContractsPage() {
-  const [contractType, setContractType] = useState("Producer agreement");
-  const [contractText, setContractText] = useState(starterContract);
+  // Pasted contract + type survive refresh so a long paste isn't lost.
+  const [contractType, setContractType] = useSessionState("pm-contract-type", "Producer agreement");
+  const [contractText, setContractText] = useSessionState("pm-contract-text", starterContract);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
