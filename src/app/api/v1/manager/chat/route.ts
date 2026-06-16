@@ -1,5 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { streamText, type ModelMessage } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import {
   getRevenueGapSummary,
@@ -89,51 +93,41 @@ function buildSystemPrompt(
   return lines.join("\n");
 }
 
-function streamText(text: string): Response {
-  const encoder = new TextEncoder();
-  const words = text.split(/(\s+)/);
-  const stream = new ReadableStream({
-    async start(controller) {
-      for (const chunk of words) {
-        if (chunk) {
-          controller.enqueue(encoder.encode(chunk));
-          if (chunk.trim()) await new Promise<void>((r) => setTimeout(r, 12));
-        }
-      }
-      controller.close();
-    },
-  });
-  return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-}
-
-async function callGroq(systemPrompt: string, messages: { role: string; content: string }[]): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error("GROQ_API_KEY not set");
-
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: process.env.AI_MODEL || "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
-      max_tokens: 1024,
-      temperature: 0.7,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq error ${res.status}: ${err.slice(0, 200)}`);
+/**
+ * Pick the model for a plan. Gemini is the default rail (generous free tier,
+ * strong for structured manager advice); Elite gets Claude when an Anthropic
+ * key is present, otherwise falls back to Gemini Pro.
+ *   free / pro → gemini-2.0-flash
+ *   elite      → claude (if ANTHROPIC_API_KEY) else gemini-1.5-pro
+ */
+function selectModel(plan: string) {
+  // TEST PATH: if an OpenRouter key is present, route everything through it
+  // (OpenAI-compatible). Lets us validate the Gemini model live before we have
+  // a dedicated Gemini key. Unplug by clearing OPENROUTER_API_KEY.
+  if (process.env.OPENROUTER_API_KEY) {
+    const openrouter = createOpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
+    });
+    const model = plan === "elite"
+      ? (process.env.OPENROUTER_ELITE_MODEL || "google/gemini-2.5-pro")
+      : (process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001");
+    return openrouter(model);
   }
 
-  const data = await res.json() as { choices: { message: { content: string } }[] };
-  return data.choices[0]?.message?.content?.trim() ?? "[no response]";
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY ?? "",
+  });
+
+  if (plan === "elite") {
+    if (process.env.ANTHROPIC_API_KEY) {
+      const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      return anthropic(process.env.ELITE_AI_MODEL || "claude-sonnet-4-6");
+    }
+    return google(process.env.ELITE_AI_MODEL || "gemini-1.5-pro");
+  }
+
+  return google(process.env.AI_MODEL || "gemini-2.0-flash");
 }
 
 export async function POST(req: NextRequest) {
@@ -165,14 +159,22 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = buildSystemPrompt(cleanName, cleanManager, songs, platforms, plan ?? "free");
 
-    // Build conversation history for Groq (last 10 messages)
-    const history = (Array.isArray(rawMessages) ? rawMessages : [])
+    // Conversation history (last 10 user/assistant turns).
+    const history: ModelMessage[] = (Array.isArray(rawMessages) ? rawMessages : [])
       .slice(-10)
       .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({ role: m.role, content: m.content }));
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-    const reply = await callGroq(systemPrompt, history);
-    return streamText(reply);
+    const result = streamText({
+      model: selectModel(plan ?? "free"),
+      system: systemPrompt,
+      messages: history,
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+    });
+
+    // Plain-text stream — matches the client's TextStreamChatTransport.
+    return result.toTextStreamResponse();
 
   } catch (err) {
     console.error("[chat] error:", err instanceof Error ? err.message : err);
