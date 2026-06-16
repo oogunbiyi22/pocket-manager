@@ -127,13 +127,8 @@ export function AppShell({
 
       {/* ── HUD header bar ──────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-40 px-4 sm:px-6"
+        className="liquid-glass sticky top-0 z-40 px-4 sm:px-6"
         style={{
-          background: "linear-gradient(180deg, rgba(13,13,11,0.97) 0%, rgba(13,13,11,0.88) 100%)",
-          backdropFilter: "blur(40px) saturate(180%)",
-          WebkitBackdropFilter: "blur(40px) saturate(180%)",
-          borderBottom: "0.5px solid rgba(245,244,240,0.07)",
-          boxShadow: "0 1px 0 rgba(239,159,39,0.04) inset",
           // Fill the iOS notch/status-bar so a pull-down never reveals bg above the bar.
           paddingTop: "max(0.75rem, env(safe-area-inset-top))",
           paddingBottom: "0.75rem",

@@ -73,6 +73,31 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* Anti-zoom lock — iOS Safari ignores user-scalable=no, so block the
+            gestures directly: pinch-zoom (gesture* events) and double-tap zoom. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                // Block iOS pinch-zoom gestures.
+                ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+                  document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+                });
+                // Block double-tap-to-zoom (ignore taps within 300ms of the last).
+                var lastTap = 0;
+                document.addEventListener('touchend', function(e){
+                  var now = e.timeStamp;
+                  if (now - lastTap <= 300) { e.preventDefault(); }
+                  lastTap = now;
+                }, { passive: false });
+                // Block ctrl/cmd + wheel pinch-zoom on trackpads.
+                document.addEventListener('wheel', function(e){
+                  if (e.ctrlKey) { e.preventDefault(); }
+                }, { passive: false });
+              } catch(e) {}
+            `,
+          }}
+        />
       </head>
       <body className={`min-h-full ${syne.variable} ${dmSans.variable}`}>
         <ThemeProvider>

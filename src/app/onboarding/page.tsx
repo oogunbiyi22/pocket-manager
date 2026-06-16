@@ -5,6 +5,19 @@ import { useState, useEffect } from "react";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoMark } from "@/components/logo";
 import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary } from "@/lib/backstage-data";
+import { useSessionState, clearSessionState } from "@/lib/use-session-state";
+
+// sessionStorage keys for the in-progress onboarding draft (cleared on finish).
+const OB = {
+  step: "pm-onboarding-step",
+  artist: "pm-onboarding-artist",
+  role: "pm-onboarding-role",
+  song: "pm-onboarding-song",
+  isrc: "pm-onboarding-isrc",
+  release: "pm-onboarding-release",
+  distributor: "pm-onboarding-distributor",
+  pro: "pm-onboarding-pro",
+} as const;
 
 // ─── Count-up ───────────────────────────────────────────────────────────────
 function GapCountUp({ target }: { target: number }) {
@@ -46,14 +59,16 @@ export default function OnboardingPage() {
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
 
-  const [step, setStep] = useState(0);
-  const [artistName, setArtistName] = useState(profile.artistName ?? "");
-  const [role, setRole] = useState(profile.role ?? "");
-  const [songTitle, setSongTitle] = useState("");
-  const [isrc, setIsrc] = useState("");
-  const [releaseDate, setReleaseDate] = useState("");
-  const [distributor, setDistributor] = useState("DistroKid");
-  const [pro, setPro] = useState("");
+  // Persisted across refresh via sessionStorage so a mid-onboarding reload
+  // doesn't reset progress. Cleared on completion (see finish handler).
+  const [step, setStep] = useSessionState(OB.step, 0);
+  const [artistName, setArtistName] = useSessionState(OB.artist, profile.artistName ?? "");
+  const [role, setRole] = useSessionState(OB.role, profile.role ?? "");
+  const [songTitle, setSongTitle] = useSessionState(OB.song, "");
+  const [isrc, setIsrc] = useSessionState(OB.isrc, "");
+  const [releaseDate, setReleaseDate] = useSessionState(OB.release, "");
+  const [distributor, setDistributor] = useSessionState(OB.distributor, "DistroKid");
+  const [pro, setPro] = useSessionState(OB.pro, "");
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [gapRevealed, setGapRevealed] = useState(false);
   const [createdSongId, setCreatedSongId] = useState<string | null>(null);
@@ -61,6 +76,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (signedIn && profile.onboarded) {
+      clearSessionState(...Object.values(OB));
       router.replace("/mobile");
     }
   }, [profile.onboarded, router, signedIn]);
@@ -450,6 +466,9 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => {
                   completeOnboarding({ artistName: artistName.trim() || profile.artistName || "Artist", role: role.trim() || profile.role || "", vibe: "", currentProject: "", targetWindow: "", mainGoal: "" });
+                  // Onboarding committed to provider (→ Supabase when signed in);
+                  // drop the in-progress draft so a later visit starts clean.
+                  clearSessionState(...Object.values(OB));
                   if (signedIn) { router.push(postOnboardingRoute); } else { next(); }
                 }}
                 className="h-14 w-full rounded-2xl bg-white text-base font-medium text-[#0d0d0b] press"

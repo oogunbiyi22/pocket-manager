@@ -130,16 +130,13 @@ export default function Home() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--void)", color: "var(--text-primary)" }}>
 
-      {/* Nav — HUD glass bar */}
-      <header style={{
+      {/* Nav — liquid glass bar */}
+      <header className="liquid-glass" style={{
         position: "sticky",
         top: 0,
         zIndex: 40,
-        padding: "14px 20px",
-        background: "rgba(0,0,14,0.92)",
-        backdropFilter: "blur(40px) saturate(200%)",
-        WebkitBackdropFilter: "blur(40px) saturate(200%)",
-        borderBottom: "0.5px solid rgba(0,212,255,0.07)",
+        // Fill the iOS notch so a pull-down never reveals bg above the bar.
+        padding: "max(14px, env(safe-area-inset-top)) 20px 14px",
       }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

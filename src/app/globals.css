@@ -69,12 +69,43 @@ html {
   background-color: var(--void);
   /* Kill the document-level rubber-band bounce that drags sticky headers down. */
   overscroll-behavior-y: none;
+  /* Anti-zoom lock: allow scrolling, block pinch-zoom gesture. */
+  touch-action: pan-x pan-y;
+  /* Stop iOS/Android from auto-resizing text (a zoom-feel on rotate). */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Pin html to the viewport so the document itself never scrolls — body is the
+     single scroll container. This makes sticky/fixed chrome rock-solid and
+     confines any pull/overscroll to the content region (no whole-page drag). */
+  height: 100%;
+  overflow: hidden;
+}
+
+/* iOS Safari auto-zooms when focusing any form control whose font is < 16px.
+   Force every text-entry control to 16px so focus never triggers a zoom. */
+input,
+textarea,
+select,
+button {
+  font-size: 16px;
+}
+@media screen and (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* ── Body — electric noir aurora ─────────────────────────────────────────── */
 body {
   background-color: var(--void);
-  /* Also suppress bounce at the body scroll container, belt-and-suspenders. */
+  /* Body is the single scroll container (html is pinned). Momentum scroll on
+     iOS, overscroll contained so only content moves — not the page chrome. */
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   /* Background stays fixed so the aurora doesn't slide under a pulled header. */
   background-attachment: fixed;
@@ -137,6 +168,50 @@ a { text-decoration: none; }
     0 1px 0 rgba(255, 255, 255, 0.10) inset,
     0 4px 20px rgba(0, 0, 0, 0.5),
     0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Liquid glass — Apple-style nav bar ──────────────────────────────────────
+   Heavy blur + high saturation gives the "fluid" refraction feel; the layered
+   inset highlights create a specular top edge + soft bottom shadow so the bar
+   reads as a thick pane of glass floating over content, not a flat tint. */
+.liquid-glass {
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 20, 34, 0.72) 0%,
+      rgba(13, 13, 22, 0.60) 100%
+    );
+  backdrop-filter: blur(28px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.08);
+  border-bottom: 0.5px solid transparent;
+  box-shadow:
+    /* specular top-edge highlight — the "wet" light catch */
+    0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    /* inner glow giving the pane thickness */
+    0 0 0 0.5px rgba(255, 255, 255, 0.04) inset,
+    /* soft drop so it floats over scrolled content */
+    0 8px 32px rgba(0, 0, 0, 0.32);
+}
+/* Gradient hairline border — bright at center, fading at the edges, like a
+   light bevel running along the glass. Painted as a masked pseudo-element so it
+   sits cleanly on the bottom edge without a hard line. */
+.liquid-glass::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 111, 239, 0.35) 30%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(56, 212, 245, 0.30) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
 /* Dark glass — for hero / command surfaces */
