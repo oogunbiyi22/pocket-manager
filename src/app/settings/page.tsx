@@ -112,30 +112,30 @@ function ApiIntegrationsStatus() {
       <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">API integrations</div>
 
       <div className="mb-4">
-        <div className="mb-2 text-[11px] font-medium text-[#5fcf7e]">Active — no key needed</div>
+        <div className="mb-2 text-[11px] font-medium text-[#97c459]">Active — no key needed</div>
         <div className="space-y-1.5">
           {freeApis.map((api) => (
-            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#5fcf7e]/8 px-3 py-2">
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#97c459]/8 px-3 py-2">
               <div>
                 <span className="text-sm font-medium text-white/90">{api.name}</span>
                 <span className="ml-2 text-xs text-white/50">{api.description}</span>
               </div>
-              <span className="text-[10px] font-medium text-[#5fcf7e]">✓ Active</span>
+              <span className="text-[10px] font-medium text-[#97c459]">✓ Active</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="mb-4">
-        <div className="mb-2 text-[11px] font-medium text-[#f0a832]">Free — add key to Vercel</div>
+        <div className="mb-2 text-[11px] font-medium text-[#ef9f27]">Free — add key to Vercel</div>
         <div className="space-y-1.5">
           {freeWithKey.map((api) => (
-            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#f0a832]/8 px-3 py-2">
+            <div key={api.name} className="flex items-center justify-between rounded-lg bg-[#ef9f27]/8 px-3 py-2">
               <div>
                 <span className="text-sm font-medium text-white/90">{api.name}</span>
                 <span className="ml-2 text-xs text-white/50">{api.description}</span>
               </div>
-              <code className="text-[10px] text-[#f0a832]">{api.envKey}</code>
+              <code className="text-[10px] text-[#ef9f27]">{api.envKey}</code>
             </div>
           ))}
         </div>

@@ -134,7 +134,7 @@ export default function MobilePage() {
             <div>
               <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">Missing</div>
               {missingAssets > 0 ? (
-                <Link href="/vault" className={`mt-1 block text-sm text-[#f0a832] underline-offset-2 hover:underline`}>{missingAssets}</Link>
+                <Link href="/vault" className={`mt-1 block text-sm text-[#ef9f27] underline-offset-2 hover:underline`}>{missingAssets}</Link>
               ) : (
                 <div className="mt-1 text-sm text-white/85">{missingAssets}</div>
               )}
@@ -188,15 +188,15 @@ export default function MobilePage() {
         {songs.length > 0 && summary.totalEstimatedGap > 0 && (
           <Link
             href="/harvest"
-            className="flex items-center justify-between gap-3 rounded-[18px] border border-[#f0a832]/25 bg-[#f0a832]/10 px-5 py-4 press card-shadow"
+            className="flex items-center justify-between gap-3 rounded-[18px] border border-[#ef9f27]/25 bg-[#ef9f27]/10 px-5 py-4 press card-shadow"
           >
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0a832]/60">The Gap</div>
-              <span className="text-sm font-medium text-[#f0a832]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ef9f27]/60">The Gap</div>
+              <span className="text-sm font-medium text-[#ef9f27]">
                 {formatGapEstimate(summary.totalEstimatedGap)} uncollected · {summary.songsWithGaps} song{summary.songsWithGaps === 1 ? "" : "s"}
               </span>
             </div>
-            <span className="shrink-0 rounded-full bg-[#f0a832] px-3 py-1 text-[11px] font-semibold text-[#080810]">Fix →</span>
+            <span className="shrink-0 rounded-full bg-[#ef9f27] px-3 py-1 text-[11px] font-semibold text-[#080810]">Fix →</span>
           </Link>
         )}
 
@@ -234,7 +234,7 @@ export default function MobilePage() {
                     {action.songTitle && <div className="text-[11px] text-white/50 mt-0.5">{action.songTitle}</div>}
                   </div>
                   {action.estimatedValue > 0 && (
-                    <span className="shrink-0 rounded-full bg-[#faeeda] px-2.5 py-1 text-[10px] font-semibold text-[#f0a832]">
+                    <span className="shrink-0 rounded-full bg-[#faeeda] px-2.5 py-1 text-[10px] font-semibold text-[#ef9f27]">
                       {formatGapEstimate(action.estimatedValue)}
                     </span>
                   )}

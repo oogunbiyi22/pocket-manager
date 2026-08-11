@@ -277,7 +277,7 @@ export default function StudioPage() {
 
               {/* Share status toast */}
               {shareStatus && (
-                <div className="mt-4 rounded-xl bg-[#5fcf7e]/10 px-4 py-2.5 text-[12px] text-[#5fcf7e]">
+                <div className="mt-4 rounded-xl bg-[#97c459]/10 px-4 py-2.5 text-[12px] text-[#97c459]">
                   {shareStatus}
                 </div>
               )}
@@ -333,8 +333,8 @@ export default function StudioPage() {
                   <span className="w-20 shrink-0 text-[11px] font-medium text-white/50">{row.week}</span>
                   <span className="flex-1 text-white/90">{row.content}</span>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                    row.status === "Done" ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" :
-                    row.status === "Due" ? "bg-[#f0a832]/20 text-[#f0a832]" :
+                    row.status === "Done" ? "bg-[#97c459]/10 text-[#97c459]" :
+                    row.status === "Due" ? "bg-[#ef9f27]/20 text-[#ef9f27]" :
                     "bg-white/[0.08] text-white/50 border border-white/[0.08]"
                   }`}>
                     {row.status}

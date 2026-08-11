@@ -41,10 +41,10 @@ type PlatformWithStatus = PlatformEntry & {
 
 function StatusBadge({ status }: { status: PlatformWithStatus["status"] }) {
   const map: Record<PlatformWithStatus["status"], { label: string; className: string }> = {
-    connected: { label: "Connected", className: "bg-[#5fcf7e]/10 text-[#5fcf7e]" },
+    connected: { label: "Connected", className: "bg-[#97c459]/10 text-[#97c459]" },
     not_connected: { label: "Not connected", className: "bg-[rgba(0,0,0,0.06)] text-white/50" },
-    incomplete: { label: "Incomplete", className: "bg-[#faeeda] text-[#f0a832]" },
-    connecting: { label: "Connecting…", className: "bg-[#faeeda] text-[#f0a832]" },
+    incomplete: { label: "Incomplete", className: "bg-[#faeeda] text-[#ef9f27]" },
+    connecting: { label: "Connecting…", className: "bg-[#faeeda] text-[#ef9f27]" },
     error: { label: "Error", className: "bg-[#f05c5c]/10 text-[#f05c5c]" },
     reconnect_required: { label: "Reconnect", className: "bg-[#f05c5c]/10 text-[#f05c5c]" },
   };
@@ -153,7 +153,7 @@ export default function PlatformsPage() {
                             {platform.whyItMatters}
                           </div>
                           {!isConnected && (
-                            <div className="rounded-[12px] bg-[#faeeda] px-4 py-3 text-[13px] leading-6 text-[#f0a832]">
+                            <div className="rounded-[12px] bg-[#faeeda] px-4 py-3 text-[13px] leading-6 text-[#ef9f27]">
                               <strong>Steps:</strong>
                               <ol className="mt-1 space-y-1">
                                 {platform.steps.slice(0, 3).map((step, i) => (

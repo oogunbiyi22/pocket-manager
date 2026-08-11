@@ -98,7 +98,7 @@ export default function StatementsPage() {
                   dragOver
                     ? "border-[#ef9f27] bg-[#faeeda]/40"
                     : fileName
-                    ? "border-[#5fcf7e] bg-[#5fcf7e]/10/40"
+                    ? "border-[#97c459] bg-[#97c459]/10/40"
                     : "border-dashed border-white/12 bg-white hover:bg-white/5"
                 }`}
               >
@@ -112,7 +112,7 @@ export default function StatementsPage() {
                 {fileName ? (
                   <>
                     <div className="text-2xl">✓</div>
-                    <div className="mt-1 text-sm font-medium text-[#5fcf7e]">{fileName}</div>
+                    <div className="mt-1 text-sm font-medium text-[#97c459]">{fileName}</div>
                     <div className="mt-0.5 text-xs text-white/50">{rows.length} rows parsed</div>
                     <button
                       type="button"
@@ -143,7 +143,7 @@ export default function StatementsPage() {
               </label>
             </div>
 
-            <div className="rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#f0a832]">
+            <div className="rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#ef9f27]">
               Expected headers for <strong>{statementSource}</strong>: {colMap.song} · {colMap.platform} · {colMap.territory} · {colMap.streams} · {colMap.income}
             </div>
           </div>

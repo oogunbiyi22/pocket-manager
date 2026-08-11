@@ -154,7 +154,7 @@ export default function BillingPage() {
 
         {/* Success banners */}
         {(trialStarted || upgraded) && (
-          <div className="rounded-[16px] border border-[#5fcf7e]/25 bg-[#5fcf7e]/10 px-5 py-3 text-[13px] text-[#5fcf7e]">
+          <div className="rounded-[16px] border border-[#97c459]/25 bg-[#97c459]/10 px-5 py-3 text-[13px] text-[#97c459]">
             {trialStarted
               ? "Pro trial active — full access unlocked for 7 days."
               : `You're on ${upgraded?.charAt(0).toUpperCase()}${upgraded?.slice(1)}. All features unlocked.`}

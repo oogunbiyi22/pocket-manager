@@ -428,11 +428,11 @@ export default function APage() {
                       type="button"
                       onClick={() => submit(`Walk me through: ${action.action} via ${action.collectionBody}${action.songTitle ? ` for "${action.songTitle}"` : ""}`)}
                       className={`w-full rounded-[14px] px-4 py-3 text-left transition hover:opacity-80 ${
-                        isDone ? "bg-[#5fcf7e]/10" : isInProgress ? "bg-[#f0a832]/10" : "bg-white/5"
+                        isDone ? "bg-[#97c459]/10" : isInProgress ? "bg-[#ef9f27]/10" : "bg-white/5"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold ${isDone ? "text-[#5fcf7e]" : isInProgress ? "text-[#f0a832]" : "text-white/50"}`}>
+                        <span className={`text-[10px] font-bold ${isDone ? "text-[#97c459]" : isInProgress ? "text-[#ef9f27]" : "text-white/50"}`}>
                           {isDone ? "✓ Done" : isInProgress ? "In progress" : `#${i + 1}`}
                         </span>
                         <span className="text-[12px] font-medium text-white/90 truncate">{action.collectionBody}</span>

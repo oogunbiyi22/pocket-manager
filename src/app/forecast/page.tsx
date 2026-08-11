@@ -47,7 +47,7 @@ export default function ForecastPage() {
                       <div className="text-[15px] font-medium text-white/90">{months} month forecast</div>
                       <div className="mt-1 text-xs text-white/50">At current registration vs fully optimized</div>
                     </div>
-                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#f0a832]">
+                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#ef9f27]">
                       {formatGapEstimate(upside)} upside
                     </span>
                   </div>
@@ -67,7 +67,7 @@ export default function ForecastPage() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#f0a832]">
+        <section className="mt-5 rounded-xl border-[0.5px] border-[#faeeda] bg-[#faeeda] p-4 text-sm leading-6 text-[#ef9f27]">
           Forecasts are directional estimates based on your catalog data. Not financial advice — use as a planning reference.
         </section>
 

@@ -252,7 +252,7 @@ export default function PitchKitsPage() {
                   <label className="mt-3 block text-sm text-white/60">
                     <span className="mb-2 block">
                       Playlist{" "}
-                      <button type="button" onClick={() => setTab("playlists")} className="text-[#f0a832] underline-offset-2 hover:underline">
+                      <button type="button" onClick={() => setTab("playlists")} className="text-[#ef9f27] underline-offset-2 hover:underline">
                         (browse matches →)
                       </button>
                     </span>
@@ -263,7 +263,7 @@ export default function PitchKitsPage() {
                       className="h-10 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                     />
                     {targetPlaylist && (
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#5fcf7e]">
+                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#97c459]">
                         <span>{targetPlaylist.fit}% fit</span>
                         <span>·</span>
                         <span>{targetPlaylist.followers} followers</span>
@@ -296,7 +296,7 @@ export default function PitchKitsPage() {
                     <Fact label="Est. gap" value={formatGapEstimate(getSongEstimatedGap(song))} />
                   </div>
                   {(!song.genre || !song.mood) && (
-                    <p className="mt-3 text-[11px] text-[#f0a832]">
+                    <p className="mt-3 text-[11px] text-[#ef9f27]">
                       Add genre and mood to this song for a stronger pitch →{" "}
                       <Link href={`/projects/${song.id}`} className="underline">Edit song</Link>
                     </p>
@@ -400,7 +400,7 @@ function Fact({ label, value, flag }: { label: string; value: string; flag?: boo
   return (
     <div className="flex items-center justify-between rounded-lg border-[0.5px] border-white/8 bg-white/[0.06] px-3 py-2">
       <span className="text-white/50">{label}</span>
-      <span className={flag ? "text-[#f0a832]" : "text-white/90"}>{value}</span>
+      <span className={flag ? "text-[#ef9f27]" : "text-white/90"}>{value}</span>
     </div>
   );
 }

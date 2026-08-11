@@ -186,7 +186,7 @@ Respond ONLY with valid JSON in this exact shape:
                 <div key={i} className="overflow-hidden rounded-[20px] glass p-5">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[15px] font-medium text-white/90">{twin.name}</span>
-                    <span className="rounded-full bg-[#5fcf7e]/10 px-2.5 py-0.5 text-[10px] font-medium text-[#5fcf7e]">{twin.similarity}% match</span>
+                    <span className="rounded-full bg-[#97c459]/10 px-2.5 py-0.5 text-[10px] font-medium text-[#97c459]">{twin.similarity}% match</span>
                   </div>
                   <p className="text-sm leading-6 text-white/60">
                     <span className="font-medium text-white/90">What broke them through: </span>
@@ -214,7 +214,7 @@ Respond ONLY with valid JSON in this exact shape:
               <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">Your advantages</div>
               <div className="space-y-2">
                 {analysis.advantages.map((adv, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-lg border-[0.5px] border-[#5fcf7e]/30 bg-[#f0f7e6] px-4 py-3 text-sm text-[#5fcf7e]">
+                  <div key={i} className="flex items-start gap-3 rounded-lg border-[0.5px] border-[#97c459]/30 bg-[#f0f7e6] px-4 py-3 text-sm text-[#97c459]">
                     <span className="mt-0.5 shrink-0 text-[#97c459]">↑</span>
                     <span>{adv}</span>
                   </div>

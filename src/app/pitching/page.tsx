@@ -421,13 +421,13 @@ export default function PitchingPage() {
                       setImporting(false);
                     }
                   }}
-                  className="mt-4 w-full rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] py-3 text-sm font-medium text-[#f0a832] transition hover:bg-[#ef9f27]/20 disabled:opacity-50"
+                  className="mt-4 w-full rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] py-3 text-sm font-medium text-[#ef9f27] transition hover:bg-[#ef9f27]/20 disabled:opacity-50"
                 >
                   {importing ? "Loading…" : "⚡ Load Verified Curator List (4,200+ curators)"}
                 </button>
 
                 {curators.length > 0 && (
-                  <div className="mt-3 rounded-xl bg-[#5fcf7e]/10 px-4 py-3 text-sm text-[#5fcf7e]">
+                  <div className="mt-3 rounded-xl bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
                     ✓ {curators.length} curators imported · {curators.filter((c) => c.email.includes("@")).length} valid emails
                   </div>
                 )}
@@ -449,7 +449,7 @@ export default function PitchingPage() {
                   ].map(([col, req]) => (
                     <div key={col} className="flex items-center justify-between rounded-lg bg-white/5 px-2.5 py-1.5">
                       <code className="text-[11px] text-white/90">{col}</code>
-                      <span className={`text-[10px] ${req === "required" ? "text-[#e24b4a]" : req === "recommended" ? "text-[#f0a832]" : "text-white/50"}`}>{req}</span>
+                      <span className={`text-[10px] ${req === "required" ? "text-[#e24b4a]" : req === "recommended" ? "text-[#ef9f27]" : "text-white/50"}`}>{req}</span>
                     </div>
                   ))}
                 </div>
@@ -475,7 +475,7 @@ export default function PitchingPage() {
               <div className="rounded-xl border-[0.5px] border-dashed border-white/10 py-16 text-center text-sm text-white/50">
                 <div className="text-3xl">📋</div>
                 <div className="mt-3">No curators yet.</div>
-                <button type="button" onClick={() => setTab("import")} className="mt-3 text-[#f0a832] underline underline-offset-2">Import your CSV →</button>
+                <button type="button" onClick={() => setTab("import")} className="mt-3 text-[#ef9f27] underline underline-offset-2">Import your CSV →</button>
               </div>
             ) : (
               <>
@@ -539,7 +539,7 @@ export default function PitchingPage() {
                         {pitch && (
                           <div className="shrink-0">
                             {pitch.status === "generating" && <span className="text-[11px] text-white/50">writing…</span>}
-                            {pitch.status === "ready" && <span className="rounded-full bg-[#5fcf7e]/10 px-2 py-0.5 text-[10px] text-[#5fcf7e]">Ready</span>}
+                            {pitch.status === "ready" && <span className="rounded-full bg-[#97c459]/10 px-2 py-0.5 text-[10px] text-[#97c459]">Ready</span>}
                             {pitch.status === "sent" && <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] text-white">Sent ✓</span>}
                             {pitch.status === "error" && <span className="rounded-full bg-[#f05c5c]/10 px-2 py-0.5 text-[10px] text-[#f05c5c]">Error</span>}
                           </div>
@@ -560,7 +560,7 @@ export default function PitchingPage() {
               <div className="rounded-xl border-[0.5px] border-dashed border-white/10 py-16 text-center text-sm text-white/50">
                 <div className="text-3xl">✉️</div>
                 <div className="mt-3">No pitches generated yet.</div>
-                <button type="button" onClick={() => setTab("curators")} className="mt-3 text-[#f0a832] underline underline-offset-2">
+                <button type="button" onClick={() => setTab("curators")} className="mt-3 text-[#ef9f27] underline underline-offset-2">
                   Select curators and generate →
                 </button>
               </div>
@@ -629,7 +629,7 @@ function PitchCard({
   const statusLabel = {
     idle: null,
     generating: <span className="text-[11px] text-white/50">Generating…</span>,
-    ready: <span className="rounded-full bg-[#5fcf7e]/10 px-2 py-0.5 text-[10px] text-[#5fcf7e]">Ready to send</span>,
+    ready: <span className="rounded-full bg-[#97c459]/10 px-2 py-0.5 text-[10px] text-[#97c459]">Ready to send</span>,
     sending: <span className="text-[11px] text-white/50">Sending…</span>,
     sent: <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] text-white">Sent ✓</span>,
     error: <span className="rounded-full bg-[#f05c5c]/10 px-2 py-0.5 text-[10px] text-[#f05c5c]">{pitch.error ?? "Error"}</span>,

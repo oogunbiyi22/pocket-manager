@@ -401,7 +401,7 @@ export default function SignalPage() {
               <button
                 type="button"
                 onClick={handleSendAll}
-                className="rounded-lg border-[0.5px] border-[#5fcf7e]/30 bg-[#97c459]/10 px-5 py-2 text-sm font-medium text-[#5fcf7e] transition hover:bg-[#97c459]/20"
+                className="rounded-lg border-[0.5px] border-[#97c459]/30 bg-[#97c459]/10 px-5 py-2 text-sm font-medium text-[#97c459] transition hover:bg-[#97c459]/20"
               >
                 Mark all {queuedCount} as sent
               </button>
@@ -413,7 +413,7 @@ export default function SignalPage() {
                 <span key={tag} className="rounded-full border-[0.5px] border-white/8 bg-white/8 px-2.5 py-0.5 text-[11px] text-white/50">{tag}</span>
               ))}
               {!selectedSong.genre && !selectedSong.mood && (
-                <Link href={`/projects/${selectedSong.id}`} className="text-[11px] text-[#f0a832] underline underline-offset-2">
+                <Link href={`/projects/${selectedSong.id}`} className="text-[11px] text-[#ef9f27] underline underline-offset-2">
                   Add genre + mood in the song room for better matches →
                 </Link>
               )}

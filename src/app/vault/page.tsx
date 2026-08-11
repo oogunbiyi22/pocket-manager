@@ -91,7 +91,7 @@ export default function VaultPage() {
                       {songMissing > 0 ? (
                         <span className="rounded-full bg-[#f05c5c]/10 px-3 py-1 text-[11px] font-medium text-[#f05c5c]">{songMissing} missing</span>
                       ) : (
-                        <span className="rounded-full bg-[#5fcf7e]/10 px-3 py-1 text-[11px] font-medium text-[#5fcf7e]">All filed ✓</span>
+                        <span className="rounded-full bg-[#97c459]/10 px-3 py-1 text-[11px] font-medium text-[#97c459]">All filed ✓</span>
                       )}
                       <Link href={`/projects/${song.id}`} className="text-[11px] text-white/50 hover:text-white/90 transition">
                         Open →
@@ -107,12 +107,12 @@ export default function VaultPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-[13px] font-medium text-[var(--text-primary)]">{asset.label}</span>
-                              {asset.critical && <span className="text-[9px] font-semibold uppercase tracking-wider text-[#f0a832] bg-[#f0a832]/10 border border-[#f0a832]/20 px-1.5 py-0.5 rounded">Required</span>}
+                              {asset.critical && <span className="text-[9px] font-semibold uppercase tracking-wider text-[#ef9f27] bg-[#ef9f27]/10 border border-[#ef9f27]/20 px-1.5 py-0.5 rounded">Required</span>}
                             </div>
                             <div className="text-[11px] text-white/50 mt-0.5">{asset.hint}</div>
                           </div>
                           {status === "present" ? (
-                            <span className="shrink-0 rounded-full bg-[#5fcf7e]/10 px-3 py-1 text-[10px] font-semibold text-[#5fcf7e]" style={{ border: "0.5px solid rgba(59,109,17,0.2)" }}>
+                            <span className="shrink-0 rounded-full bg-[#97c459]/10 px-3 py-1 text-[10px] font-semibold text-[#97c459]" style={{ border: "0.5px solid rgba(59,109,17,0.2)" }}>
                               Filed ✓
                             </span>
                           ) : (

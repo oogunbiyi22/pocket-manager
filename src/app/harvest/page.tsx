@@ -140,7 +140,7 @@ export default function HarvestPage() {
               </span>
             </div>
           ) : (
-            <div className="mt-4 rounded-xl border-[0.5px] border-[#5fcf7e]/30 bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
+            <div className="mt-4 rounded-xl border-[0.5px] border-[#97c459]/30 bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
               Catalog fully optimized · no open gaps
             </div>
           )}
@@ -200,7 +200,7 @@ export default function HarvestPage() {
           <section className="rounded-[24px] glass card-shadow px-5 py-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/50">Gap queue</div>
-              <Link href="/actions" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#f0a832]">
+              <Link href="/actions" className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#ef9f27]">
                 Full queue →
               </Link>
             </div>
@@ -209,7 +209,7 @@ export default function HarvestPage() {
                 <div
                   key={item.id}
                   className={`overflow-hidden rounded-[14px] transition ${
-                    i === 0 ? "bg-[#f0a832]/10" : "glass-subtle"
+                    i === 0 ? "bg-[#ef9f27]/10" : "glass-subtle"
                   }`}
                 >
                   <div className="flex items-start gap-3 px-4 py-3">
@@ -228,7 +228,7 @@ export default function HarvestPage() {
                       <div className="mt-1 text-[11px] text-white/50">{item.estimatedTime}</div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <div className="text-[15px] font-normal text-[#f0a832]">
+                      <div className="text-[15px] font-normal text-[#ef9f27]">
                         {formatGapEstimate(item.estimatedValue)}
                       </div>
                     </div>
@@ -267,7 +267,7 @@ export default function HarvestPage() {
                   }`}
                 >
                   <span className="text-white/90">{row.label}</span>
-                  <span className="rounded-full bg-[#f0a832]/10 px-3 py-1 text-[11px] font-medium text-[#f0a832]">
+                  <span className="rounded-full bg-[#ef9f27]/10 px-3 py-1 text-[11px] font-medium text-[#ef9f27]">
                     {formatGapEstimate(row.gap)}
                   </span>
                 </div>
@@ -307,7 +307,7 @@ export default function HarvestPage() {
                       {formatMoney(collected)} collected{!optimized ? ` · ${formatGapEstimate(gap)} missing` : ""}
                     </div>
                   </div>
-                  <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${optimized ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : "bg-[#f05c5c]/10 text-[#f05c5c]"}`}>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium ${optimized ? "bg-[#97c459]/10 text-[#97c459]" : "bg-[#f05c5c]/10 text-[#f05c5c]"}`}>
                     {optimized ? "Full" : "Gap"}
                   </span>
                 </Link>

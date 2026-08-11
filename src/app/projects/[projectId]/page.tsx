@@ -292,7 +292,7 @@ export default function ProjectDetailPage() {
                   : "Add ISRC and platform registrations next."}
               </p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-white/55">
-                <span className={`size-1.5 rounded-full ${blockingCount === 0 ? "bg-[#5fcf7e]" : blockingCount <= 2 ? "bg-[#ef9f27]" : "bg-[#e24b4a]"}`} />
+                <span className={`size-1.5 rounded-full ${blockingCount === 0 ? "bg-[#97c459]" : blockingCount <= 2 ? "bg-[#ef9f27]" : "bg-[#e24b4a]"}`} />
                 <span>{roomStateLabel}</span>
                 <span className="text-white/25">•</span>
                 <span>{roomStateDetail}</span>
@@ -438,7 +438,7 @@ export default function ProjectDetailPage() {
             </div>
           </section>
         ) : (
-          <section className="m-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#f0a832]">
+          <section className="m-5 rounded-xl border-[0.5px] border-[#ef9f27]/50 bg-[#ef9f27]/20 p-4 text-[#ef9f27]">
             Add an ISRC or connect one platform so Pocket can calculate the first estimated revenue gap.
           </section>
         )}
@@ -455,7 +455,7 @@ export default function ProjectDetailPage() {
                   className="flex items-center justify-between gap-3 rounded-xl border-[0.5px] border-white/10 bg-white/[0.05] px-4 py-3 text-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`text-[15px] leading-none ${item.done ? "text-[#5fcf7e]" : "text-[#f05c5c]"}`}>
+                    <span className={`text-[15px] leading-none ${item.done ? "text-[#97c459]" : "text-[#f05c5c]"}`}>
                       {item.done ? "✓" : "!"}
                     </span>
                     <div>
@@ -468,7 +468,7 @@ export default function ProjectDetailPage() {
                       {item.action}
                     </Link>
                   ) : (
-                    <span className="shrink-0 rounded-full bg-[#5fcf7e]/10 px-3 py-1 text-[11px] font-medium text-[#5fcf7e]">Done</span>
+                    <span className="shrink-0 rounded-full bg-[#97c459]/10 px-3 py-1 text-[11px] font-medium text-[#97c459]">Done</span>
                   )}
                 </div>
               ))}
@@ -491,7 +491,7 @@ export default function ProjectDetailPage() {
                       <div className="font-medium text-white/90">{c.name}</div>
                       <div className="mt-0.5 text-[11px] text-[#6d6860]">{c.role.replaceAll("_", " ")} · {c.ownershipPercentage}%</div>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${c.signed ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : "bg-[#faeeda] text-[#f0a832]"}`}>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${c.signed ? "bg-[#97c459]/10 text-[#97c459]" : "bg-[#faeeda] text-[#ef9f27]"}`}>
                       {c.signed ? "Signed" : "Unsigned"}
                     </span>
                   </div>
@@ -533,7 +533,7 @@ export default function ProjectDetailPage() {
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-[#6d6860]">{splitTotal}% assigned</span>
-                <button type="button" onClick={copySplitSheet} className="text-xs text-[#f0a832]">
+                <button type="button" onClick={copySplitSheet} className="text-xs text-[#ef9f27]">
                   {splitSheetCopied ? "Copied" : "Copy split sheet"}
                 </button>
               </div>
@@ -587,7 +587,7 @@ export default function ProjectDetailPage() {
                   Save metadata
                 </button>
                 {metadataNotice ? (
-                  <div className="rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-2 text-xs text-[#5fcf7e]">
+                  <div className="rounded-lg border border-[#97c459]/30 bg-[#97c459]/10 px-3 py-2 text-xs text-[#97c459]">
                     {metadataNotice}
                   </div>
                 ) : null}
@@ -641,7 +641,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="mb-4 rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-3 text-xs text-[#5fcf7e]">
+              <div className="mb-4 rounded-lg border border-[#97c459]/30 bg-[#97c459]/10 px-3 py-3 text-xs text-[#97c459]">
                 Core release files are covered in this room.
               </div>
             )}
@@ -675,8 +675,8 @@ export default function ProjectDetailPage() {
               <input type="file" multiple accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.wav,.mp3,.aiff,.zip" onChange={handleFileChange} className="mt-3 block w-full text-sm" />
             </label>
             {uploading && <div className="mt-3 text-sm text-white/60">Uploading to the vault…</div>}
-            {uploadNotice && <div className="mt-3 rounded-lg border border-[#97c459]/30 bg-[#5fcf7e]/10 px-3 py-2 text-xs text-[#5fcf7e]">{uploadNotice}</div>}
-            {uploadError && <div className="mt-3 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-2 text-xs text-[#f0a832]">{uploadError}</div>}
+            {uploadNotice && <div className="mt-3 rounded-lg border border-[#97c459]/30 bg-[#97c459]/10 px-3 py-2 text-xs text-[#97c459]">{uploadNotice}</div>}
+            {uploadError && <div className="mt-3 rounded-lg border border-[#ef9f27]/30 bg-[#faeeda] px-3 py-2 text-xs text-[#ef9f27]">{uploadError}</div>}
             {filedAssets.length === 0 ? (
               <div className="mt-3 rounded-xl border-[0.5px] border-dashed border-white/10 bg-white/5 px-4 py-4 text-sm text-white/55">
                 <div className="font-medium text-white/85">No files in this room yet.</div>
@@ -701,7 +701,7 @@ export default function ProjectDetailPage() {
                           {asset.sizeLabel} · {asset.source === "supabase" ? "Synced across devices" : "Saved on this device only"}
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${asset.source === "supabase" ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : "bg-[#faeeda] text-[#f0a832]"}`}>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${asset.source === "supabase" ? "bg-[#97c459]/10 text-[#97c459]" : "bg-[#faeeda] text-[#ef9f27]"}`}>
                         {asset.source === "supabase" ? "Synced" : "Local only"}
                       </span>
                     </div>
@@ -804,7 +804,7 @@ export default function ProjectDetailPage() {
                       const fillPct = total > 1 && lastDoneIdx >= 0 ? (lastDoneIdx / (total - 1)) * 100 : 0;
                       return (
                         <>
-                          <div className="h-full rounded-full bg-[#5fcf7e] transition-all duration-700" style={{ width: `${fillPct}%` }} />
+                          <div className="h-full rounded-full bg-[#97c459] transition-all duration-700" style={{ width: `${fillPct}%` }} />
                           {runwayRows.map((row, i) => {
                             const left = total > 1 ? (i / (total - 1)) * 100 : 0;
                             const isDone = row.status === "Done";
@@ -813,7 +813,7 @@ export default function ProjectDetailPage() {
                               <div
                                 key={row.title}
                                 className={`absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
-                                  isDone ? "bg-[#5fcf7e]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
+                                  isDone ? "bg-[#97c459]" : isDue ? "border-[1.5px] border-white/70 bg-transparent" : "border-[1.5px] border-white/25 bg-transparent"
                                 }`}
                                 style={{ left: `${left}%` }}
                               />
@@ -831,7 +831,7 @@ export default function ProjectDetailPage() {
                       return (
                         <div key={`${row.title}-${row.daysBefore}`} className="flex items-start gap-3 border-b-[0.5px] border-white/[0.05] py-3 last:border-b-0">
                           <div className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full text-[9px] ${
-                            isDone ? "bg-[#5fcf7e]/10 text-[#5fcf7e]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
+                            isDone ? "bg-[#97c459]/10 text-[#97c459]" : isDue ? "bg-[#2a1800] text-[#ef9f27]" : "bg-white/5 text-white/30"
                           }`}>
                             {isDone ? "✓" : "○"}
                           </div>
@@ -1248,8 +1248,8 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function statusClass(status: string) {
-  if (status === "collecting" || status === "connected") return "bg-[#97c459]/25 text-[#5fcf7e]";
-  if (status === "registered_not_collecting" || status === "incomplete") return "bg-[#ef9f27]/20 text-[#f0a832]";
+  if (status === "collecting" || status === "connected") return "bg-[#97c459]/25 text-[#97c459]";
+  if (status === "registered_not_collecting" || status === "incomplete") return "bg-[#ef9f27]/20 text-[#ef9f27]";
   return "bg-[#e24b4a]/15 text-[#f05c5c]";
 }
 

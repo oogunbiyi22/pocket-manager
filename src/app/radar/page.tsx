@@ -111,7 +111,7 @@ export default function RadarPage() {
 
 function statusClass(status: string) {
   if (status === "Due now") {
-    return "bg-[#faeeda] text-[#f0a832]";
+    return "bg-[#faeeda] text-[#ef9f27]";
   }
 
   if (status === "Missed") {

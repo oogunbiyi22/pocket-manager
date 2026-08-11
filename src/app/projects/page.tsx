@@ -54,7 +54,7 @@ function RoomCard({ song }: { song: SongCatalogItem }) {
         {meta && <div className="mt-0.5 text-[11px] text-white/35 truncate">{meta}</div>}
         <div className="mt-2 flex items-center gap-2">
           {estimatedGap > 0 && (
-            <span className="rounded-full bg-[#f0a832]/15 px-2.5 py-0.5 text-[10px] font-semibold text-[#f0a832]">
+            <span className="rounded-full bg-[#ef9f27]/15 px-2.5 py-0.5 text-[10px] font-semibold text-[#ef9f27]">
               {formatGapEstimate(estimatedGap)} gap
             </span>
           )}
@@ -131,6 +131,6 @@ export default function ProjectsPage() {
 
 function gapScoreClass(score: number) {
   if (score >= 60) return "bg-[#e24b4a]/15 text-[#f05c5c]";
-  if (score > 0) return "bg-[#ef9f27]/20 text-[#f0a832]";
-  return "bg-[#97c459]/25 text-[#5fcf7e]";
+  if (score > 0) return "bg-[#ef9f27]/20 text-[#ef9f27]";
+  return "bg-[#97c459]/25 text-[#97c459]";
 }

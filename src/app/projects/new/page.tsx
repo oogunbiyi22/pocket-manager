@@ -256,12 +256,12 @@ export default function NewProjectPage() {
 
           {/* Artwork + fill confirmation */}
           {selectedArtwork && (
-            <div className="mt-3 flex items-center gap-4 rounded-xl border-[0.5px] border-[#5fcf7e]/30 bg-[#5fcf7e]/10 p-3">
+            <div className="mt-3 flex items-center gap-4 rounded-xl border-[0.5px] border-[#97c459]/30 bg-[#97c459]/10 p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={selectedArtwork} alt="Album artwork" className="size-14 shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-white/90">{form.title}</div>
-                <div className="mt-0.5 text-xs text-[#5fcf7e]">
+                <div className="mt-0.5 text-xs text-[#97c459]">
                   <Check size={10} className="mr-1 inline" />
                   Auto-filled from Apple Music · {form.genre}{form.releaseDate ? ` · ${form.releaseDate}` : ""}
                 </div>
@@ -307,9 +307,9 @@ export default function NewProjectPage() {
                     )}
                   </div>
                   {mbLookup.status === "found" && mbLookup.result && (
-                    <div className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border-[0.5px] border-[#5fcf7e]/50 bg-[#5fcf7e]/10 px-3 py-2 text-xs">
-                      <span className="text-[#5fcf7e]">{mbLookup.result.title}{mbLookup.result.artist ? ` · ${mbLookup.result.artist}` : ""}</span>
-                      <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#5fcf7e]">Use →</button>
+                    <div className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border-[0.5px] border-[#97c459]/50 bg-[#97c459]/10 px-3 py-2 text-xs">
+                      <span className="text-[#97c459]">{mbLookup.result.title}{mbLookup.result.artist ? ` · ${mbLookup.result.artist}` : ""}</span>
+                      <button type="button" onClick={applyMbResult} className="shrink-0 font-medium text-[#97c459]">Use →</button>
                     </div>
                   )}
                 </label>
@@ -357,8 +357,8 @@ export default function NewProjectPage() {
           {/* CTA */}
           {atFreeLimit ? (
             <div className="mt-5 rounded-xl border-[0.5px] border-[#ef9f27]/40 bg-[#faeeda] px-4 py-4 text-center">
-              <p className="text-sm font-medium text-[#f0a832]">Free plan is capped at 3 songs.</p>
-              <p className="mt-1 text-xs text-[#f0a832]/70">Upgrade to Pro to add unlimited releases and unlock the full action queue.</p>
+              <p className="text-sm font-medium text-[#ef9f27]">Free plan is capped at 3 songs.</p>
+              <p className="mt-1 text-xs text-[#ef9f27]/70">Upgrade to Pro to add unlimited releases and unlock the full action queue.</p>
               <a href="/settings" className="mt-3 inline-block rounded-lg bg-[#0a0a0a] px-5 py-2 text-sm font-medium text-white">
                 Upgrade to Pro →
               </a>

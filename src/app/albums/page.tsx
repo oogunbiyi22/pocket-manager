@@ -121,7 +121,7 @@ export default function AlbumsPage() {
                       <div className="text-white/85">{index + 1}. {song.title}</div>
                       <div className="mt-1 text-xs text-white/50">{song.isrc || "ISRC needed"} · {song.releaseDate}</div>
                     </div>
-                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#f0a832]">
+                    <span className="rounded-full bg-[#faeeda] px-3 py-1 text-[11px] font-medium text-[#ef9f27]">
                       {formatGapEstimate(getSongEstimatedGap(song))}
                     </span>
                   </div>

@@ -322,7 +322,7 @@ In 3 bullet points, give the most important publishing actions this artist shoul
                       </span>
                     </div>
                   </div>
-                  <Link href={`/projects/${s.songId}`} className="text-[11px] font-medium text-[#f0a832] hover:underline">
+                  <Link href={`/projects/${s.songId}`} className="text-[11px] font-medium text-[#ef9f27] hover:underline">
                     Fix →
                   </Link>
                 </div>

@@ -124,10 +124,10 @@ export default function ContractsPage() {
                   <p className="mt-3 text-sm leading-6 text-white/60">{aiAnalysis.summary}</p>
                 </section>
                 {aiAnalysis.positives.length > 0 && (
-                  <section className="rounded-xl border-[0.5px] border-[#eaf3de] bg-[#5fcf7e]/10 p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#5fcf7e]">Artist-Friendly Clauses</div>
+                  <section className="rounded-xl border-[0.5px] border-[#eaf3de] bg-[#97c459]/10 p-4">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#97c459]">Artist-Friendly Clauses</div>
                     <ul className="mt-3 space-y-1">
-                      {aiAnalysis.positives.map((p, i) => <li key={i} className="text-sm leading-5 text-[#5fcf7e]">• {p}</li>)}
+                      {aiAnalysis.positives.map((p, i) => <li key={i} className="text-sm leading-5 text-[#97c459]">• {p}</li>)}
                     </ul>
                   </section>
                 )}
@@ -156,7 +156,7 @@ export default function ContractsPage() {
                       </div>
                       <div className="mt-3 rounded-lg bg-white/5 p-3 text-xs leading-5 text-white/60">{flag.excerpt}</div>
                       <p className="mt-3 text-sm leading-6 text-white/60">{flag.plainEnglish}</p>
-                      <p className="mt-2 text-xs leading-5 text-[#f0a832]">Ask your attorney: {flag.attorneyQuestion}</p>
+                      <p className="mt-2 text-xs leading-5 text-[#ef9f27]">Ask your attorney: {flag.attorneyQuestion}</p>
                     </article>
                   ))
                 ) : (
@@ -239,8 +239,8 @@ function getExcerpt(text: string, pattern: RegExp) {
 function riskClass(risk: ContractFlag["risk"]) {
   if (risk === "Critical") return "bg-[#1a0000] text-[#ff4d4d]";
   if (risk === "High") return "bg-[#f05c5c]/10 text-[#f05c5c]";
-  if (risk === "Medium") return "bg-[#faeeda] text-[#f0a832]";
-  return "bg-[#5fcf7e]/10 text-[#5fcf7e]";
+  if (risk === "Medium") return "bg-[#faeeda] text-[#ef9f27]";
+  return "bg-[#97c459]/10 text-[#97c459]";
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

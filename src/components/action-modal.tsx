@@ -232,7 +232,7 @@ export function ActionModal({
                       value={verificationInput}
                       onChange={(e) => setVerificationInput(e.target.value)}
                       placeholder={verificationField.placeholder}
-                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-mono text-white placeholder:text-white/25 outline-none focus:border-[#5fcf7e]/30"
+                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-mono text-white placeholder:text-white/25 outline-none focus:border-[#97c459]/30"
                     />
                     <p className="mt-1 text-[11px] text-white/30">This value is saved to your song record as proof of completion.</p>
                   </div>

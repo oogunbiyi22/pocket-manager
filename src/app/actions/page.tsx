@@ -37,7 +37,7 @@ export default function ActionsPage() {
                         {locked ? "The next prioritized action stays hidden on Free." : item.why}
                       </p>
                     </div>
-                    <span className="rounded-full bg-[#f0a832]/20 border border-[#f0a832]/30 px-3 py-1 text-[11px] font-medium text-[#f0a832]">
+                    <span className="rounded-full bg-[#ef9f27]/20 border border-[#ef9f27]/30 px-3 py-1 text-[11px] font-medium text-[#ef9f27]">
                       {locked ? "Pro" : formatGapEstimate(item.estimatedValue)}
                     </span>
                   </div>

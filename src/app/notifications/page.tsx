@@ -120,14 +120,14 @@ export default function NotificationsPage() {
 
 function tierClass(tier: NotificationPreference["tier"]) {
   if (tier === "Free") {
-    return "bg-[#5fcf7e]/10 text-[#5fcf7e]";
+    return "bg-[#97c459]/10 text-[#97c459]";
   }
 
   if (tier === "Pro") {
     return "bg-[#e6f1fb] text-[#185fa5]";
   }
 
-  return "bg-[#faeeda] text-[#f0a832]";
+  return "bg-[#faeeda] text-[#ef9f27]";
 }
 
 function loadPreferences() {

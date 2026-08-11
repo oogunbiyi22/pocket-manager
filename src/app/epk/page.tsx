@@ -209,7 +209,7 @@ export default function EpkPage() {
                         {song.releaseDate} · {song.genre ?? "Genre needed"} · {song.mood ?? "Mood needed"}
                       </div>
                     </div>
-                    <span className="rounded-full bg-[#5fcf7e]/10 px-3 py-1 text-[11px] font-medium text-[#5fcf7e]">
+                    <span className="rounded-full bg-[#97c459]/10 px-3 py-1 text-[11px] font-medium text-[#97c459]">
                       {getSongReadinessScore(song)}/100
                     </span>
                   </div>

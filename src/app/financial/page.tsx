@@ -62,7 +62,7 @@ export default function FinancialPage() {
               <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Confirmed income</div>
               <div className="mt-2 text-5xl font-light tracking-[-0.04em]">{formatMoney(totalConfirmed)}</div>
             </div>
-            <div className="rounded-lg border-[0.5px] border-[#faeeda]/60 bg-[#faeeda] px-4 py-3 text-[#f0a832]">
+            <div className="rounded-lg border-[0.5px] border-[#faeeda]/60 bg-[#faeeda] px-4 py-3 text-[#ef9f27]">
               <div className="text-[11px] uppercase tracking-[0.18em]">Estimated missing</div>
               <div className="mt-2 text-3xl font-normal">{formatGapEstimate(totalGap)}</div>
             </div>
@@ -88,7 +88,7 @@ export default function FinancialPage() {
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">Missing</div>
-                  <div className="mt-1 text-[#f0a832]">{formatGapEstimate(getSongEstimatedGap(song))}</div>
+                  <div className="mt-1 text-[#ef9f27]">{formatGapEstimate(getSongEstimatedGap(song))}</div>
                 </div>
               </Link>
             ))}
@@ -113,7 +113,7 @@ export default function FinancialPage() {
                   <div className="mt-1 text-xs text-white/50">{row.status}</div>
                 </div>
                 <div className="text-white/90">{formatMoney(row.confirmed)}</div>
-                <div className="text-[#f0a832]">{formatGapEstimate(row.missing)}</div>
+                <div className="text-[#ef9f27]">{formatGapEstimate(row.missing)}</div>
               </Link>
             ))}
           </div>
