@@ -4,7 +4,9 @@ import { streamText, type ModelMessage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createClient } from "@supabase/supabase-js";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { resolveServerPlan, type PlanTier } from "@/lib/plans";
 import {
   getRevenueGapSummary,
   getRevenueActionQueue,
@@ -29,8 +31,45 @@ const ChatRequestSchema = z.object({
   page: z.string().max(40).optional(),
   songs: z.array(z.unknown()).max(200).optional(),
   platforms: z.array(z.unknown()).max(50).optional(),
-  plan: z.enum(["free", "pro", "elite"]).optional(),
+  // NOTE: no `plan` field — the plan is derived server-side from the
+  // caller's stored profile (see resolveChatPlan). A client-supplied
+  // plan was previously trusted here, which let any caller claim
+  // "elite" and get the Claude rail for free.
 });
+
+/**
+ * Derive the caller's plan from their authenticated Supabase profile.
+ * Identity comes from the session header (same pattern as the
+ * catalog/beats routes); the plan comes from the `profiles` row the
+ * Stripe webhook maintains. Anything unresolved → "free".
+ */
+async function resolveChatPlan(req: NextRequest): Promise<PlanTier> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !anonKey || !serviceKey) return "free";
+
+  const auth = req.headers.get("Authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return "free";
+
+  try {
+    const anon = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { data: { user }, error } = await anon.auth.getUser(token);
+    if (error || !user) return "free";
+
+    const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+    const { data } = await admin
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    return resolveServerPlan(user.id, (data as { plan?: unknown } | null)?.plan);
+  } catch {
+    return "free";
+  }
+}
 
 // Build a rich system prompt from real artist data
 function buildSystemPrompt(
@@ -150,14 +189,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { messages: rawMessages, artistName, managerName, plan } = parsed.data;
+    const { messages: rawMessages, artistName, managerName } = parsed.data;
     const songs = (parsed.data.songs ?? []) as SongCatalogItem[];
     const platforms = (parsed.data.platforms ?? []) as PlatformConnection[];
+
+    // Plan comes from the caller's stored profile — never the request body.
+    const plan = await resolveChatPlan(req);
 
     const cleanName = (artistName ?? "Artist").replace(/<[^>]*>/g, "").slice(0, 120);
     const cleanManager = (managerName ?? "REMY").replace(/<[^>]*>/g, "").slice(0, 40);
 
-    const systemPrompt = buildSystemPrompt(cleanName, cleanManager, songs, platforms, plan ?? "free");
+    const systemPrompt = buildSystemPrompt(cleanName, cleanManager, songs, platforms, plan);
 
     // Conversation history (last 10 user/assistant turns).
     const history: ModelMessage[] = (Array.isArray(rawMessages) ? rawMessages : [])
@@ -166,7 +208,7 @@ export async function POST(req: NextRequest) {
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const result = streamText({
-      model: selectModel(plan ?? "free"),
+      model: selectModel(plan),
       system: systemPrompt,
       messages: history,
       temperature: 0.7,

@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { getSongReadinessScore } from "@/lib/backstage-data";
 import type { SongCatalogItem, SongVaultAssetKind } from "@/lib/backstage-data";
+import { CaptureAssetPlayer } from "@/components/capture-asset-player";
+import { loadCaptures, type PocketItem } from "@/lib/captures";
 
 function ReadinessRing({ score }: { score: number }) {
   const r = 12;
@@ -35,6 +38,16 @@ function assetStatus(song: SongCatalogItem, key: string): "present" | "missing" 
 
 export default function VaultPage() {
   const { songs } = usePocket();
+
+  // Captures with real files (voice memos, files, photos from Pocket).
+  // Song-routed captures also appear as room assets above; this section is
+  // what makes "Route to The Vault" true for inbox/vault-routed captures.
+  const [filedCaptures, setFiledCaptures] = useState<PocketItem[]>([]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      setFiledCaptures(loadCaptures().filter((item) => item.asset?.storagePath));
+    });
+  }, []);
 
   const totalAssets = songs.length * ASSET_TYPES.length;
   const missingCount = songs.reduce((acc, song) => {
@@ -131,6 +144,34 @@ export default function VaultPage() {
               );
             })}
           </div>
+        )}
+
+        {/* Pocket captures — real files captured on the go */}
+        {filedCaptures.length > 0 && (
+          <section className="rounded-[20px] glass card-shadow px-5 py-5">
+            <div className="mb-4 flex items-baseline justify-between">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Pocket captures</div>
+              <Link href="/capture" className="text-[11px] text-white/50 hover:text-white/90 transition">Capture →</Link>
+            </div>
+            <div className="space-y-2">
+              {filedCaptures.map((item) => {
+                const song = songs.find((s) => s.id === item.songId);
+                return (
+                  <div key={item.id} className="flex items-center gap-3 rounded-xl border-[0.5px] border-white/8 bg-white/[0.03] px-4 py-3">
+                    <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/60">{item.type}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] text-white/85">{item.body}</div>
+                      <div className="mt-0.5 text-[11px] text-white/40">
+                        {item.asset?.sizeLabel} · {new Date(item.createdAt).toLocaleDateString()}
+                        {song ? ` · ${song.title}` : item.songId === "vault" ? " · The Vault" : " · Inbox"}
+                      </div>
+                    </div>
+                    {item.asset && <CaptureAssetPlayer asset={item.asset} compact />}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {/* What belongs here */}

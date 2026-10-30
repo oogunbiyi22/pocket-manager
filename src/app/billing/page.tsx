@@ -65,23 +65,22 @@ const PLANS = [
 ];
 
 export default function BillingPage() {
-  const { profile, updateProfile } = usePocket();
+  const { profile } = usePocket();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [upgraded, setUpgraded] = useState<string | null>(null);
-  const [trialStarted, setTrialStarted] = useState(false);
+  const [checkoutComplete, setCheckoutComplete] = useState(false);
 
   useEffect(() => {
+    // Returning from Stripe checkout is NOT proof of a plan change — the
+    // plan only changes when the Stripe webhook writes it to the profile.
+    // (This page previously trusted ?upgraded=pro|elite and set the local
+    // plan directly, which let anyone spoof a paid plan with a URL.)
+    // Here we just acknowledge the return; the profile re-syncs from
+    // Supabase on refresh once the webhook lands.
     const p = new URLSearchParams(window.location.search);
-    const up = p.get("upgraded");
-    const trial = p.get("trial");
-    setUpgraded(up);
-    setTrialStarted(trial === "started");
-    if (up && profile.plan !== up) {
-      updateProfile({ plan: up as "pro" | "elite" });
-    }
+    setCheckoutComplete(p.get("checkout") === "complete" || p.has("upgraded"));
   }, []);
 
   const currentPlan = PLANS.find((p) => p.id === profile.plan) ?? PLANS[0];
@@ -103,7 +102,7 @@ export default function BillingPage() {
         body: JSON.stringify({
           plan: planId,
           interval,
-          successUrl: `${window.location.origin}/billing?upgraded=${planId}`,
+          successUrl: `${window.location.origin}/billing?checkout=complete`,
           cancelUrl: `${window.location.origin}/billing`,
         }),
       });
@@ -152,12 +151,11 @@ export default function BillingPage() {
           <div className="text-[22px] font-light text-white/90 mt-0.5">Choose your plan</div>
         </header>
 
-        {/* Success banners */}
-        {(trialStarted || upgraded) && (
+        {/* Post-checkout banner — informational only; the plan itself
+            changes via the Stripe webhook, never from this page. */}
+        {checkoutComplete && (
           <div className="rounded-[16px] border border-[#97c459]/25 bg-[#97c459]/10 px-5 py-3 text-[13px] text-[#97c459]">
-            {trialStarted
-              ? "Pro trial active — full access unlocked for 7 days."
-              : `You're on ${upgraded?.charAt(0).toUpperCase()}${upgraded?.slice(1)}. All features unlocked.`}
+            Checkout complete — your plan activates as soon as Stripe confirms the payment. Refresh in a few seconds to see it here.
           </div>
         )}
 

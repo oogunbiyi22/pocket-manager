@@ -5,8 +5,10 @@ import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { audiodbSearchArtist, bandsintownGetEvents } from "@/lib/music-apis";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getSupabase } from "@/lib/supabase";
 import {
   formatMoney,
+  getCatalogReadinessScore,
   getSongConfirmedIncome,
   getSongReadinessScore,
 } from "@/lib/backstage-data";
@@ -15,7 +17,7 @@ type AudioDbArtist = { strArtist: string; strBiographyEN?: string; strArtistThum
 type BandsintownEvent = { id: string; title?: string; venue?: { name: string; city: string; country: string }; datetime?: string; url?: string };
 
 export default function EpkPage() {
-  const { profile, songs } = usePocket();
+  const { profile, songs, signedIn } = usePocket();
   const [selectedSongIds, setSelectedSongIds] = useState(() => songs.slice(0, 3).map((song) => song.id));
   const [audioDbData, setAudioDbData] = useState<AudioDbArtist | null>(null);
   const [upcomingShows, setUpcomingShows] = useState<BandsintownEvent[]>([]);
@@ -44,21 +46,129 @@ export default function EpkPage() {
   );
   const displaySongs = selectedSongs.length ? selectedSongs : songs;
   const totalStreams = displaySongs.reduce((t, s) => t + (s.streams ?? 0), 0);
-  const monthlyListeners = Math.round(totalStreams * 0.28);
-  const playlistCount = displaySongs.filter((s) => s.revenueStreams?.some((r) => r.status === "collecting")).length * 3 + 2;
+  // Real numbers only. The old build invented two of these stats
+  // (monthly listeners = streams × 0.28; playlists = collecting × 3 + 2) —
+  // an EPK goes to promoters, so everything shown here is either stored
+  // data or computed from it by the same helpers as the rest of the app.
+  const totalConfirmedIncome = displaySongs.reduce((t, s) => t + getSongConfirmedIncome(s), 0);
+  const catalogReadiness = getCatalogReadinessScore(displaySongs);
   const [shareCopied, setShareCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const epkPreviewRef = useRef<HTMLDivElement>(null);
 
-  const handleShareEpk = useCallback(() => {
-    const url = typeof window !== "undefined" ? `${window.location.origin}/epk` : "https://pocketmanager.online/epk";
+  // ── Public share link (/epk/share/[token], PATCH 005) ─────────────────────
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareReady, setShareReady] = useState(false);
+  const bioTouchedRef = useRef(false);
+  const contactTouchedRef = useRef(false);
+
+  const shareHeaders = useCallback(async (): Promise<Record<string, string> | null> => {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : null;
+  }, []);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    (async () => {
+      const headers = await shareHeaders();
+      if (!headers || cancelled) return;
+      try {
+        const res = await fetch("/api/v1/epk/share", { headers });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled || !data.persisted) return;
+        setShareToken(data.token ?? null);
+        setShareReady(true);
+        // The saved bio/contact are what the public page shows — restore
+        // them here unless the artist has already started editing.
+        if (data.bio && !bioTouchedRef.current) setArtistBio(data.bio);
+        if (data.contact && !contactTouchedRef.current) setContact(data.contact);
+      } catch {
+        // Pre-migration or offline — sharing stays unavailable, builder works.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, shareHeaders]);
+
+  const saveShareFields = useCallback(async (fields: { bio?: string; contact?: string }) => {
+    if (!shareReady) return;
+    const headers = await shareHeaders();
+    if (!headers) return;
+    try {
+      await fetch("/api/v1/epk/share", { method: "POST", headers, body: JSON.stringify(fields) });
+    } catch {
+      // Best-effort — the builder keeps the local value either way.
+    }
+  }, [shareReady, shareHeaders]);
+
+  const shareUrl = shareToken
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://pocketmanager.online"}/epk/share/${shareToken}`
+    : null;
+
+  const handleShareEpk = useCallback(async () => {
+    let url = shareUrl;
+    if (!url) {
+      // First share: mint a token, then copy the fresh link.
+      const headers = await shareHeaders();
+      if (!headers) return;
+      try {
+        const res = await fetch("/api/v1/epk/share", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ regenerate: true }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.token) return;
+        setShareToken(data.token);
+        setShareReady(true);
+        url = `${window.location.origin}/epk/share/${data.token}`;
+      } catch {
+        return;
+      }
+    }
+    if (!url) return;
     navigator.clipboard.writeText(url).then(() => {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     }).catch(() => {
       window.prompt("Copy this EPK link:", url);
     });
-  }, []);
+  }, [shareUrl, shareHeaders]);
+
+  const handleRegenerateShare = useCallback(async () => {
+    const headers = await shareHeaders();
+    if (!headers) return;
+    try {
+      const res = await fetch("/api/v1/epk/share", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ regenerate: true }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setShareToken(data.token ?? null);
+    } catch {
+      // Keep the current token if the request failed.
+    }
+  }, [shareHeaders]);
+
+  const handleRevokeShare = useCallback(async () => {
+    const headers = await shareHeaders();
+    if (!headers) return;
+    try {
+      const res = await fetch("/api/v1/epk/share", { method: "DELETE", headers });
+      if (res.ok) setShareToken(null);
+    } catch {
+      // Keep the current token if the request failed.
+    }
+  }, [shareHeaders]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!epkPreviewRef.current || pdfLoading) return;
@@ -139,7 +249,11 @@ export default function EpkPage() {
                 <span className="mb-2 block">Artist bio</span>
                 <textarea
                   value={artistBio}
-                  onChange={(event) => setArtistBio(event.target.value)}
+                  onChange={(event) => {
+                    bioTouchedRef.current = true;
+                    setArtistBio(event.target.value);
+                  }}
+                  onBlur={() => void saveShareFields({ bio: artistBio })}
                   className="min-h-36 w-full rounded-xl border-[0.5px] border-white/10 bg-white/8 px-4 py-3 text-sm leading-6 outline-none"
                 />
               </label>
@@ -147,10 +261,41 @@ export default function EpkPage() {
                 <span className="mb-2 block">Contact</span>
                 <input
                   value={contact}
-                  onChange={(event) => setContact(event.target.value)}
+                  onChange={(event) => {
+                    contactTouchedRef.current = true;
+                    setContact(event.target.value);
+                  }}
+                  onBlur={() => void saveShareFields({ contact })}
                   className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm outline-none"
                 />
               </label>
+              {shareReady && (
+                <div className="mt-4 rounded-lg border-[0.5px] border-white/8 bg-white/[0.04] px-3 py-2.5">
+                  <div className="text-[11px] leading-5 text-white/50">
+                    {shareToken
+                      ? "Public link is live — anyone with it can view this EPK, no sign-in needed."
+                      : "No public link yet. “Share EPK link” creates one; revoke it any time."}
+                  </div>
+                  {shareToken && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleRegenerateShare}
+                        className="rounded-md border-[0.5px] border-white/10 px-2.5 py-1 text-[11px] text-white/70 transition hover:bg-white/5"
+                      >
+                        Regenerate link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRevokeShare}
+                        className="rounded-md border-[0.5px] border-[#f05c5c]/30 px-2.5 py-1 text-[11px] text-[#f05c5c] transition hover:bg-[#f05c5c]/10"
+                      >
+                        Revoke link
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl border-[0.5px] border-white/10 glass p-4">
@@ -189,9 +334,9 @@ export default function EpkPage() {
 
             <div className="grid grid-cols-4 divide-x-[0.5px] divide-white/[0.06] border-b-[0.5px] border-white/8">
               <EpkStat label="Streams" value={totalStreams >= 1000000 ? `${(totalStreams / 1000000).toFixed(1)}M` : totalStreams >= 1000 ? `${Math.round(totalStreams / 1000)}K` : String(totalStreams)} />
-              <EpkStat label="Monthly" value={monthlyListeners >= 1000 ? `${Math.round(monthlyListeners / 1000)}K` : String(monthlyListeners)} />
               <EpkStat label="Releases" value={String(displaySongs.length)} />
-              <EpkStat label="Playlists" value={String(playlistCount)} />
+              <EpkStat label="Income" value={formatMoney(totalConfirmedIncome)} />
+              <EpkStat label="Readiness" value={`${catalogReadiness}/100`} />
             </div>
 
             <div className="space-y-3 p-5">
@@ -238,7 +383,7 @@ export default function EpkPage() {
                 onClick={handleShareEpk}
                 className="rounded-lg bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white transition active:scale-95"
               >
-                {shareCopied ? "Link copied ✓" : "Share EPK link"}
+                {shareCopied ? "Link copied ✓" : shareToken ? "Share EPK link" : "Create share link"}
               </button>
               <button
                 type="button"

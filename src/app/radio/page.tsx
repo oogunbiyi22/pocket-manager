@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getAuthHeaders } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,10 @@ type StationState = {
 type StateMap = Record<string, StationState>;
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
+// Submission state persists server-side (user_radio_submissions via
+// /api/v1/radio) once PATCH 006 has run. localStorage below is only the
+// pre-migration fallback, kept so the page behaves exactly as before
+// until the owner's database is migrated.
 
 const STORAGE_KEY = "pocket-radio-v2";
 
@@ -49,6 +54,14 @@ function loadState(): StateMap {
 function saveState(map: StateMap) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 }
+
+type SavedSubmission = {
+  stationId: string | null;
+  stationName: string;
+  status: string;
+  songsSubmitted: string[];
+  submittedAt: string;
+};
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 
@@ -315,6 +328,7 @@ export default function RadioPage() {
   const [stations, setStations] = useState<StationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stateMap, setStateMap] = useState<StateMap>({});
+  const [serverPersisted, setServerPersisted] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"all" | "submitted" | "wins">("all");
   const [region, setRegion] = useState("All");
@@ -322,20 +336,69 @@ export default function RadioPage() {
   const [submitting, setSubmitting] = useState<StationRecord | null>(null);
 
   useEffect(() => {
-    setStateMap(loadState());
     async function load() {
+      let loadedStations: StationRecord[] = [];
       try {
         const res = await fetch("/api/v1/radio-stations");
         const data = await res.json() as { stations?: StationRecord[] };
-        setStations(data.stations ?? []);
+        loadedStations = data.stations ?? [];
+        setStations(loadedStations);
       } catch {
         setStations([]);
       } finally {
         setLoading(false);
       }
+
+      // Server-side submission state wins over the localStorage fallback.
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch("/api/v1/radio", { headers });
+        if (res.ok) {
+          const data = await res.json() as { submissions?: SavedSubmission[]; persisted?: boolean };
+          if (data.persisted && Array.isArray(data.submissions)) {
+            const map: StateMap = {};
+            for (const sub of data.submissions) {
+              const station = loadedStations.find(
+                (s) => (sub.stationId && s.id === sub.stationId) || s.name === sub.stationName,
+              );
+              if (!station) continue;
+              map[station.id] = {
+                subStatus: sub.status as SubStatus,
+                subDate: sub.submittedAt,
+                songsSubmitted: sub.songsSubmitted ?? [],
+              };
+            }
+            setStateMap(map);
+            setServerPersisted(true);
+            return;
+          }
+        }
+      } catch { /* fall through to localStorage */ }
+      setStateMap(loadState());
     }
     load();
   }, []);
+
+  /** Persist one station's state — server when migrated, localStorage until then. */
+  function persistStationState(station: StationRecord, next: StationState, map: StateMap) {
+    if (!serverPersisted) {
+      saveState(map);
+      return;
+    }
+    void (async () => {
+      const headers = await getAuthHeaders();
+      await fetch("/api/v1/radio", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stationId: station.id,
+          stationName: station.name,
+          status: next.subStatus,
+          songsSubmitted: next.songsSubmitted,
+        }),
+      }).catch(() => { /* optimistic state already applied */ });
+    })();
+  }
 
   const getState = (id: string): StationState =>
     stateMap[id] ?? { subStatus: "not_submitted", songsSubmitted: [] };
@@ -361,27 +424,25 @@ export default function RadioPage() {
   }, [stations, search, region, format, tab, stateMap]);
 
   function handleSubmit(id: string, song: string) {
+    const station = stations.find((s) => s.id === id);
     const prev = getState(id);
-    const next: StateMap = {
-      ...stateMap,
-      [id]: {
-        subStatus: "submitted",
-        subDate: new Date().toISOString(),
-        songsSubmitted: [...new Set([...prev.songsSubmitted, song].filter(Boolean))],
-      },
+    const nextState: StationState = {
+      subStatus: "submitted",
+      subDate: new Date().toISOString(),
+      songsSubmitted: [...new Set([...prev.songsSubmitted, song].filter(Boolean))],
     };
+    const next: StateMap = { ...stateMap, [id]: nextState };
     setStateMap(next);
-    saveState(next);
+    if (station) persistStationState(station, nextState, next);
     setSubmitting(null);
   }
 
   function handleStatusChange(id: string, status: SubStatus) {
-    const next: StateMap = {
-      ...stateMap,
-      [id]: { ...getState(id), subStatus: status },
-    };
+    const station = stations.find((s) => s.id === id);
+    const nextState: StationState = { ...getState(id), subStatus: status };
+    const next: StateMap = { ...stateMap, [id]: nextState };
     setStateMap(next);
-    saveState(next);
+    if (station) persistStationState(station, nextState, next);
   }
 
   const submittedCount = stations.filter(s => getState(s.id).subStatus !== "not_submitted").length;

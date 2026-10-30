@@ -182,6 +182,7 @@ type PocketContextValue = {
   signIn: (email: string) => void;
   signOut: () => void;
   completeOnboarding: (input: Omit<ProfileInput, "managerMode"> & { managerMode?: string }) => void;
+  applyOnboardingSelections: (songId: string | null, selections: { distributor: string; pro: string }) => void;
   updateProfile: (updates: Partial<PocketProfile>) => void;
   exportPocketData: () => string;
   importPocketData: (rawSnapshot: string) => { ok: boolean; message: string };
@@ -1286,6 +1287,83 @@ export function PocketProvider({ children }: { children: ReactNode }) {
           managerMode: input.managerMode ?? current.managerMode ?? "Direct mode",
           onboarded: true,
         }));
+      },
+      applyOnboardingSelections(songId, selections) {
+        // Onboarding asks for distributor (step 3) and PRO (step 4) AFTER
+        // the first song is created (step 2), so the selections used to die
+        // in local state while the song kept the step-2 default. Apply them
+        // for real: onto the song's distribution + revenue streams, and onto
+        // the platform connections — which is where the rest of the app
+        // reads both facts from (and both persist via the sync effects).
+        const distributor = selections.distributor.trim();
+        const pro = selections.pro.trim();
+        const hasDistributor = Boolean(distributor) && distributor !== "Not sure yet" && distributor !== "Not connected";
+        const hasPro = Boolean(pro) && pro !== "Not registered yet";
+
+        const distributorSeed = seedPlatformConnections.find(
+          (platform) => platform.group === "Distributor" && platform.name.toLowerCase() === distributor.toLowerCase(),
+        );
+        const proSeed = seedPlatformConnections.find(
+          (platform) => platform.group === "PRO" && platform.name.toLowerCase() === pro.toLowerCase(),
+        );
+
+        if (distributorSeed || proSeed) {
+          setPlatformConnections((current) =>
+            current.map((item) =>
+              item.id === distributorSeed?.id || item.id === proSeed?.id
+                ? { ...item, status: "connected" as const, missingStep: "Connected" }
+                : item,
+            ),
+          );
+        }
+
+        if (songId) {
+          const starterStreaming = buildStarterRevenueStreams(hasDistributor ? distributor : "Not connected")
+            .find((stream) => stream.streamType === "streaming");
+
+          setSongs((current) =>
+            current.map((song) => {
+              if (song.id !== songId) return song;
+              return {
+                ...song,
+                distributionPlatforms: hasDistributor ? [distributor] : [],
+                revenueStreams: song.revenueStreams.map((stream) => {
+                  if (stream.streamType === "streaming" && starterStreaming) {
+                    return {
+                      ...starterStreaming,
+                      actualAmount: stream.actualAmount,
+                      estimatedGap: stream.estimatedGap,
+                    };
+                  }
+                  if (stream.streamType === "performance_royalty" && hasPro) {
+                    return {
+                      ...stream,
+                      collectionBody: pro,
+                      status: stream.actualAmount > 0 ? stream.status : ("registered_not_collecting" as const),
+                      reason: `${pro} affiliation added during onboarding. Import a statement or verify reporting to confirm collection.`,
+                      action: `Review ${pro}`,
+                    };
+                  }
+                  return stream;
+                }),
+              };
+            }),
+          );
+        }
+
+        pushEvent({
+          projectId: songId ?? songs[0]?.id ?? "catalog",
+          title: "Onboarding connections saved",
+          detail:
+            [
+              hasDistributor ? `Distributor: ${distributor}` : null,
+              hasPro ? `PRO: ${pro}` : pro === "Not registered yet" ? "PRO: not registered yet" : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Onboarding finished without distributor/PRO selections.",
+          kind: "Money",
+          emphasis: "Onboarding",
+        });
       },
       updateProfile(updates) {
         setProfile((current) => ({

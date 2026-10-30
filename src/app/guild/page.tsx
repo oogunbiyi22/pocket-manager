@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getAuthHeaders } from "@/lib/supabase";
 import type { GuildMember } from "@/app/api/v1/guild/members/route";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -110,17 +111,48 @@ export default function GuildPage() {
   const [tab, setTab] = useState<"discover" | "following">("discover");
   const [roleFilter, setRoleFilter] = useState("All");
   const [search, setSearch] = useState("");
+  // Follows persist server-side (guild_follows via /api/v1/guild/follows)
+  // once PATCH 006 has run; until then this stays false and the page
+  // keeps its previous localStorage behavior.
+  const serverPersisted = useRef(false);
 
   useEffect(() => {
-    fetch("/api/v1/guild/members")
-      .then((r) => r.json())
-      .then((data: { members: GuildMember[]; configured: boolean }) => {
-        setMembers(data.members ?? []);
-        setConfigured(data.configured ?? false);
-      })
-      .catch(() => setMembers([]))
-      .finally(() => setLoading(false));
+    (async () => {
+      const headers = await getAuthHeaders();
+      fetch("/api/v1/guild/members", { headers })
+        .then((r) => r.json())
+        .then((data: { members: GuildMember[]; configured: boolean }) => {
+          setMembers(data.members ?? []);
+          setConfigured(data.configured ?? false);
+        })
+        .catch(() => setMembers([]))
+        .finally(() => setLoading(false));
+
+      try {
+        const res = await fetch("/api/v1/guild/follows", { headers });
+        if (res.ok) {
+          const data = (await res.json()) as { following?: string[]; persisted?: boolean };
+          if (data.persisted && Array.isArray(data.following)) {
+            serverPersisted.current = true;
+            setState({ following: data.following, pendingSent: [], pendingReceived: [] });
+          }
+        }
+      } catch { /* localStorage state already loaded */ }
+    })();
   }, []);
+
+  const persistFollow = (memberId: string, follow: boolean) => {
+    if (serverPersisted.current) {
+      void (async () => {
+        const headers = await getAuthHeaders();
+        await fetch("/api/v1/guild/follows", {
+          method: follow ? "POST" : "DELETE",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ memberId }),
+        }).catch(() => { /* optimistic state already applied */ });
+      })();
+    }
+  };
 
   const getStatus = (id: string): FollowStatus => {
     if (state.following.includes(id)) return "following";
@@ -131,17 +163,19 @@ export default function GuildPage() {
   const handleFollow = (member: GuildMember) => {
     setState((prev) => {
       const next = { ...prev, following: [...prev.following, member.id] };
-      saveState(next);
+      if (!serverPersisted.current) saveState(next);
       return next;
     });
+    persistFollow(member.id, true);
   };
 
   const handleUnfollow = (id: string) => {
     setState((prev) => {
       const next = { ...prev, following: prev.following.filter((f) => f !== id), pendingSent: prev.pendingSent.filter((f) => f !== id) };
-      saveState(next);
+      if (!serverPersisted.current) saveState(next);
       return next;
     });
+    persistFollow(id, false);
   };
 
   const visibleMembers = useMemo(() => {

@@ -23,6 +23,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 -- Safe to re-run: add stripe_customer_id to existing tables
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+-- PATCH 005: public EPK share (token + the bio/contact shown on the share page)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS epk_share_token text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS epk_bio         text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS epk_contact     text;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_epk_share_token
+  ON public.profiles (epk_share_token) WHERE epk_share_token IS NOT NULL;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_owner" ON public.profiles;
 CREATE POLICY "profiles_owner" ON public.profiles
@@ -225,6 +231,12 @@ GRANT ALL ON public.user_playlist_pitches TO authenticated, service_role;
 CREATE INDEX IF NOT EXISTS idx_playlist_pitches_user   ON public.user_playlist_pitches (user_id);
 CREATE INDEX IF NOT EXISTS idx_playlist_pitches_status ON public.user_playlist_pitches (user_id, status);
 CREATE INDEX IF NOT EXISTS idx_playlist_pitches_song   ON public.user_playlist_pitches (user_id, song_id);
+-- PATCH 005: the Pitching Engine also persists the generated pitch text and
+-- the curator's contact, so a session survives refresh (additive only).
+ALTER TABLE public.user_playlist_pitches ADD COLUMN IF NOT EXISTS curator_name  text;
+ALTER TABLE public.user_playlist_pitches ADD COLUMN IF NOT EXISTS curator_email text;
+ALTER TABLE public.user_playlist_pitches ADD COLUMN IF NOT EXISTS pitch_subject text;
+ALTER TABLE public.user_playlist_pitches ADD COLUMN IF NOT EXISTS pitch_body    text;
 
 CREATE TABLE IF NOT EXISTS public.blog_posts (
   id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -557,11 +569,62 @@ INSERT INTO public.sync_companies (name, city, country, accepting, placement_cre
 ON CONFLICT DO NOTHING;
 
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PATCH 004: Beat licenses (Beat Licensing Manager persistence)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.beat_licenses (
+  id           uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  song_id      text          NOT NULL,
+  buyer        text          NOT NULL,
+  license_type text          NOT NULL CHECK (license_type IN ('lease', 'exclusive')),
+  amount       numeric(12,2) NOT NULL DEFAULT 0,
+  license_date date          NOT NULL DEFAULT CURRENT_DATE,
+  expires      date,
+  created_at   timestamptz   NOT NULL DEFAULT now(),
+  updated_at   timestamptz   NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS beat_licenses_user_id_idx ON public.beat_licenses (user_id);
+ALTER TABLE public.beat_licenses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "beat_licenses_owner" ON public.beat_licenses;
+CREATE POLICY "beat_licenses_owner" ON public.beat_licenses
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+GRANT ALL ON public.beat_licenses TO authenticated, service_role;
+
+
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- DONE. All tables created, all seeds loaded.
 -- Check: Tables → should see profiles, user_catalogs, waitlist, venues,
 --        radio_stations, sync_companies, user_venue_pitches,
 --        user_radio_submissions, user_sync_pitches, user_playlist_pitches,
---        blog_posts, user_notifications
+--        blog_posts, user_notifications, beat_licenses
 -- Check: Storage → should see vault-assets bucket (private, 50MB limit)
 -- ═══════════════════════════════════════════════════════════════════════════════
+
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- PATCH 006: Guild follows + radio submission tracking (Wave 3 honesty pass)
+-- (Same content as PATCH_006_guild_radio.sql — folded in per repo convention.)
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.guild_follows (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  followed_id uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (follower_id, followed_id),
+  CHECK (follower_id <> followed_id)
+);
+CREATE INDEX IF NOT EXISTS idx_guild_follows_follower ON public.guild_follows (follower_id);
+ALTER TABLE public.guild_follows ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "guild_follows_owner" ON public.guild_follows;
+CREATE POLICY "guild_follows_owner" ON public.guild_follows
+  USING (auth.uid() = follower_id) WITH CHECK (auth.uid() = follower_id);
+GRANT ALL ON public.guild_follows TO authenticated, service_role;
+
+ALTER TABLE public.user_radio_submissions ALTER COLUMN station_id DROP NOT NULL;
+ALTER TABLE public.user_radio_submissions ADD COLUMN IF NOT EXISTS station_name    text;
+ALTER TABLE public.user_radio_submissions ADD COLUMN IF NOT EXISTS songs_submitted text[] NOT NULL DEFAULT '{}';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_radio_submissions_user_station_name
+  ON public.user_radio_submissions (user_id, station_name) WHERE station_name IS NOT NULL;

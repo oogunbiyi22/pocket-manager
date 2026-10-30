@@ -43,3 +43,21 @@ export function getSupabase() {
   }
   return _client;
 }
+
+/**
+ * Authorization header for first-party API routes that derive identity
+ * (and entitlements like plan) server-side from the session — e.g. the
+ * manager chat route. Returns {} when signed out; the server treats a
+ * missing token as the free tier.
+ */
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const supabase = getSupabase();
+  if (!supabase) return {};
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}

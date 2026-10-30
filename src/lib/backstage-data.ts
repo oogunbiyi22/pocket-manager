@@ -90,7 +90,7 @@ export type ReleaseRadarCheckpoint = {
   status: "Done" | "Due now" | "Upcoming" | "Missed";
 };
 
-export type SongVaultAssetKind = "master" | "artwork" | "split" | "contract" | "other";
+export type SongVaultAssetKind = "master" | "artwork" | "split" | "contract" | "memo" | "other";
 
 export type SongVaultAsset = {
   id: string;

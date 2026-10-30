@@ -19,6 +19,7 @@ export default function StatusPage() {
   useEffect(() => {
     async function run() {
       const results: Check[] = [];
+      let accessToken: string | null = null;
 
       // Supabase config
       const configured = isSupabaseConfigured();
@@ -43,6 +44,7 @@ export default function StatusPage() {
               setSession("Error");
             } else {
               const user = data?.session?.user;
+              accessToken = data?.session?.access_token ?? null;
               if (user) {
                 setSession(`Signed in as ${user.email}`);
                 results.push({ label: "Supabase auth", status: "ok", detail: `Signed in: ${user.email}` });
@@ -77,14 +79,23 @@ export default function StatusPage() {
         }
       }
 
-      // AI endpoint
+      // AI endpoint — send the session token when signed in so the ping
+      // exercises the caller's real plan rail; when signed out it checks
+      // the free rail, and the label says which one it was.
       try {
         const res = await fetch("/api/v1/manager/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
           body: JSON.stringify({ messages: [{ role: "user", content: "ping" }], profile: { artistName: "Test" } }),
         });
-        results.push({ label: "AI endpoint", status: res.ok ? "ok" : "warn", detail: `HTTP ${res.status}` });
+        results.push({
+          label: accessToken ? "AI endpoint (signed-in rail)" : "AI endpoint (free rail — not signed in)",
+          status: res.ok ? "ok" : "warn",
+          detail: `HTTP ${res.status}${accessToken ? " · checked with your session, plan derived server-side" : " · no session token sent"}`,
+        });
       } catch (e) {
         results.push({ label: "AI endpoint", status: "error", detail: String(e) });
       }

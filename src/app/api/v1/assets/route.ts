@@ -22,6 +22,14 @@ function classifyAsset(fileName: string, mimeType: string): SongVaultAssetKind {
   return "other";
 }
 
+const ASSET_KINDS: readonly SongVaultAssetKind[] = ["master", "artwork", "split", "contract", "memo", "other"];
+
+/** A caller may declare the kind explicitly (e.g. a voice memo is not a master). */
+function parseKindOverride(value: FormDataEntryValue | null): SongVaultAssetKind | null {
+  if (typeof value !== "string") return null;
+  return (ASSET_KINDS as readonly string[]).includes(value) ? (value as SongVaultAssetKind) : null;
+}
+
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -60,6 +68,7 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const songId = formData.get("songId");
+  const kindOverride = parseKindOverride(formData.get("kind"));
   const fileEntries = formData.getAll("files").filter((entry): entry is File => entry instanceof File);
 
   if (typeof songId !== "string" || !songId.trim()) {
@@ -98,7 +107,7 @@ export async function POST(req: NextRequest) {
     assets.push({
       id: `${songId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: file.name,
-      kind: classifyAsset(file.name, file.type),
+      kind: kindOverride ?? classifyAsset(file.name, file.type),
       mimeType: file.type || "application/octet-stream",
       sizeBytes: file.size,
       sizeLabel: formatSize(file.size),

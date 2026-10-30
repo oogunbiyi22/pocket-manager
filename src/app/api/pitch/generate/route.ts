@@ -31,7 +31,9 @@ const RequestSchema = z.object({
     successRate: z.string().max(50).optional(),
     notes: z.string().max(300).optional(),
   }),
-  plan: z.enum(["free", "pro", "elite"]).optional(),
+  // No `plan` field: plans are derived server-side from the caller's
+  // profile where they matter (chat route). This generator is
+  // plan-agnostic — generatePitch never read the value.
 });
 
 export async function POST(req: NextRequest) {

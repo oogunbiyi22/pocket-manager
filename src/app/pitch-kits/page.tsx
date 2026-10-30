@@ -1,47 +1,31 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getAuthHeaders } from "@/lib/supabase";
 import { formatGapEstimate, getSongEstimatedGap, getSongReadinessScore } from "@/lib/backstage-data";
 
 type Recipient = "Playlist curator" | "Music blog" | "Sync supervisor" | "Label A&R" | "Booking agent" | "Radio programmer";
 
-const PLAYLIST_DATABASE = [
-  { name: "Late Night R&B",        genre: "R&B",          mood: "Late night, sensual",     followers: "284K", platform: "Spotify",      fitGenres: ["r&b", "soul", "trap soul"] },
-  { name: "Bedroom Soul",           genre: "R&B/Soul",     mood: "Intimate, lo-fi",         followers: "118K", platform: "Spotify",      fitGenres: ["r&b", "soul", "lo-fi", "neo soul"] },
-  { name: "Neo Soul Essentials",    genre: "Neo Soul",     mood: "Soulful, warm",           followers: "203K", platform: "Spotify",      fitGenres: ["neo soul", "soul", "r&b"] },
-  { name: "After Hours Vibes",      genre: "R&B",          mood: "Smooth, late night",      followers: "91K",  platform: "Apple Music",  fitGenres: ["r&b", "trap soul", "chill"] },
-  { name: "Chill Trap & R&B",       genre: "Hip-Hop/R&B",  mood: "Chill, trap influenced",  followers: "455K", platform: "Spotify",      fitGenres: ["hip-hop", "r&b", "trap"] },
-  { name: "Afrobeats & Feelings",   genre: "Afrobeats",    mood: "Energetic, romantic",     followers: "89K",  platform: "Tidal",        fitGenres: ["afrobeats", "afropop", "afro"] },
-  { name: "Trap Soul 2025",         genre: "Trap Soul",    mood: "Dark, emotional",         followers: "312K", platform: "Spotify",      fitGenres: ["trap soul", "trap", "r&b"] },
-  { name: "Gospel & Contemporary",  genre: "Gospel",       mood: "Spiritual, uplifting",    followers: "54K",  platform: "Apple Music",  fitGenres: ["gospel", "ccm", "christian"] },
-  { name: "Emotional Hip-Hop",      genre: "Hip-Hop",      mood: "Introspective, raw",      followers: "229K", platform: "Spotify",      fitGenres: ["hip-hop", "rap", "conscious"] },
-  { name: "Lo-Fi R&B Vault",        genre: "Lo-fi R&B",    mood: "Mellow, introspective",   followers: "96K",  platform: "Spotify",      fitGenres: ["lo-fi", "r&b", "chill"] },
-  { name: "Summer Afro Hits",       genre: "Afrobeats",    mood: "Upbeat, celebratory",     followers: "140K", platform: "Apple Music",  fitGenres: ["afrobeats", "afropop", "dancehall"] },
-  { name: "Indie R&B Discovery",    genre: "Indie R&B",    mood: "Alternative, moody",      followers: "43K",  platform: "Spotify",      fitGenres: ["indie r&b", "indie", "r&b", "alternative"] },
-  { name: "New Generation R&B",     genre: "Contemporary R&B", mood: "Fresh, emotional",   followers: "155K", platform: "YouTube Music",fitGenres: ["r&b", "contemporary", "pop r&b"] },
-  { name: "Hip-Hop Heads Daily",    genre: "Hip-Hop",      mood: "Lyrical, boom bap",       followers: "580K", platform: "Spotify",      fitGenres: ["hip-hop", "rap", "boom bap"] },
-  { name: "Drill & R&B Crossover",  genre: "Drill",        mood: "Hard, emotional",         followers: "178K", platform: "Spotify",      fitGenres: ["drill", "hip-hop", "r&b", "uk drill"] },
-  { name: "Soulful Mornings",       genre: "Soul",         mood: "Uplifting, morning",      followers: "77K",  platform: "Apple Music",  fitGenres: ["soul", "r&b", "gospel"] },
-  { name: "UK R&B Radar",           genre: "UK R&B",       mood: "Urban, smooth",           followers: "62K",  platform: "Spotify",      fitGenres: ["uk r&b", "r&b", "grime adjacent"] },
-  { name: "Piano R&B",              genre: "R&B",          mood: "Acoustic, intimate",      followers: "67K",  platform: "Tidal",        fitGenres: ["r&b", "soul", "piano", "acoustic"] },
-  { name: "Sunday Morning Gospel",  genre: "Gospel/CCM",   mood: "Peaceful, worshipful",    followers: "38K",  platform: "Apple Music",  fitGenres: ["gospel", "worship", "christian", "ccm"] },
-  { name: "Smooth Jazz & Soul",     genre: "Jazz/Soul",    mood: "Relaxed, sophisticated",  followers: "81K",  platform: "Spotify",      fitGenres: ["jazz", "soul", "neo soul"] },
-];
+// ─── Real curator pipeline ────────────────────────────────────────────────────
+// The playlist matches below are the artist's OWN imported curators, read
+// from the Pitching Engine's persisted pitches (user_playlist_pitches via
+// /api/v1/pitches). There is no built-in playlist database — if the artist
+// hasn't imported curators yet, the matches tab says so honestly.
 
-function computeFit(songGenre: string, songMood: string, pl: typeof PLAYLIST_DATABASE[0]): number {
-  const sg = songGenre.toLowerCase();
-  const sm = songMood.toLowerCase();
-  let score = 40;
-  if (pl.fitGenres.some((g) => sg.includes(g) || g.includes(sg))) score += 35;
-  else if (pl.fitGenres.some((g) => sg.split(/[/,\s&]+/).some((part) => part.trim() && g.includes(part.trim())))) score += 18;
-  const moodTerms = pl.mood.toLowerCase().split(/[,\s]+/).filter(Boolean);
-  const moodMatches = moodTerms.filter((t) => sm.includes(t)).length;
-  score += Math.min(moodMatches * 8, 25);
-  return Math.min(99, score);
-}
+type RealCurator = {
+  playlistName: string;
+  curatorName: string;
+  curatorEmail: string;
+  curatorHandle: string;
+  platform: string;
+  followers: string;
+  genre: string;
+  mood: string;
+  fitScore: number | null;
+};
 
 function generateEmail(
   recipientType: Recipient,
@@ -166,27 +150,62 @@ export default function PitchKitsPage() {
   const { profile, songs } = usePocket();
   const [songId, setSongId] = useState(songs[0]?.id ?? "");
   const [recipient, setRecipient] = useState<Recipient>("Playlist curator");
-  const [contact, setContact] = useState(profile.email ?? "");
+  // Recipient of the pitch email. Deliberately NOT pre-filled with the
+  // artist's own email — that default made "Open in Mail" address the
+  // pitch to themselves. Leave it for the user to fill with the target.
+  const [contact, setContact] = useState("");
   const [copied, setCopied] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const [tab, setTab] = useState<"pitch" | "playlists">("pitch");
+  const [curators, setCurators] = useState<RealCurator[]>([]);
+  const [curatorsLoading, setCuratorsLoading] = useState(true);
+
+  // Load the artist's real imported curators (deduped across songs).
+  useEffect(() => {
+    (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch("/api/v1/pitches", { headers });
+        if (res.ok) {
+          const data = (await res.json()) as { pitches?: Array<RealCurator & { songId: string }> };
+          const seen = new Map<string, RealCurator>();
+          for (const row of data.pitches ?? []) {
+            const key = `${row.playlistName.toLowerCase()}|${row.curatorEmail.toLowerCase()}`;
+            if (!seen.has(key)) {
+              seen.set(key, {
+                playlistName: row.playlistName,
+                curatorName: row.curatorName,
+                curatorEmail: row.curatorEmail,
+                curatorHandle: row.curatorHandle,
+                platform: row.platform,
+                followers: row.followers,
+                genre: row.genre,
+                mood: row.mood,
+                fitScore: row.fitScore,
+              });
+            }
+          }
+          setCurators([...seen.values()]);
+        }
+      } catch { /* matches tab shows its honest empty state */ } finally {
+        setCuratorsLoading(false);
+      }
+    })();
+  }, []);
 
   const song = songs.find((item) => item.id === songId) ?? songs[0];
 
-  // Matched playlists for this song
+  // The artist's imported playlists, best saved fit first.
   const matchedPlaylists = useMemo(() => {
-    if (!song) return [];
-    return PLAYLIST_DATABASE
-      .map((pl) => ({ ...pl, fit: computeFit(song.genre ?? "", song.mood ?? "", pl) }))
-      .sort((a, b) => b.fit - a.fit);
-  }, [song]);
+    return [...curators].sort((a, b) => (b.fitScore ?? -1) - (a.fitScore ?? -1));
+  }, [curators]);
 
-  const targetPlaylist = matchedPlaylists.find((p) => p.name === selectedPlaylist);
+  const targetPlaylist = matchedPlaylists.find((p) => p.playlistName === selectedPlaylist);
 
   const pitchText = useMemo(() => {
     if (!song) return "Add a song before creating a pitch kit.";
-    return generateEmail(recipient, profile.artistName ?? "Artist", song as Parameters<typeof generateEmail>[2], contact, selectedPlaylist ?? undefined);
-  }, [contact, profile.artistName, recipient, song, selectedPlaylist]);
+    return generateEmail(recipient, profile.artistName ?? "Artist", song as Parameters<typeof generateEmail>[2], contact, targetPlaylist?.curatorHandle || selectedPlaylist || targetPlaylist?.playlistName || undefined);
+  }, [contact, profile.artistName, recipient, song, selectedPlaylist, targetPlaylist]);
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(pitchText);
@@ -201,7 +220,7 @@ export default function PitchKitsPage() {
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Outreach package</div>
           <h2 className="mt-3 text-[40px] font-light leading-none tracking-[-0.03em]">Turn catalog data into a focused pitch.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
-            Pick a song and a target. We match the genre, mood, and BPM to the right contacts and generate the pitch email automatically.
+            Pick a song and a target. Playlist targets come from your own imported curator list — no made-up playlists — and the pitch email is generated from your catalog data.
           </p>
         </section>
 
@@ -214,7 +233,7 @@ export default function PitchKitsPage() {
               onClick={() => setTab(t)}
               className={`px-5 py-3 text-[12px] font-medium capitalize transition ${tab === t ? "border-b-2 border-[#0a0a0a] text-white/90" : "text-white/50"}`}
             >
-              {t === "playlists" ? `Playlist matches${song ? ` (${matchedPlaylists.length})` : ""}` : "Pitch builder"}
+              {t === "playlists" ? `Your playlists${song ? ` (${matchedPlaylists.length})` : ""}` : "Pitch builder"}
             </button>
           ))}
         </div>
@@ -264,20 +283,19 @@ export default function PitchKitsPage() {
                     />
                     {targetPlaylist && (
                       <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#97c459]">
-                        <span>{targetPlaylist.fit}% fit</span>
-                        <span>·</span>
-                        <span>{targetPlaylist.followers} followers</span>
-                        <span>·</span>
+                        {targetPlaylist.fitScore !== null && <><span>{targetPlaylist.fitScore}% fit</span><span>·</span></>}
+                        {targetPlaylist.followers && <><span>{targetPlaylist.followers} followers</span><span>·</span></>}
                         <span>{targetPlaylist.platform}</span>
                       </div>
                     )}
                   </label>
                 )}
                 <label className="mt-3 block text-sm text-white/60">
-                  <span className="mb-2 block">Your contact</span>
+                  <span className="mb-2 block">Recipient email</span>
                   <input
                     value={contact}
                     onChange={(event) => setContact(event.target.value)}
+                    placeholder="Who receives this pitch? e.g. curator@playlist.com"
                     className="h-12 w-full rounded-lg border-[0.5px] border-white/10 bg-white/8 px-3 text-sm text-white/90 outline-none"
                   />
                 </label>
@@ -324,7 +342,7 @@ export default function PitchKitsPage() {
                   {copied ? "Copied ✓" : "Copy pitch"}
                 </button>
                 <a
-                  href={`mailto:${contact}?subject=${encodeURIComponent(`${profile.artistName ?? "Artist"} — "${song?.title ?? "New release"}"`)}& body=${encodeURIComponent(pitchText)}`}
+                  href={`mailto:${contact}?subject=${encodeURIComponent(`${profile.artistName ?? "Artist"} — "${song?.title ?? "New release"}"`)}&body=${encodeURIComponent(pitchText)}`}
                   className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/90"
                 >
                   Open in Mail →
@@ -336,19 +354,30 @@ export default function PitchKitsPage() {
             </div>
           </section>
         ) : (
-          /* Playlist matches tab */
+          /* Playlist matches tab — the artist's imported curators only */
           <section className="p-5">
-            {!song ? (
+            {curatorsLoading ? (
               <div className="rounded-xl border-[0.5px] border-dashed border-white/10 p-8 text-center text-sm text-white/50">
-                Add a song to see matching playlists.
+                Loading your imported playlists…
+              </div>
+            ) : matchedPlaylists.length === 0 ? (
+              <div className="rounded-xl border-[0.5px] border-dashed border-white/10 p-8 text-center">
+                <div className="text-sm font-medium text-white/90">Import your curator list to see real playlists</div>
+                <p className="mx-auto mt-1 max-w-md text-xs text-white/50">
+                  Pitch Kits builds from the curators you imported into the Pitching Engine — real playlists with
+                  real contacts from your own list. Import a curator CSV there and they appear here.
+                </p>
+                <Link href="/pitching" className="mt-4 inline-block rounded-lg bg-[#0a0a0a] px-4 py-2 text-xs font-medium text-white">
+                  Import curators →
+                </Link>
               </div>
             ) : (
               <>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-white/90">Matching playlists for &ldquo;{song.title}&rdquo;</div>
+                    <div className="text-sm font-medium text-white/90">Your imported playlists</div>
                     <div className="mt-0.5 text-[12px] text-white/50">
-                      Sorted by genre/mood fit · {song.genre ?? "no genre set"} · {song.mood ?? "no mood set"}
+                      From your Pitching Engine curator list · best saved fit first
                     </div>
                   </div>
                   <select
@@ -361,25 +390,29 @@ export default function PitchKitsPage() {
                 </div>
                 <div className="space-y-2">
                   {matchedPlaylists.map((pl) => (
-                    <div key={pl.name} className="flex items-center gap-3 rounded-xl border-[0.5px] border-white/8 bg-white/[0.06] px-4 py-3">
-                      {/* Fit bar */}
+                    <div key={`${pl.playlistName}|${pl.curatorEmail}`} className="flex items-center gap-3 rounded-xl border-[0.5px] border-white/8 bg-white/[0.06] px-4 py-3">
                       <div className="flex w-10 flex-col items-center">
-                        <div className="text-[14px] font-medium text-white/90">{pl.fit}</div>
+                        <div className="text-[14px] font-medium text-white/90">{pl.fitScore ?? "—"}</div>
                         <div className="text-[9px] text-white/50">fit</div>
                       </div>
                       <div className="h-8 w-px bg-black/[0.06]" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[14px] font-medium text-white/90">{pl.name}</span>
-                          <span className="rounded-full border-[0.5px] border-white/8 px-2 py-0.5 text-[10px] text-white/50">{pl.platform}</span>
+                          <span className="text-[14px] font-medium text-white/90">{pl.playlistName}</span>
+                          {pl.platform && <span className="rounded-full border-[0.5px] border-white/8 px-2 py-0.5 text-[10px] text-white/50">{pl.platform}</span>}
                         </div>
                         <div className="mt-0.5 text-[11px] text-white/50">
-                          {pl.followers} followers · {pl.genre} · {pl.mood}
+                          {[pl.followers ? `${pl.followers} followers` : null, pl.genre || null, pl.mood || null].filter(Boolean).join(" · ")}
                         </div>
+                        {(pl.curatorName || pl.curatorHandle || pl.curatorEmail) && (
+                          <div className="mt-0.5 text-[11px] text-white/35">
+                            {[pl.curatorName, pl.curatorHandle, pl.curatorEmail].filter(Boolean).join(" · ")}
+                          </div>
+                        )}
                       </div>
                       <button
                         type="button"
-                        onClick={() => { setSelectedPlaylist(pl.name); setTab("pitch"); setRecipient("Playlist curator"); }}
+                        onClick={() => { setSelectedPlaylist(pl.playlistName); if (pl.curatorEmail) setContact(pl.curatorEmail); setTab("pitch"); setRecipient("Playlist curator"); }}
                         className="shrink-0 rounded-lg border-[0.5px] border-white/10 px-3 py-1.5 text-[12px] text-white/90 transition hover:bg-white/5"
                       >
                         Pitch this →

@@ -3,16 +3,15 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePocket } from "@/components/pocket-provider";
-
-type PocketItem = {
-  id: string;
-  type: "Voice memo" | "File" | "Note" | "Task" | "Link" | "Photo";
-  body: string;
-  songId: string;
-  createdAt: string;
-};
-
-const CAPTURE_STORAGE_KEY = "pocket-manager-captures";
+import { VoiceRecorder, fileExtensionForMime } from "@/components/voice-recorder";
+import { CaptureAssetPlayer } from "@/components/capture-asset-player";
+import {
+  CAPTURE_FOLDER,
+  loadCaptures,
+  saveCaptures,
+  uploadCaptureFile,
+  type PocketItem,
+} from "@/lib/captures";
 
 const captureTypes = [
   { label: "Note" as const, icon: "✎" },
@@ -23,122 +22,35 @@ const captureTypes = [
   { label: "Photo" as const, icon: "◈" },
 ] as const;
 
-function loadItems(): PocketItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(CAPTURE_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as PocketItem[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveItems(items: PocketItem[]) {
-  try {
-    window.localStorage.setItem(CAPTURE_STORAGE_KEY, JSON.stringify(items));
-  } catch { /* noop */ }
-}
-
-// ─── Voice recorder ─────────────────────────────────────────────────────────
-function VoiceRecorder({ onRecord }: { onRecord: (description: string) => void }) {
-  const [recording, setRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [done, setDone] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function startRecording() {
-    setRecording(true);
-    setDone(false);
-    setSeconds(0);
-    timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-  }
-
-  function stopRecording() {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setRecording(false);
-    setDone(true);
-    onRecord(`Voice memo · ${seconds}s`);
-  }
-
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
-
-  const bars = Array.from({ length: 16 });
-
-  return (
-    <div className="flex flex-col items-center gap-4 py-4">
-      <style>{`
-        @keyframes wavebar { 0%,100%{height:6px} 50%{height:28px} }
-      `}</style>
-      <div className="flex h-10 items-end gap-[3px]">
-        {bars.map((_, i) => (
-          <div
-            key={i}
-            className="w-1.5 rounded-full bg-white/40"
-            style={recording ? {
-              animation: `wavebar ${0.4 + (i % 4) * 0.1}s ease-in-out infinite`,
-              animationDelay: `${i * 0.04}s`,
-            } : { height: 6 }}
-          />
-        ))}
-      </div>
-
-      <div className="text-[22px] font-light tabular-nums text-white/70">
-        {done ? `${seconds}s recorded` : recording ? `${seconds}s` : "Ready to record"}
-      </div>
-
-      {!done && (
-        <button
-          type="button"
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onTouchStart={startRecording}
-          onTouchEnd={stopRecording}
-          className={`grid size-16 select-none place-items-center rounded-full text-2xl transition-all ${
-            recording ? "scale-110 bg-[#e24b4a] ring-4 ring-[#e24b4a]/30" : "bg-white/15 hover:bg-white/25"
-          }`}
-          aria-label={recording ? "Release to stop" : "Hold to record"}
-        >
-          {recording ? "■" : "●"}
-        </button>
-      )}
-
-      {!done && (
-        <div className="text-[11px] text-white/30">
-          {recording ? "Release to stop" : "Hold to record"}
-        </div>
-      )}
-
-      {done && (
-        <button type="button" onClick={() => { setDone(false); setSeconds(0); }} className="text-xs text-white/30 underline">
-          Record again
-        </button>
-      )}
-    </div>
-  );
-}
+const isAttachmentType = (t: PocketItem["type"]) => t === "File" || t === "Photo";
 
 export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { songs } = usePocket();
+  const { songs, addSongAssets } = usePocket();
   const [type, setType] = useState<PocketItem["type"]>("Note");
   const [songId, setSongId] = useState(songs[0]?.id ?? "inbox");
   const [body, setBody] = useState("");
-  const [items, setItems] = useState<PocketItem[]>(() => loadItems());
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [items, setItems] = useState<PocketItem[]>(() => loadCaptures());
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       queueMicrotask(() => {
         setSaved(false);
         setBody("");
+        setPendingFile(null);
+        setSaveError(null);
       });
       // small delay so CSS transition fires
       requestAnimationFrame(() => setMounted(true));
     } else {
       queueMicrotask(() => setMounted(false));
     }
-  }, [open]);
+  }, [open ]);
 
   useEffect(() => {
     if (!open) return;
@@ -147,21 +59,92 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  function pocket() {
-    const clean = body.trim();
-    if (!clean) return;
-    const next: PocketItem[] = [
-      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type, body: clean, songId, createdAt: new Date().toISOString() },
-      ...items,
-    ].slice(0, 40);
+  function commitItem(item: PocketItem) {
+    const next = [item, ...items].slice(0, 40);
     setItems(next);
-    saveItems(next);
+    saveCaptures(next);
     setBody("");
+    setPendingFile(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
   }
 
+  /** Upload target: the routed song, or the shared captures folder. */
+  function uploadTarget() {
+    return songs.some((s) => s.id === songId) ? songId : CAPTURE_FOLDER;
+  }
+
+  /**
+   * Store a real file for this capture, then file it. If the capture is
+   * routed to a song, the asset also lands in that song's room (and so in
+   * the Vault, which reads room assets). Returns false when the file could
+   * not be stored — in that case NO capture is created: a voice memo
+   * without audio is exactly the fake this replaces.
+   */
+  async function storeAndCommit(
+    file: Blob,
+    fileName: string,
+    kind: "memo" | "other" | "artwork",
+    label: string,
+  ): Promise<boolean> {
+    setSaving(true);
+    setSaveError(null);
+    const target = uploadTarget();
+    const asset = await uploadCaptureFile(file, fileName, target, kind);
+    setSaving(false);
+    if (!asset) {
+      setSaveError("Couldn't store that file. Check your connection and that you're signed in, then try again.");
+      return false;
+    }
+    if (target !== CAPTURE_FOLDER) {
+      addSongAssets(target, [asset]);
+    }
+    commitItem({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      body: label,
+      songId,
+      createdAt: new Date().toISOString(),
+      asset,
+    });
+    return true;
+  }
+
+  async function handleRecorded(blob: Blob, durationSeconds: number) {
+    const ext = fileExtensionForMime(blob.type);
+    await storeAndCommit(blob, `voice-memo-${Date.now()}.${ext}`, "memo", `Voice memo · ${durationSeconds}s`);
+  }
+
+  async function pocket() {
+    if (saving) return;
+
+    if (isAttachmentType(type)) {
+      if (!pendingFile) {
+        setSaveError(type === "Photo" ? "Choose a photo first — a photo capture needs the actual photo." : "Choose a file first — a file capture needs the actual file.");
+        return;
+      }
+      await storeAndCommit(
+        pendingFile,
+        pendingFile.name,
+        type === "Photo" ? "artwork" : "other",
+        body.trim() || pendingFile.name,
+      );
+      return;
+    }
+
+    const clean = body.trim();
+    if (!clean) return;
+    commitItem({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      body: clean,
+      songId,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   const recent = items.slice(0, 3);
+  const canPocket = isAttachmentType(type) ? Boolean(pendingFile) : type === "Voice memo" ? false : Boolean(body.trim());
 
   if (!open && !mounted) return null;
 
@@ -208,7 +191,7 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => setType(item.label)}
+                  onClick={() => { setType(item.label); setSaveError(null); }}
                   className={`rounded-xl border-[0.5px] px-2 py-3 text-center text-sm ${
                     type === item.label
                       ? "border-[#534ab7] bg-[#eeedfe] text-[#534ab7]"
@@ -224,7 +207,37 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
             {/* Input area */}
             {type === "Voice memo" ? (
               <div className="rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4">
-                <VoiceRecorder onRecord={(desc) => setBody(desc)} />
+                <VoiceRecorder onRecorded={(blob, secs) => void handleRecorded(blob, secs)} />
+                {saving && <div className="pb-3 text-center text-xs text-white/50">Storing audio in the vault…</div>}
+              </div>
+            ) : isAttachmentType(type) ? (
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-white/15 bg-[#1e1e1b] px-4 py-8 text-sm text-white/70 transition hover:border-white/30"
+                >
+                  <span className="text-2xl">{type === "Photo" ? "◈" : "◻"}</span>
+                  <span>{pendingFile ? pendingFile.name : type === "Photo" ? "Choose a photo" : "Choose a file"}</span>
+                  <span className="text-[11px] text-white/35">Stored in the vault — not just described</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={type === "Photo" ? "image/*" : undefined}
+                  className="sr-only"
+                  onChange={(e) => {
+                    setPendingFile(e.target.files?.[0] ?? null);
+                    setSaveError(null);
+                    e.target.value = "";
+                  }}
+                />
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Optional note about this file"
+                  className="min-h-16 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/30"
+                />
               </div>
             ) : (
               <textarea
@@ -232,7 +245,6 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
                 onChange={(e) => setBody(e.target.value)}
                 placeholder={
                   type === "Link" ? "Paste link or reference"
-                  : type === "File" ? "Describe the file you need to attach"
                   : "Type a note or idea..."
                 }
                 className="min-h-24 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/30"
@@ -260,14 +272,25 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={pocket}
-              disabled={!body.trim()}
-              className="h-[52px] rounded-xl bg-white/10 px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
-            >
-              {saved ? "Pocketed ✓" : "Pocket it"}
-            </button>
+            {saveError && (
+              <div className="rounded-xl border-[0.5px] border-[#f05c5c]/40 bg-[#f05c5c]/10 px-4 py-3 text-sm text-[#f05c5c]">
+                {saveError}
+              </div>
+            )}
+
+            {type !== "Voice memo" && (
+              <button
+                type="button"
+                onClick={() => void pocket()}
+                disabled={!canPocket || saving}
+                className="h-[52px] rounded-xl bg-white/10 px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {saving ? "Storing…" : saved ? "Pocketed ✓" : "Pocket it"}
+              </button>
+            )}
+            {type === "Voice memo" && saved && (
+              <div className="text-center text-sm text-[#97c459]">Pocketed ✓</div>
+            )}
           </div>
 
           {recent.length > 0 && (
@@ -280,7 +303,10 @@ export function PocketSheet({ open, onClose }: { open: boolean; onClose: () => v
                     <div key={item.id} className="flex items-start gap-3 rounded-xl border-[0.5px] border-white/10 bg-[#1e1e1b] px-3 py-2.5">
                       <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">{item.type}</span>
                       <span className="min-w-0 flex-1 truncate text-xs text-white/70">{item.body}</span>
-                      <span className="shrink-0 text-[10px] text-white/30">{song?.title ?? "Inbox"}</span>
+                      {item.asset && <CaptureAssetPlayer asset={item.asset} compact />}
+                      <span className="shrink-0 text-[10px] text-white/30">
+                        {song?.title ?? (item.songId === "vault" ? "The Vault" : "Inbox")}
+                      </span>
                     </div>
                   );
                 })}

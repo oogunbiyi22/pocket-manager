@@ -17,7 +17,7 @@ const PROTECTED_PREFIXES = [
   "/radar", "/albums", "/beats", "/contracts", "/statements", "/financial",
   "/forecast", "/valuation", "/actions", "/capture", "/drop", "/pitch-kits",
   "/sync", "/pitching", "/career-twin", "/booking", "/events", "/venues",
-  "/radio", "/home", "/mobile", "/pocket", "/a", "/publishing",
+  "/radio", "/home", "/mobile", "/pocket", "/a", "/publishing", "/tools",
 ];
 
 // Public routes — never require auth
@@ -25,6 +25,10 @@ const PUBLIC_PREFIXES = ["/sign-in", "/onboarding", "/terms", "/privacy", "/api"
 
 function isProtected(pathname: string): boolean {
   if (pathname === "/") return false;
+  // Public EPK share pages (/epk/share/<token>) are intentionally public —
+  // the unguessable token is the credential. Everything else under /epk
+  // stays behind the auth guard.
+  if (pathname.startsWith("/epk/share/")) return false;
   if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + "?"))) return false;
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
@@ -36,7 +40,9 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    // microphone=(self): the Pocket voice recorder is a real MediaRecorder
+    // capture on our own origin — it was previously blocked outright.
+    "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
   );
   response.headers.set(
     "Strict-Transport-Security",
@@ -50,7 +56,9 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.groq.com https://api.anthropic.com https://api.openai.com https://itunes.apple.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.anthropic.com https://api.openai.com https://itunes.apple.com",
+      // Recorded voice memos play back from Supabase Storage signed URLs.
+      "media-src 'self' blob: https://*.supabase.co",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",

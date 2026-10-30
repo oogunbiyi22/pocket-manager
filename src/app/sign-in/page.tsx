@@ -13,6 +13,7 @@ function SignInContent() {
   const { signIn: pocketSignIn } = usePocket();
   const redirectTo = searchParams.get("redirect") ?? "/home";
   const errorHint = searchParams.get("error");
+  const resetDone = searchParams.get("reset") === "done";
   const defaultMode = searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +45,11 @@ function SignInContent() {
 
     if (mode === "forgot") {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/sign-in`,
+        // The recovery link must land on the set-new-password page, via
+        // the auth callback so the recovery code is exchanged for a
+        // session first. (It previously pointed back at /sign-in, where
+        // nothing consumed the recovery token — a dead end.)
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
       if (resetError) {
         setError(resetError.message);
@@ -177,6 +182,11 @@ function SignInContent() {
           </div>
 
           <div className="p-6">
+            {resetDone && mode === "sign-in" && (
+              <p className="mb-4 rounded-lg bg-[#97c459]/10 px-3 py-2 text-[13px] text-[#97c459]">
+                Password updated — sign in with your new password.
+              </p>
+            )}
             {/* Google auth — only on sign-in / sign-up */}
             {!isForgot && (
               <>

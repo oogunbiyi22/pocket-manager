@@ -6,6 +6,7 @@ import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getAuthHeaders } from "@/lib/supabase";
 import {
   formatGapEstimate,
   getNextRevenueAction,
@@ -74,13 +75,15 @@ export default function APage() {
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({
       api: "/api/v1/manager/chat",
+      // The server derives the plan from this session token — the body
+      // no longer carries a client-claimed plan.
+      headers: () => getAuthHeaders(),
       body: {
         artistName: profile.artistName ?? "Artist",
         managerName: profile.managerName ?? "REMY",
         page: "a",
         songs,
         platforms: platformConnections,
-        plan: profile.plan ?? "free",
       },
     }),
   });

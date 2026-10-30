@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePocket } from "@/components/pocket-provider";
 import { LogoMark } from "@/components/logo";
 import { formatGapEstimate, getNextRevenueAction, getRevenueGapSummary } from "@/lib/backstage-data";
@@ -55,7 +55,7 @@ type AddMode = "manual" | "isrc" | null;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { createSong, updateProfile, completeOnboarding, songs, profile, signedIn } = usePocket();
+  const { createSong, updateProfile, completeOnboarding, applyOnboardingSelections, songs, profile, signedIn } = usePocket();
   const summary = getRevenueGapSummary(songs);
   const nextAction = getNextRevenueAction(songs);
 
@@ -72,6 +72,62 @@ export default function OnboardingPage() {
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [gapRevealed, setGapRevealed] = useState(false);
   const [createdSongId, setCreatedSongId] = useState<string | null>(null);
+
+  // ISRC lookup — goes through the /api/musicbrainz server proxy (a direct
+  // browser call to musicbrainz.org is blocked by the app's own CSP).
+  const [mbLookup, setMbLookup] = useState<{
+    status: "idle" | "loading" | "found" | "not-found";
+    title?: string;
+    artist?: string;
+    releaseDate?: string;
+  }>({ status: "idle" });
+  const lookupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function lookupIsrc(code: string) {
+    const stripped = code.replace(/-/g, "").toUpperCase();
+    if (stripped.length !== 12) {
+      setMbLookup({ status: "idle" });
+      return;
+    }
+    setMbLookup({ status: "loading" });
+    try {
+      const res = await fetch(`/api/musicbrainz?endpoint=recording&query=${encodeURIComponent(`isrc:${stripped}`)}`);
+      if (!res.ok) throw new Error("lookup failed");
+      const data = (await res.json()) as {
+        recordings?: { title: string; "artist-credit"?: { name: string }[]; "first-release-date"?: string }[];
+      };
+      const rec = data.recordings?.[0];
+      if (!rec) {
+        setMbLookup({ status: "not-found" });
+        return;
+      }
+      setMbLookup({
+        status: "found",
+        title: rec.title,
+        artist: rec["artist-credit"]?.[0]?.name,
+        releaseDate: rec["first-release-date"],
+      });
+    } catch {
+      setMbLookup({ status: "not-found" });
+    }
+  }
+
+  function handleIsrcChange(value: string) {
+    const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    setIsrc(clean);
+    setMbLookup({ status: "idle" });
+    if (lookupTimeout.current) clearTimeout(lookupTimeout.current);
+    if (clean.length === 12) {
+      lookupTimeout.current = setTimeout(() => void lookupIsrc(clean), 600);
+    }
+  }
+
+  function applyMbResult() {
+    if (mbLookup.status !== "found") return;
+    if (mbLookup.title && !songTitle.trim()) setSongTitle(mbLookup.title);
+    if (mbLookup.releaseDate && !releaseDate) setReleaseDate(mbLookup.releaseDate);
+    setMbLookup({ status: "idle" });
+  }
   const postOnboardingRoute = createdSongId ? `/projects/${createdSongId}` : songs[0] ? `/projects/${songs[0].id}` : "/mobile";
 
   useEffect(() => {
@@ -225,13 +281,30 @@ export default function OnboardingPage() {
                   </div>
                   <input
                     value={isrc}
-                    onChange={(e) => setIsrc(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                    onChange={(e) => handleIsrcChange(e.target.value)}
                     placeholder="e.g. USRC17607839"
                     maxLength={12}
                     className="h-12 rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 font-mono text-white outline-none placeholder:text-white/25 focus:border-white/30"
                   />
                   {isrc.length > 0 && isrc.length < 12 && (
                     <p className="text-[11px] text-white/30">ISRC is 12 characters — {12 - isrc.length} more needed</p>
+                  )}
+                  {mbLookup.status === "loading" && (
+                    <p className="text-[11px] text-white/30">Looking up this ISRC…</p>
+                  )}
+                  {mbLookup.status === "found" && (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border-[0.5px] border-[#97c459]/30 bg-[#97c459]/10 px-4 py-3 text-sm text-[#97c459]">
+                      <span className="min-w-0 truncate">
+                        Found: {mbLookup.title}
+                        {mbLookup.artist ? ` — ${mbLookup.artist}` : ""}
+                      </span>
+                      <button type="button" onClick={applyMbResult} className="shrink-0 font-medium underline underline-offset-2">
+                        Use it
+                      </button>
+                    </div>
+                  )}
+                  {mbLookup.status === "not-found" && (
+                    <p className="text-[11px] text-white/30">No MusicBrainz match for that ISRC — you can still add the song manually below.</p>
                   )}
                   <input
                     value={songTitle}
@@ -465,6 +538,10 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => {
+                  // Persist the step 3/4 selections (distributor + PRO) onto
+                  // the song and platform connections before finishing —
+                  // they used to be silently discarded here.
+                  applyOnboardingSelections(createdSongId ?? songs[0]?.id ?? null, { distributor, pro });
                   completeOnboarding({ artistName: artistName.trim() || profile.artistName || "Artist", role: role.trim() || profile.role || "", vibe: "", currentProject: "", targetWindow: "", mainGoal: "" });
                   // Onboarding committed to provider (→ Supabase when signed in);
                   // drop the in-progress draft so a later visit starts clean.
@@ -514,13 +591,10 @@ export default function OnboardingPage() {
                 >
                   Create free account →
                 </button>
-                <button
-                  type="button"
-                  onClick={() => router.push(postOnboardingRoute)}
-                  className="h-14 w-full rounded-2xl border-[0.5px] border-white/15 text-base text-white/60 press"
-                >
-                  Open the app without account
-                </button>
+                {/* No guest mode: the app behind this step is account-only
+                    (proxy-protected), so the old "Open the app without
+                    account" button just bounced guests back to sign-in.
+                    Removed rather than faking a guest route. */}
               </div>
 
               <p className="text-center text-[11px] text-white/25">

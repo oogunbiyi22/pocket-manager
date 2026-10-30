@@ -85,21 +85,15 @@ export default function SettingsPage() {
 
 const API_INTEGRATIONS = [
   { name: "MusicBrainz", description: "ISRC lookup, metadata verification", free: true, envKey: null },
-  { name: "iTunes Search", description: "Apple Music catalog search, artwork", free: true, envKey: null },
   { name: "TheAudioDB", description: "Artist bios, photos, album art (free tier)", free: true, envKey: null },
   { name: "Bandsintown", description: "Live events and show data", free: true, envKey: null },
-  { name: "Lyrics.ovh", description: "Song lyrics lookup", free: true, envKey: null },
   { name: "Odesli / song.link", description: "Streaming links across all DSPs from any ISRC — no key needed", free: true, envKey: null },
-  { name: "Deezer", description: "Global charts, artist data, track search — no key needed", free: true, envKey: null },
-  { name: "Last.fm", description: "Similar artists, listener counts", free: true, envKey: "LASTFM_API_KEY" },
   { name: "TasteDive", description: "Similar artist recommendations for Career Twin", free: true, envKey: "TASTEDIVE_API_KEY" },
-  { name: "Genius", description: "Lyrics, annotations, song knowledge", free: true, envKey: "GENIUS_ACCESS_TOKEN" },
   { name: "Resend", description: "In-app email sending for pitch campaigns", free: true, envKey: "RESEND_API_KEY" },
-  { name: "Groq", description: "AI pitch generation (free tier)", free: true, envKey: "GROQ_API_KEY" },
-  { name: "Musixmatch", description: "Synchronized lyrics, lyric snippets", free: false, envKey: "MUSIXMATCH_API_KEY" },
+  { name: "Google Gemini", description: "A assistant chat — Free & Pro plans", free: true, envKey: "GEMINI_API_KEY" },
+  { name: "Anthropic Claude", description: "A assistant chat — Elite plan priority rail", free: true, envKey: "ANTHROPIC_API_KEY" },
   { name: "Songstats", description: "Live streaming stats, playlist placements", free: false, envKey: "SONGSTATS_API_KEY" },
   { name: "Radiostats", description: "Radio airplay analytics", free: false, envKey: "SONGSTATS_API_KEY" },
-  { name: "AI Mastering", description: "Automated audio mastering (premium)", free: false, envKey: "AIMASTERING_API_KEY" },
 ];
 
 function ApiIntegrationsStatus() {

@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { usePocket } from "@/components/pocket-provider";
+import { getAuthHeaders } from "@/lib/supabase";
 import {
   formatGapEstimate,
   getNextRevenueAction,
@@ -51,13 +52,15 @@ function ChatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({
       api: "/api/v1/manager/chat",
+      // The server derives the plan from this session token — the body
+      // no longer carries a client-claimed plan.
+      headers: () => getAuthHeaders(),
       body: {
         artistName: profile.artistName ?? "Artist",
         managerName: profile.managerName ?? "REMY",
         page: "overlay",
         songs,
         platforms: platformConnections,
-        plan: profile.plan ?? "free",
       },
     }),
   });

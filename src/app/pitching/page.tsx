@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { getSupabase } from "@/lib/supabase";
+import { sendStateFromDbStatus, type PitchDbStatus, type PitchSendState } from "@/lib/pitch-status";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ type Curator = {
   fit?: number;
 };
 
-type PitchStatus = "idle" | "generating" | "ready" | "sending" | "sent" | "error";
+type PitchStatus = "idle" | "generating" | "ready" | "opened" | "sending" | "sent" | "error";
 
 type Pitch = {
   curatorId: string;
@@ -31,7 +32,40 @@ type Pitch = {
   status: PitchStatus;
   error?: string;
   sentAt?: string;
+  /** user_playlist_pitches row id, once the pitch has been persisted */
+  savedId?: string;
 };
+
+/** Shape returned by GET/POST/PATCH /api/v1/pitches */
+type SavedPitch = {
+  id: string;
+  songId: string;
+  songTitle: string;
+  playlistName: string;
+  curatorName: string;
+  curatorEmail: string;
+  curatorHandle: string;
+  platform: string;
+  followers: string;
+  genre: string;
+  mood: string;
+  fitScore: number | null;
+  subject: string;
+  body: string;
+  status: PitchDbStatus;
+  sentDate: string;
+};
+
+function pitchStatusFromSaved(status: PitchDbStatus): PitchStatus {
+  const state = sendStateFromDbStatus(status);
+  if (state === "draft") return "ready";
+  if (state === "opened-in-mail") return "opened";
+  return "sent";
+}
+
+function curatorKey(playlistName: string, email: string) {
+  return `${playlistName}||${email.toLowerCase()}`;
+}
 
 // ─── CSV Parser ───────────────────────────────────────────────────────────────
 
@@ -97,7 +131,7 @@ function scoreFit(curator: Curator, genre?: string, mood?: string): number {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PitchingPage() {
-  const { songs, profile } = usePocket();
+  const { songs, profile, signedIn } = usePocket();
   const [songId, setSongId] = useState(songs[0]?.id ?? "");
   const [curators, setCurators] = useState<Curator[]>([]);
   const [pitches, setPitches] = useState<Record<string, Pitch>>({});
@@ -112,6 +146,204 @@ export default function PitchingPage() {
 
   const activeSong = songs.find((s) => s.id === songId) ?? songs[0];
 
+  // ── Persistence (user_playlist_pitches via /api/v1/pitches) ──────────────
+  // Until PATCH 005 is run the API reports persisted: false and the page
+  // keeps its original in-memory behavior — nothing below breaks offline.
+  const savedRowsRef = useRef<SavedPitch[]>([]);
+  const hydratedSongRef = useRef<string | null>(null);
+  const persistedRef = useRef(false);
+
+  const getToken = useCallback(async (): Promise<string | null> => {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  }, []);
+
+  /** Seed local pitch state from saved rows for curators already on screen. */
+  const seedPitchesFromRows = useCallback((rows: SavedPitch[], curatorList: Curator[]) => {
+    const byKey = new Map(curatorList.map((c) => [curatorKey(c.playlistName, c.email), c]));
+    setPitches((prev) => {
+      const next = { ...prev };
+      for (const row of rows) {
+        const curator = byKey.get(curatorKey(row.playlistName, row.curatorEmail));
+        if (!curator) continue;
+        // Don't clobber work happening right now in this session.
+        const local = next[curator.id];
+        if (local && (local.status === "generating" || local.status === "sending")) continue;
+        next[curator.id] = {
+          curatorId: curator.id,
+          subject: row.subject,
+          body: row.body,
+          status: pitchStatusFromSaved(row.status),
+          sentAt: row.sentDate || undefined,
+          savedId: row.id,
+        };
+      }
+      return next;
+    });
+  }, []);
+
+  // Load saved pitches for the active song; restore curators that were
+  // pitched in an earlier session even if the CSV hasn't been re-imported.
+  useEffect(() => {
+    if (!signedIn || !activeSong) return;
+    if (hydratedSongRef.current === activeSong.id) return;
+    hydratedSongRef.current = activeSong.id;
+    let cancelled = false;
+
+    (async () => {
+      const token = await getToken();
+      if (!token || cancelled) return;
+      try {
+        const res = await fetch(`/api/v1/pitches?songId=${encodeURIComponent(activeSong.id)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled || !data.persisted || !Array.isArray(data.pitches)) return;
+        persistedRef.current = true;
+        const rows = data.pitches as SavedPitch[];
+        savedRowsRef.current = rows;
+        if (rows.length === 0) return;
+
+        setCurators((current) => {
+          const known = new Set(current.map((c) => curatorKey(c.playlistName, c.email)));
+          const restored: Curator[] = rows
+            .filter((row) => !known.has(curatorKey(row.playlistName, row.curatorEmail)))
+            .map((row) => ({
+              id: `saved-${row.id}`,
+              name: row.curatorName || row.curatorHandle || row.playlistName,
+              email: row.curatorEmail,
+              playlistName: row.playlistName,
+              genre: row.genre || undefined,
+              platform: row.platform || undefined,
+              followers: row.followers || undefined,
+              fit: row.fitScore ?? undefined,
+            }));
+          if (restored.length === 0) return current;
+          setSelectedIds((prev) => new Set([...prev, ...restored.map((c) => c.id)]));
+          const merged = [...current, ...restored];
+          seedPitchesFromRows(rows, merged);
+          return merged;
+        });
+        seedPitchesFromRows(rows, curators);
+      } catch {
+        // Offline or pre-migration — in-memory mode.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn, activeSong?.id]);
+
+  /** Persist pitch text (create the row on first save). Never touches send state on edits. */
+  const persistPitchContent = useCallback(async (curator: Curator, pitch: Pitch) => {
+    if (!signedIn || !activeSong) return;
+    const token = await getToken();
+    if (!token) return;
+    const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+    try {
+      if (pitch.savedId) {
+        await fetch("/api/v1/pitches", {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ id: pitch.savedId, subject: pitch.subject, body: pitch.body }),
+        });
+        return;
+      }
+      const res = await fetch("/api/v1/pitches", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          songId: activeSong.id,
+          songTitle: activeSong.title,
+          playlistName: curator.playlistName,
+          curatorName: curator.name,
+          curatorEmail: curator.email,
+          platform: curator.platform ?? "",
+          followers: curator.followers ?? "",
+          genre: curator.genre ?? "",
+          fitScore: curator.fit ?? null,
+          subject: pitch.subject,
+          body: pitch.body,
+          sendState: "draft",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const saved = data.pitch as SavedPitch | undefined;
+        if (saved?.id) {
+          // Sync the true saved state back — re-saving a pitch for an
+          // already-sent curator keeps its sent record, and the UI must
+          // reflect that rather than pretending it's a fresh draft.
+          setPitches((prev) => {
+            const local = prev[curator.id];
+            if (!local) return prev;
+            return {
+              ...prev,
+              [curator.id]: {
+                ...local,
+                savedId: saved.id,
+                status: pitchStatusFromSaved(saved.status),
+                sentAt: saved.sentDate || local.sentAt,
+              },
+            };
+          });
+        }
+      }
+    } catch {
+      // Keep the local copy — same behavior as before persistence.
+    }
+  }, [signedIn, activeSong, getToken]);
+
+  /** Persist a send-state move (draft → opened-in-mail → sent), validated server-side. */
+  const persistPitchState = useCallback(async (curator: Curator, pitch: Pitch, sendState: PitchSendState) => {
+    if (!signedIn || !activeSong) return;
+    const token = await getToken();
+    if (!token) return;
+    const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+    try {
+      if (pitch.savedId) {
+        await fetch("/api/v1/pitches", {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ id: pitch.savedId, sendState }),
+        });
+      } else {
+        const res = await fetch("/api/v1/pitches", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            songId: activeSong.id,
+            songTitle: activeSong.title,
+            playlistName: curator.playlistName,
+            curatorName: curator.name,
+            curatorEmail: curator.email,
+            platform: curator.platform ?? "",
+            followers: curator.followers ?? "",
+            genre: curator.genre ?? "",
+            fitScore: curator.fit ?? null,
+            subject: pitch.subject,
+            body: pitch.body,
+            sendState,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.pitch?.id) {
+            const savedId = data.pitch.id as string;
+            setPitches((prev) => (prev[curator.id] ? { ...prev, [curator.id]: { ...prev[curator.id], savedId } } : prev));
+          }
+        }
+      }
+    } catch {
+      // Local state already reflects the move; storage catches up next save.
+    }
+  }, [signedIn, activeSong, getToken]);
+
   // Score all curators against current song
   const scoredCurators = useMemo(() =>
     curators
@@ -121,7 +353,8 @@ export default function PitchingPage() {
   );
 
   const selectedCurators = scoredCurators.filter((c) => selectedIds.has(c.id));
-  const readyCount = Object.values(pitches).filter((p) => p.status === "ready" || p.status === "sent").length;
+  const readyCount = Object.values(pitches).filter((p) => p.status === "ready" || p.status === "opened" || p.status === "sent").length;
+  const openedCount = Object.values(pitches).filter((p) => p.status === "opened").length;
   const sentCount = Object.values(pitches).filter((p) => p.status === "sent").length;
 
   // ── CSV Import ──────────────────────────────────────────────────────────────
@@ -135,6 +368,7 @@ export default function PitchingPage() {
       const parsed = parseCSV(text);
       setCurators(parsed);
       setSelectedIds(new Set(parsed.slice(0, 50).map((c) => c.id)));
+      seedPitchesFromRows(savedRowsRef.current, parsed);
       setTab("curators");
     } catch {
       alert("Could not parse CSV. Make sure it has a header row with email, name, and playlist columns.");
@@ -142,7 +376,7 @@ export default function PitchingPage() {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";
     }
-  }, []);
+  }, [seedPitchesFromRows]);
 
   // ── Generate single pitch ────────────────────────────────────────────────────
 
@@ -175,7 +409,6 @@ export default function PitchingPage() {
             isrc: activeSong.isrc,
           },
           curator,
-          plan: profile.plan ?? "free",
         }),
       });
 
@@ -186,14 +419,16 @@ export default function PitchingPage() {
       }
 
       const data = await res.json();
+      const generated: Pitch = { curatorId: curator.id, subject: data.subject, body: data.body, status: "ready" };
       setPitches((prev) => ({
         ...prev,
-        [curator.id]: { curatorId: curator.id, subject: data.subject, body: data.body, status: "ready" },
+        [curator.id]: { ...generated, savedId: prev[curator.id]?.savedId },
       }));
+      void persistPitchContent(curator, generated);
     } catch {
       setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], status: "error", error: "Network error" } }));
     }
-  }, [activeSong, artistContact, emotionalStory, profile]);
+  }, [activeSong, artistContact, emotionalStory, profile, persistPitchContent]);
 
   // ── Generate all selected ────────────────────────────────────────────────────
 
@@ -212,7 +447,7 @@ export default function PitchingPage() {
 
   const sendPitch = useCallback(async (curator: Curator) => {
     const pitch = pitches[curator.id];
-    if (!pitch || pitch.status !== "ready") return;
+    if (!pitch || (pitch.status !== "ready" && pitch.status !== "opened")) return;
 
     setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], status: "sending" } }));
 
@@ -231,19 +466,46 @@ export default function PitchingPage() {
       const data = await res.json();
 
       if (data.method === "mailto") {
-        // Open in mail client as fallback
+        // The mail client merely opened with the pitch loaded — the artist
+        // may or may not press send in their mail app. Record the honest
+        // state ("opened in mail"), never "sent".
         const mailtoUrl = `mailto:${curator.email}?subject=${encodeURIComponent(pitch.subject)}&body=${encodeURIComponent(pitch.body)}`;
         window.open(mailtoUrl);
-        setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], status: "sent", sentAt: new Date().toISOString() } }));
+        const openedPitch: Pitch = { ...pitch, status: "opened" };
+        setPitches((prev) => ({ ...prev, [curator.id]: openedPitch }));
+        void persistPitchState(curator, openedPitch, "opened-in-mail");
       } else if (data.ok) {
-        setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], status: "sent", sentAt: new Date().toISOString() } }));
+        // The server actually delivered it — "sent" is truthful here.
+        const sentPitch: Pitch = { ...pitch, status: "sent", sentAt: new Date().toISOString() };
+        setPitches((prev) => ({ ...prev, [curator.id]: sentPitch }));
+        void persistPitchState(curator, sentPitch, "sent");
       } else {
         setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], status: "error", error: data.error } }));
       }
     } catch {
       setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], status: "error", error: "Send failed" } }));
     }
-  }, [pitches, artistContact]);
+  }, [pitches, artistContact, persistPitchState]);
+
+  // ── Mark as sent (artist confirms they sent it from their mail app) ───────
+
+  const markAsSent = useCallback((curator: Curator) => {
+    const pitch = pitches[curator.id];
+    if (!pitch || pitch.status !== "opened") return;
+    const sentPitch: Pitch = { ...pitch, status: "sent", sentAt: new Date().toISOString() };
+    setPitches((prev) => ({ ...prev, [curator.id]: sentPitch }));
+    void persistPitchState(curator, sentPitch, "sent");
+  }, [pitches, persistPitchState]);
+
+  // ── Opened in mail (the card's manual mailto link — same honest state) ────
+
+  const markOpenedInMail = useCallback((curator: Curator) => {
+    const pitch = pitches[curator.id];
+    if (!pitch || pitch.status === "sent" || pitch.status === "opened") return;
+    const openedPitch: Pitch = { ...pitch, status: "opened" };
+    setPitches((prev) => ({ ...prev, [curator.id]: openedPitch }));
+    void persistPitchState(curator, openedPitch, "opened-in-mail");
+  }, [pitches, persistPitchState]);
 
   // ── Send all ready ────────────────────────────────────────────────────────────
 
@@ -292,6 +554,9 @@ export default function PitchingPage() {
               <span className="rounded-full bg-white/10 px-3 py-1">{curators.length} curators loaded</span>
               <span className="rounded-full bg-white/10 px-3 py-1">{selectedIds.size} selected</span>
               <span className="rounded-full bg-[#97c459]/20 px-3 py-1 text-[#97c459]">{readyCount} pitches ready</span>
+              {openedCount > 0 && (
+                <span className="rounded-full bg-[#ef9f27]/20 px-3 py-1 text-[#ef9f27]">{openedCount} opened in mail</span>
+              )}
               <span className="rounded-full bg-[#ef9f27]/20 px-3 py-1 text-[#ef9f27]">{sentCount} sent</span>
             </div>
           )}
@@ -414,6 +679,7 @@ export default function PitchingPage() {
                       const parsed = parseCSV(text);
                       setCurators(parsed);
                       setSelectedIds(new Set(parsed.slice(0, 50).map((c) => c.id)));
+                      seedPitchesFromRows(savedRowsRef.current, parsed);
                       setTab("curators");
                     } catch {
                       alert("Could not load verified list.");
@@ -539,7 +805,8 @@ export default function PitchingPage() {
                         {pitch && (
                           <div className="shrink-0">
                             {pitch.status === "generating" && <span className="text-[11px] text-white/50">writing…</span>}
-                            {pitch.status === "ready" && <span className="rounded-full bg-[#97c459]/10 px-2 py-0.5 text-[10px] text-[#97c459]">Ready</span>}
+                            {pitch.status === "ready" && <span className="rounded-full bg-[#97c459]/10 px-2 py-0.5 text-[10px] text-[#97c459]">Draft</span>}
+                            {pitch.status === "opened" && <span className="rounded-full bg-[#ef9f27]/15 px-2 py-0.5 text-[10px] text-[#ef9f27]">Opened in Mail</span>}
                             {pitch.status === "sent" && <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] text-white">Sent ✓</span>}
                             {pitch.status === "error" && <span className="rounded-full bg-[#f05c5c]/10 px-2 py-0.5 text-[10px] text-[#f05c5c]">Error</span>}
                           </div>
@@ -568,8 +835,8 @@ export default function PitchingPage() {
               <>
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-white/90">{readyCount} pitches ready · {sentCount} sent</div>
-                    <div className="mt-0.5 text-[11px] text-white/50">Review each pitch before sending, or send all at once.</div>
+                    <div className="text-sm font-medium text-white/90">{readyCount} pitches · {sentCount} sent{openedCount > 0 ? ` · ${openedCount} opened in mail (not sent yet)` : ""}</div>
+                    <div className="mt-0.5 text-[11px] text-white/50">Review each pitch before sending, or send all at once. Pitches opened in your mail app only count as sent once you mark them.</div>
                   </div>
                   <button
                     type="button"
@@ -592,10 +859,16 @@ export default function PitchingPage() {
                           curator={curator}
                           pitch={pitch}
                           onSend={() => sendPitch(curator)}
+                          onMarkSent={() => markAsSent(curator)}
+                          onOpenInMail={() => markOpenedInMail(curator)}
                           onRegenerate={() => generatePitch(curator)}
                           onEdit={(field, value) =>
                             setPitches((prev) => ({ ...prev, [curator.id]: { ...prev[curator.id], [field]: value } }))
                           }
+                          onSaveEdits={() => {
+                            const current = pitches[curator.id];
+                            if (current) void persistPitchContent(curator, current);
+                          }}
                         />
                       );
                     })}
@@ -615,21 +888,28 @@ function PitchCard({
   curator,
   pitch,
   onSend,
+  onMarkSent,
+  onOpenInMail,
   onRegenerate,
   onEdit,
+  onSaveEdits,
 }: {
   curator: Curator;
   pitch: Pitch;
   onSend: () => void;
+  onMarkSent: () => void;
+  onOpenInMail: () => void;
   onRegenerate: () => void;
   onEdit: (field: "subject" | "body", value: string) => void;
+  onSaveEdits: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
   const statusLabel = {
     idle: null,
     generating: <span className="text-[11px] text-white/50">Generating…</span>,
-    ready: <span className="rounded-full bg-[#97c459]/10 px-2 py-0.5 text-[10px] text-[#97c459]">Ready to send</span>,
+    ready: <span className="rounded-full bg-[#97c459]/10 px-2 py-0.5 text-[10px] text-[#97c459]">Draft</span>,
+    opened: <span className="rounded-full bg-[#ef9f27]/15 px-2 py-0.5 text-[10px] text-[#ef9f27]">Opened in Mail — not sent yet</span>,
     sending: <span className="text-[11px] text-white/50">Sending…</span>,
     sent: <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] text-white">Sent ✓</span>,
     error: <span className="rounded-full bg-[#f05c5c]/10 px-2 py-0.5 text-[10px] text-[#f05c5c]">{pitch.error ?? "Error"}</span>,
@@ -662,6 +942,7 @@ function PitchCard({
             <input
               value={pitch.subject}
               onChange={(e) => onEdit("subject", e.target.value)}
+              onBlur={onSaveEdits}
               disabled={pitch.status === "sent"}
               className="h-10 w-full rounded-lg border-[0.5px] border-white/10 bg-white/5 px-3 text-sm text-white/90 outline-none focus:border-[#7c6fef]/50 disabled:opacity-50"
             />
@@ -671,6 +952,7 @@ function PitchCard({
             <textarea
               value={pitch.body}
               onChange={(e) => onEdit("body", e.target.value)}
+              onBlur={onSaveEdits}
               disabled={pitch.status === "sent"}
               rows={8}
               className="w-full rounded-xl border-[0.5px] border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/90 outline-none focus:border-[#7c6fef]/50 disabled:opacity-50"
@@ -687,6 +969,15 @@ function PitchCard({
                 {pitch.status === "sending" ? "Sending…" : `Send to ${curator.email}`}
               </button>
             )}
+            {pitch.status === "opened" && (
+              <button
+                type="button"
+                onClick={onMarkSent}
+                className="rounded-lg bg-[#97c459] px-4 py-2 text-sm font-medium text-[#0a0a0a] transition active:scale-95"
+              >
+                I sent it — mark as sent
+              </button>
+            )}
             <button
               type="button"
               onClick={onRegenerate}
@@ -694,12 +985,16 @@ function PitchCard({
             >
               Regenerate
             </button>
-            <a
-              href={`mailto:${curator.email}?subject=${encodeURIComponent(pitch.subject)}&body=${encodeURIComponent(pitch.body)}`}
+            <button
+              type="button"
+              onClick={() => {
+                window.open(`mailto:${curator.email}?subject=${encodeURIComponent(pitch.subject)}&body=${encodeURIComponent(pitch.body)}`);
+                onOpenInMail();
+              }}
               className="rounded-lg border-[0.5px] border-white/10 px-4 py-2 text-sm text-white/60 hover:bg-white/5 transition"
             >
               Open in Mail
-            </a>
+            </button>
           </div>
         </div>
       )}

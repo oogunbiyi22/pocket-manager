@@ -33,7 +33,7 @@ Pocket Manager filter:
 - `NEXT_PUBLIC_SUPABASE_URL` ✓
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` ✓
 - `SUPABASE_SERVICE_ROLE_KEY` ✓
-- `GROQ_API_KEY` ✓
+- ~~`GROQ_API_KEY`~~ — removed 2026-10-28: no route in the codebase ever read it (see AI stack note below); drop it from Vercel too when convenient
 - `STRIPE_SECRET_KEY` ✓ (live key)
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` ✓ (live key)
 - `STRIPE_WEBHOOK_SECRET` — PENDING (create webhook in Stripe dashboard → Developers → Webhooks → endpoint: https://pocketmanager.online/api/stripe/webhook, events: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted)

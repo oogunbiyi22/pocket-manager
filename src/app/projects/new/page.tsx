@@ -181,9 +181,10 @@ export default function NewProjectPage() {
     if (!isValidIsrc(raw)) { setMbLookup({ status: "idle" }); return; }
     setMbLookup({ status: "loading" });
     try {
+      // Via the /api/musicbrainz server proxy — a direct browser call to
+      // musicbrainz.org is blocked by the app's own CSP connect-src.
       const res = await fetch(
-        `https://musicbrainz.org/ws/2/isrc/${stripped}?fmt=json&inc=recordings`,
-        { headers: { "User-Agent": "PocketManager/0.1 (hello@pocketmanager.app)" } },
+        `/api/musicbrainz?endpoint=recording&query=${encodeURIComponent(`isrc:${stripped}`)}`,
       );
       if (!res.ok) throw new Error("not found");
       const data = await res.json() as { recordings?: { title: string; "artist-credit"?: { name: string }[]; "first-release-date"?: string }[] };

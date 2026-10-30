@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { resolveAppOrigin, resolveAppRedirectUrl } from "@/lib/checkout-urls";
 
 /**
  * Resolve the authenticated Supabase user from the Bearer token.
@@ -101,13 +102,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Please sign in to upgrade." }, { status: 401 });
     }
 
-    // Determine safe origin — only allow our own domain
-    const origin = req.headers.get("origin") ?? "https://pocketmanager.online";
-    const allowedOrigins = ["https://pocketmanager.online", "http://localhost:3000", "https://pocketmanager.vercel.app"];
-    const safeOrigin = allowedOrigins.includes(origin) ? origin : "https://pocketmanager.online";
+    // Determine safe origin — only allow our own domains
+    const safeOrigin = resolveAppOrigin(req.headers.get("origin"));
 
-    const successUrl = parsed.data.successUrl ?? `${safeOrigin}/settings?upgraded=${planKey}`;
-    const cancelUrl = parsed.data.cancelUrl ?? `${safeOrigin}/settings`;
+    // Client-supplied redirect URLs are honored only on our own origins;
+    // anything else (open-redirect attempt, typo, stale domain) falls back
+    // to the defaults built from the safe origin.
+    const successUrl = resolveAppRedirectUrl(
+      parsed.data.successUrl,
+      `${safeOrigin}/billing?checkout=complete`,
+    );
+    const cancelUrl = resolveAppRedirectUrl(parsed.data.cancelUrl, `${safeOrigin}/billing`);
 
     const stripe = getStripe();
 
@@ -153,7 +158,7 @@ export async function POST(req: NextRequest) {
         metadata: { plan: planKey, supabase_user_id: user.id },
       },
       metadata: { plan: planKey, supabase_user_id: user.id },
-      success_url: `${successUrl}&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${successUrl}${successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
     };
 

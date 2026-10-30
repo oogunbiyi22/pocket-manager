@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { NextResponse, type NextRequest } from "next/server";
 
 /** Admin client — bypasses Row Level Security. Use ONLY in server-side webhooks and trusted admin operations. */
 export function getAdminSupabase() {
@@ -24,4 +25,45 @@ export function getServerSupabase() {
   return createClient(url, key, {
     auth: { persistSession: false },
   });
+}
+
+/**
+ * Bearer-token auth for API routes (the pattern /api/v1/beats and
+ * /api/v1/pitches established): resolve the caller's Supabase session
+ * token to a user, and hand back the admin client for user-scoped
+ * queries. Returns a ready-to-return error response on failure.
+ */
+export async function requireApiUser(req: NextRequest) {
+  const auth = req.headers.get("Authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) {
+    return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  const anon = getServerSupabase();
+  if (!anon) {
+    return { response: NextResponse.json({ error: "Service unavailable" }, { status: 503 }) };
+  }
+  const { data: { user }, error } = await anon.auth.getUser(token);
+  if (error || !user) {
+    return { response: NextResponse.json({ error: "Invalid session" }, { status: 401 }) };
+  }
+  const admin = getAdminSupabase();
+  if (!admin) {
+    return { response: NextResponse.json({ error: "Service unavailable" }, { status: 503 }) };
+  }
+  return { user, admin };
+}
+
+/** PostgREST codes that mean "this table/column isn't migrated yet". */
+export function isMissingTable(
+  error: { code?: string; message?: string } | null,
+  table: string,
+): boolean {
+  if (!error) return false;
+  if (["42P01", "PGRST205", "42703", "PGRST204"].includes(error.code ?? "")) return true;
+  return Boolean(
+    error.message &&
+      /does not exist|schema cache|could not find/i.test(error.message) &&
+      error.message.includes(table),
+  );
 }

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { formatMoney } from "@/lib/backstage-data";
+import { getSupabase } from "@/lib/supabase";
 
 type BeatLicense = {
   id: string;
@@ -17,8 +18,36 @@ type BeatLicense = {
 };
 
 export default function BeatsPage() {
-  const { songs } = usePocket();
+  const { songs, signedIn } = usePocket();
   const [licenses, setLicenses] = useState<BeatLicense[]>([]);
+
+  // Load persisted licenses. If the API isn't reachable or the beat_licenses
+  // table doesn't exist yet (PATCH 004 not run), the page quietly keeps its
+  // original in-memory behavior.
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    async function load() {
+      const token = await getAccessToken();
+      if (!token) return;
+      try {
+        const res = await fetch("/api/v1/beats", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data.persisted && Array.isArray(data.licenses)) {
+          setLicenses(data.licenses as BeatLicense[]);
+        }
+      } catch {
+        // Offline or pre-migration — in-memory mode.
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
   const [form, setForm] = useState({
     songId: songs[0]?.id ?? "",
     buyer: "",
@@ -44,24 +73,55 @@ export default function BeatsPage() {
       ].join("\n")
     : "Add a song before creating a beat license.";
 
-  function addLicense() {
+  async function addLicense() {
     if (!form.songId || !form.buyer.trim()) {
       return;
     }
 
-    setLicenses((current) => [
-      {
-        id: `${form.songId}-${Date.now()}`,
-        songId: form.songId,
-        buyer: form.buyer.trim(),
-        type: form.type,
-        amount: Number(form.amount) || 0,
-        date: form.date,
-        expires: form.expires,
-      },
-      ...current,
-    ]);
+    const license: BeatLicense = {
+      id: `${form.songId}-${Date.now()}`,
+      songId: form.songId,
+      buyer: form.buyer.trim(),
+      type: form.type,
+      amount: Number(form.amount) || 0,
+      date: form.date,
+      expires: form.expires,
+    };
+    setLicenses((current) => [license, ...current]);
     setForm((current) => ({ ...current, buyer: "", amount: "", expires: "" }));
+
+    // Persist in the background; the local copy above stays either way, so
+    // the page behaves exactly as before until the table exists.
+    if (!signedIn) return;
+    const token = await getAccessToken();
+    if (!token) return;
+    try {
+      const res = await fetch("/api/v1/beats", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          songId: license.songId,
+          buyer: license.buyer,
+          type: license.type,
+          amount: license.amount,
+          date: license.date,
+          expires: license.expires,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.license?.id) {
+          setLicenses((current) =>
+            current.map((item) => (item.id === license.id ? { ...item, id: data.license.id as string } : item)),
+          );
+        }
+      }
+    } catch {
+      // Keep the local copy — same behavior as before persistence.
+    }
   }
 
   return (
@@ -200,6 +260,13 @@ export default function BeatsPage() {
       </main>
     </AppShell>
   );
+}
+
+async function getAccessToken(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
 }
 
 function getLicenseConflicts(licenses: BeatLicense[]) {

@@ -4,26 +4,31 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
 import { formatGapEstimate, getRevenueActionQueue } from "@/lib/backstage-data";
+import { isActionLocked, isPaidPlan, normalizePlan } from "@/lib/plans";
 
 export default function ActionsPage() {
-  const { completeRevenueAction, songs } = usePocket();
+  const { completeRevenueAction, songs, profile } = usePocket();
   const queue = getRevenueActionQueue(songs);
+  const plan = normalizePlan(profile.plan);
+  const paid = isPaidPlan(plan);
 
   return (
     <AppShell title="Action Queue" eyebrow="Gap engine">
       <main className="mx-auto max-w-3xl rounded-[24px] border-[0.5px] border-white/[0.08] bg-[#141412] p-5 text-white/90">
         <section className="rounded-xl border-[0.5px] border-white/[0.08] bg-[#0a0a0a] p-5 text-white">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55">Next Action Engine</div>
-          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">One action is free. The full queue is Pro.</h2>
+          <h2 className="mt-3 text-4xl font-normal tracking-[-0.03em]">{paid ? "The full queue is yours." : "One action is free. The full queue is Pro."}</h2>
           <p className="mt-3 text-sm leading-6 text-white/60">
-            Pocket sorts gaps by value, ease, and platform importance. Free users see the top action; Pro unlocks the whole queue.
+            {paid
+              ? "Pocket sorts gaps by value, ease, and platform importance. Every action below is open on your plan."
+              : "Pocket sorts gaps by value, ease, and platform importance. Free users see the top action; Pro unlocks the whole queue."}
           </p>
         </section>
 
         <section className="mt-5 space-y-3">
           {queue.length ? (
             queue.map((item, index) => {
-              const locked = index > 0;
+              const locked = isActionLocked(plan, index);
 
               return (
                 <article key={item.id} className="rounded-xl border-[0.5px] border-white/10 bg-white/5 p-4">
@@ -64,7 +69,7 @@ export default function ActionsPage() {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {locked ? (
-                      <Link href="/settings" className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white/90">
+                      <Link href="/billing" className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white/90">
                         Start Pro trial
                       </Link>
                     ) : (

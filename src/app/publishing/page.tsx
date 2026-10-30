@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { usePocket } from "@/components/pocket-provider";
+import { getAuthHeaders } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,12 +125,11 @@ In 3 bullet points, give the most important publishing actions this artist shoul
 
       const res = await fetch("/api/v1/manager/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
         body: JSON.stringify({
           messages: [{ role: "user", content: prompt }],
           artistName: profile.artistName ?? "Artist",
           songs,
-          plan: profile.plan ?? "free",
         }),
       });
 

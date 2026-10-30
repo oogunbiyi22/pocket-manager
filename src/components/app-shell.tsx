@@ -56,12 +56,24 @@ function IconProfile({ active }: { active: boolean }) {
   );
 }
 
+function IconTools({ active }: { active: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
 // ─── Navigation ────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { href: "/mobile", label: "Home", Icon: IconHome },
   { href: "/projects", label: "Rooms", Icon: IconWork },
   { href: "/vault", label: "Vault", Icon: IconSignal },
   { href: "/harvest", label: "Gap", Icon: IconHarvest },
+  { href: "/tools", label: "Tools", Icon: IconTools },
   { href: "/settings", label: "Settings", Icon: IconProfile },
 ] as const;
 
@@ -92,6 +104,15 @@ function getActiveSurface(pathname: string): string {
     pathname.startsWith("/platforms") ||
     pathname.startsWith("/notifications")
   ) return "Settings";
+  if (
+    pathname.startsWith("/tools") ||
+    pathname.startsWith("/venues") ||
+    pathname.startsWith("/radio") ||
+    pathname.startsWith("/sync") ||
+    pathname.startsWith("/booking") ||
+    pathname.startsWith("/events") ||
+    pathname.startsWith("/studio")
+  ) return "Tools";
   if (pathname.startsWith("/pocket") || pathname.startsWith("/drop") || pathname.startsWith("/capture")) return "Home";
   if (pathname.startsWith("/a") || pathname.startsWith("/manager")) return "Home";
   return "Home";
@@ -250,7 +271,7 @@ export function AppShell({
       {/* ── Floating mobile tab bar ──────────────────────────────── */}
       <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
         <nav
-          className="mx-3 mb-3 grid grid-cols-5 rounded-2xl px-1 py-2"
+          className="mx-3 mb-3 grid grid-cols-6 rounded-2xl px-1 py-2"
           style={{
             background: "linear-gradient(180deg, rgba(13,13,11,0.97) 0%, rgba(13,13,11,0.99) 100%)",
             backdropFilter: "blur(60px) saturate(200%)",

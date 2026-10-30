@@ -28,7 +28,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="mb-3 text-base font-medium text-white/80">3. AI Processing</h2>
-              <p>The A assistant uses your catalog metadata to provide context-aware recommendations. When you use the Pro plan, queries may be processed by Anthropic&apos;s Claude API. Free plan queries are processed by Groq. Your catalog data is sent with queries but is not stored by these third-party providers beyond the scope of individual requests.</p>
+              <p>The A assistant uses your catalog metadata to provide context-aware recommendations. On the Free and Pro plans, queries are processed by Google&apos;s Gemini API. On the Elite plan, queries may be processed by Anthropic&apos;s Claude API. Your catalog data is sent with queries but is not stored by these third-party providers beyond the scope of individual requests.</p>
             </section>
 
             <section>
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="mb-3 text-base font-medium text-white/80">5. Third-Party Services</h2>
-              <p>We use the following third-party services: Supabase (database and auth), Stripe (payment processing — they never share your full card details with us), Groq and Anthropic (AI processing), and Vercel (hosting). Each has their own privacy policy.</p>
+              <p>We use the following third-party services: Supabase (database and auth), Stripe (payment processing — they never share your full card details with us), Google and Anthropic (AI processing), and Vercel (hosting). Each has their own privacy policy.</p>
             </section>
 
             <section>
